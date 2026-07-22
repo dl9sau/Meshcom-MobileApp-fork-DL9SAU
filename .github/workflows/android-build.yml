@@ -67,6 +67,14 @@ jobs:
           cp resources/splash-dark.png assets/splash-dark.png
           npx capacitor-assets generate --android
 
+      # use a fixed debug keystore so every build is signed identically -> you can
+      # install a new build over the previous one without uninstalling (keeps DB +
+      # BLE PIN). Debug key with standard credentials, not a secret.
+      - name: Install fixed debug keystore
+        run: |
+          mkdir -p ~/.android
+          cp ci/debug.keystore ~/.android/debug.keystore
+
       - name: Build debug APK
         run: |
           chmod +x android/gradlew
