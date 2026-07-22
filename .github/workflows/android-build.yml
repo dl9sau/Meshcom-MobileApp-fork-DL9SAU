@@ -19,6 +19,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # derive the APK name from the app version in Info.tsx + the short git hash
+      # (same hash vite injects into the app, so filename == in-app version)
+      - name: Compute version and APK name
+        run: |
+          HASH=$(git rev-parse --short HEAD)
+          APP_VERSION=$(grep -oP 'App Version:\s*\K[0-9]+(\.[0-9]+)+' src/pages/Info.tsx | head -1)
+          APP_VERSION=${APP_VERSION:-0.0}
+          echo "GIT_HASH=${HASH}" >> "$GITHUB_ENV"
+          echo "APP_VERSION=${APP_VERSION}" >> "$GITHUB_ENV"
+          echo "APK_NAME=Meshcom-${APP_VERSION}-DL9SAU-g${HASH}.apk" >> "$GITHUB_ENV"
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -53,23 +64,24 @@ jobs:
           ./gradlew assembleDebug
 
       - name: Rename APK
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk meshcom-wip-${{ github.run_number }}.apk
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk "${{ env.APK_NAME }}"
 
       # available on the Actions run even if the release step is skipped
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: meshcom-wip-apk
-          path: meshcom-wip-${{ github.run_number }}.apk
+          name: ${{ env.APK_NAME }}
+          path: ${{ env.APK_NAME }}
 
       - name: Publish prerelease
         uses: softprops/action-gh-release@v2
         with:
           prerelease: true
-          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || format('wip-{0}', github.run_number) }}
-          name: ${{ github.ref_type == 'tag' && github.ref_name || format('WIP build {0}', github.run_number) }}
-          files: meshcom-wip-${{ github.run_number }}.apk
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || format('wip-g{0}', env.GIT_HASH) }}
+          name: Meshcom ${{ env.APP_VERSION }}-DL9SAU-g${{ env.GIT_HASH }}
+          files: ${{ env.APK_NAME }}
           body: |
             Work-in-progress build — debug APK (debug-signed, installable via "unknown sources").
+            Version: ${{ env.APP_VERSION }}-DL9SAU-g${{ env.GIT_HASH }}
             Branch: `${{ github.ref_name }}`
             Commit: ${{ github.sha }}
