@@ -27,9 +27,10 @@ changes of this fork relative to upstream. The in-app version shows
   *Settings → Chat Display*.
 - Configurable **block filter** for channel messages — block by **callsign** or
   **text pattern**: `Wort` (whole word), `^start`, `end$`, `*wild*card`
-  (case-insensitive, UTF-8/emoji aware). Manage in *Settings → Message Filter*,
-  or use quick **Filter Call / Filter Message** on a message (press again to
-  remove). Blocked messages also raise no notification.
+  (case-insensitive, UTF-8/emoji/multi-line aware). You can add **any number of
+  rules — one per line** — in the callsign and text fields separately. Manage in
+  *Settings → Message Filter*, or use quick **Filter Call / Filter Message** on a
+  message (press again to remove). Blocked messages also raise no notification.
 - **Reply** (channel): prepends `CALL: ` of the referenced sender into the input.
 - **Resend** for your own *unacknowledged* messages — sends directly, no retype.
 - **🌐 via Gateway** marker: messages that already travelled via an MQTT gateway

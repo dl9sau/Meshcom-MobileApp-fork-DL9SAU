@@ -51,8 +51,9 @@ class MsgFilterService {
         src += anchorEnd ? "$" : (plainWord ? RB : "");
 
         try {
-            // 'u' = correct code-point handling for UTF-8 / emoji
-            return new RegExp(src, "iu");
+            // 'u' = correct code-point handling for UTF-8 / emoji;
+            // 's' = '.' also matches newlines, so wildcards span multi-line messages
+            return new RegExp(src, "ius");
         } catch {
             return null;
         }

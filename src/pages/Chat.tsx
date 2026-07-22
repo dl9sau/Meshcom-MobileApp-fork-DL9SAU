@@ -556,8 +556,11 @@ const Tab3: React.FC = () => {
 
 
   // handle actionsheet result copy text / send DM for specific message
-  // exact pattern that "Filter Message" stores for a message text (^...$)
-  const messagePattern = (msgTxt: string): string => "^" + (msgTxt || "").trim() + "$";
+  // exact pattern that "Filter Message" stores for a message text (^...$).
+  // Newlines are replaced by the wildcard "*" so a multi-line message stays a
+  // single-line filter rule (the rule list / Settings textarea is line-based).
+  const messagePattern = (msgTxt: string): string =>
+    "^" + (msgTxt || "").trim().replace(/\r?\n/g, "*") + "$";
 
   // "via" path with the leading origin dropped: via_str[0] is always the sender
   // (== fromCall, shown separately), so "via: SENDER > A > B" is redundant -
@@ -899,7 +902,7 @@ const Tab3: React.FC = () => {
                 action: 'sendDM',
               },
             }] : []),
-            ...(segmentFilter === "DM" ? [{
+            ...(segmentFilter === "DM" && msgArr_s.some(m => m.msgNr === msgNrAS && m.fromCall !== nodeInfo_s.CALL) ? [{
               text: 'Reply To',
               data: {
                 action: 'replyTo',
