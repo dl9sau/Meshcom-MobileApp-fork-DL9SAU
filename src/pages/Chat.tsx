@@ -210,6 +210,39 @@ const Tab3: React.FC = () => {
   
 
   // sending a textmessage
+  // encode + send a fully assembled on-air message string ("{TOCALL}text" for
+  // DMs, plain text for channel) to the node. Returns true on success.
+  // Shared by sendMsg (normal send) and the direct Resend action.
+  const sendFinalMessage = async (final_msg_str: string): Promise<boolean> => {
+
+    LogS.log(0, "CHAT SendMsg: " + final_msg_str);
+
+    const txt_enc = new TextEncoder(); // always utf-8
+    const enc_txt_msg = txt_enc.encode(final_msg_str);
+    const txt_len = enc_txt_msg.length;
+    if (txt_len === 0) return false;
+
+    const txt_buffer = new ArrayBuffer(txt_len + 2);
+    const view1 = new DataView(txt_buffer);
+    view1.setUint8(0, txt_len + 2);
+    view1.setUint8(1, 0xA0);
+
+    for (let i = 0; i < txt_len; i++)
+      view1.setUint8(i + 2, enc_txt_msg[i]);
+
+    try {
+      await sendDV(view1, ConfigObject.getBleDevId());
+    } catch (error) {
+      LogS.log(1, "CHAT - Error sending message to node: " + error);
+      setAlHeader("Error sending message");
+      setAlMsg("Error sending message to node: " + error);
+      setShAlertCard(true);
+      return false;
+    }
+    return true;
+  };
+
+
   const sendMsg = async () => {
 
     if(!ble_connected){
@@ -283,46 +316,15 @@ const Tab3: React.FC = () => {
               final_msg_str = txMsg_str;
             }
 
-            LogS.log(0,"CHAT SendMsg: " + final_msg_str);
-
-            let txt_enc = new TextEncoder(); // always utf-8
-            const enc_txt_msg = txt_enc.encode(final_msg_str);
-            console.log("UTF-8 Encoded Msg: " + enc_txt_msg);
-    
-            const txt_len = enc_txt_msg.length;
-            const txt_buffer = new ArrayBuffer(txt_len + 2);
-    
-            let view1 = new DataView(txt_buffer);
-            view1.setUint8(0, txt_len + 2);
-            view1.setUint8(1, 0xA0);
-    
-            for(let i=0; i<txt_len; i++)
-              view1.setUint8(i+2, enc_txt_msg[i]);
-
-            try {
-              await sendDV(view1, ConfigObject.getBleDevId());
-            } catch (error) {
-              LogS.log(1,"CHAT - Error sending message to node: " + error);
-              setAlHeader("Error sending message");
-              setAlMsg("Error sending message to node: " + error);
-              setShAlertCard(true);
-              return;
-            }
-
-            // add message to queue
-            //addMsgQueue(final_msg_str);
+            const sent_ok = await sendFinalMessage(final_msg_str);
+            if (!sent_ok) return;
 
             // clear input
-            //textInputRef.current!.value = "";
             textAreaInputRef.current!.value = "";
 
-            // close dm input
-            //setShCallsign(false);
             // close keyboard
             Keyboard.hide();
-            
-            //scrollToBottom();
-            
+
           }
         }
       }
@@ -548,7 +550,7 @@ const Tab3: React.FC = () => {
 
 
   // handle actionsheet result copy text / send DM for specific message
-  const handleActionSheet = (detailAS: OverlayEventDetail) => {
+  const handleActionSheet = async (detailAS: OverlayEventDetail) => {
 
     console.log("AS Detail: ");
     console.log(detailAS);
@@ -568,20 +570,27 @@ const Tab3: React.FC = () => {
 
       if (asActionDetail === "resend") {
         console.log("Resend pressed");
-        const resendTxt = selMsg[0].msgTXT;
-        // Fill message text into the textarea
-        if (textAreaInputRef.current) {
-          textAreaInputRef.current.value = resendTxt;
-        }
-        // If DM segment is active, fill toCall (the original recipient) into To Callsign input
-        if (segmentFilter === "DM") {
-          const toCallResend = selMsg[0].toCall;
-          toCallsign_.current = toCallResend;
-          lastDMcallsign.current = toCallResend;
-          setShCallsign(true);
-          if (callsignInputRef.current) {
-            callsignInputRef.current.value = toCallResend;
+        const m = selMsg[0];
+        if (m) {
+          if (!ble_connected) {
+            setShDiscoCard(true);
+          } else {
+            // rebuild the on-air string ({TOCALL} prefix for DMs) and send
+            // directly, without copying into the input / extra confirmation
+            const final_msg_str = m.isDM === 1 ? "{" + m.toCall + "}" + m.msgTXT : m.msgTXT;
+            await sendFinalMessage(final_msg_str);
           }
+        }
+      }
+
+      if (asActionDetail === "reply") {
+        console.log("Reply pressed");
+        // prepend "CALL: " of the referenced sender into the input line
+        const replyCall = selMsg[0].fromCall;
+        if (textAreaInputRef.current) {
+          const existing = textAreaInputRef.current.value?.toString() ?? "";
+          textAreaInputRef.current.value = replyCall + ": " + existing;
+          textAreaInputRef.current.setFocus();
         }
       }
 
@@ -795,6 +804,12 @@ const Tab3: React.FC = () => {
         <IonActionSheet
           isOpen={isOpenAS}
           buttons={[
+            ...(segmentFilter !== "DM" ? [{
+              text: 'Reply',
+              data: {
+                action: 'reply',
+              },
+            }] : []),
             {
               text: 'Copy Text',
               data: {
