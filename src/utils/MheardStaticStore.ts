@@ -17,6 +17,22 @@ class MheardStaticStore {
         return this.mhArr_s;
     }
 
+    // seed the in-memory list from persisted rows (called on DB load).
+    // Kept import-cycle-free: DataBaseService calls this; this store does not
+    // import DataBaseService (the DB write happens from the receive path).
+    seedFromDB(mheards:MheardType[]){
+        this.mhArr_s = mheards.slice().sort(function(y, x){
+            return x.mh_timestamp - y.mh_timestamp;
+        });
+        MhStore.update(s=>{
+            s.mhArr = [];
+            this.mhArr_s.forEach((mh)=>{
+                s.mhArr.push(mh);
+            });
+        });
+        console.log("Mheard Static Store: seeded " + this.mhArr_s.length + " from DB");
+    }
+
     setMhArr(mheard:MheardType){
         //if we have the mheard in the array, update it
         console.log("Mheard Static Store: " + JSON.stringify(mheard));

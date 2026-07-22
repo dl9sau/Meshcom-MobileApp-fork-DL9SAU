@@ -2781,7 +2781,7 @@ const Tab2: React.FC = () => {
               <div id="spacer-advTop" />
               <IonButton id="settings_button" fill='outline' slot='start' onClick={()=>DataBaseService.clearTextMessages()}>Clear Text Msgs</IonButton>
               <div id="spacer-advTop" />
-              <IonButton id="settings_button" fill='outline' slot='start' onClick={()=>MheardStaticStore.clearMheards()}>Clear Mheards</IonButton>
+              <IonButton id="settings_button" fill='outline' slot='start' onClick={()=>{MheardStaticStore.clearMheards(); DataBaseService.clearMheardsDB();}}>Clear Mheards</IonButton>
               <div id="spacer-advTop" />
               <IonButton id="settings_button" fill='outline' slot='start' onClick={()=>clearAllBLEPins_()}>Clear All BLE PINs</IonButton>
 

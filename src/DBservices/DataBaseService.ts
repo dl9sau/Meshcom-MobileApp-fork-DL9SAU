@@ -4,7 +4,8 @@ import {
     CapacitorSQLite,
   } from "@capacitor-community/sqlite";
 
-import { MsgType, PosType } from "../utils/AppInterfaces";
+import { MsgType, PosType, MheardType } from "../utils/AppInterfaces";
+import MheardStaticStore from "../utils/MheardStaticStore";
 import PosiStore from "../store/PosiStore";
 import MsgStore from "../store/MsgStore";
 import { format, sub } from "date-fns";
@@ -22,6 +23,7 @@ class DatabaseService {
     static isInit = false;
     static MAX_AGE_TXT_MSG = 3; // 3 days
     static MAX_AGE_POS = 3; // 3 days
+    static MAX_AGE_MHEARD = 2; // 2 days (Heard list is volatile)
     static cached_positions: PosType[] = [];
     private static chatFilterSetting: string = 'ALL';
     
@@ -204,6 +206,34 @@ class DatabaseService {
                 await DatabaseService.loadAppPrefs();
             } else {
                 LogS.log(1, 'Error creating AppPrefs table. Database connection not open.');
+            }
+
+            // Mheard table (persist the Heard list across restarts; one row per
+            // heard station per own node)
+            if (DatabaseService.db) {
+                console.log('Creating Mheard table');
+                await DatabaseService.db.execute(`CREATE TABLE IF NOT EXISTS Mheard (
+                    id INTEGER PRIMARY KEY,
+                    mh_timestamp INTEGER,
+                    mh_nodecall TEXT,
+                    mh_callSign TEXT,
+                    mh_date TEXT,
+                    mh_time TEXT,
+                    mh_rssi INTEGER,
+                    mh_snr INTEGER,
+                    mh_hw TEXT,
+                    mh_distance REAL,
+                    mh_pl INTEGER,
+                    mh_mesh INTEGER,
+                    mh_ncnt INTEGER,
+                    UNIQUE(mh_nodecall, mh_callSign)
+                );`).catch((err) => {
+                    LogS.log(1, 'Error creating Mheard table:' + err);
+                });
+                // seed the in-memory Mheard store from the DB
+                await DatabaseService.loadMheards();
+            } else {
+                LogS.log(1, 'Error creating Mheard table. Database connection not open.');
             }
 
 
@@ -705,6 +735,10 @@ class DatabaseService {
             const sql_str_pos = `DELETE FROM Positions WHERE timestamp < ${max_timestamp_unix_pos};`;
             const ret_pos = await DatabaseService.db?.execute(sql_str_pos);
             console.log('DB housekeeping Positions ret:', ret_pos?.changes?.values);
+            // delete Mheard entries older than MAX_AGE_MHEARD
+            const max_timestamp_unix_mh = sub(today, { days: DatabaseService.MAX_AGE_MHEARD }).getTime();
+            const ret_mh = await DatabaseService.db?.execute(`DELETE FROM Mheard WHERE mh_timestamp < ${max_timestamp_unix_mh};`);
+            console.log('DB housekeeping Mheard ret:', ret_mh?.changes?.values);
         } else {
             LogS.log(1, 'Error housekeeping. Database not open.');
         }
@@ -847,6 +881,40 @@ class DatabaseService {
             await DatabaseService.db.run(`INSERT OR REPLACE INTO AppPrefs (key, val) VALUES (?, ?);`, [key, val]);
         } catch (err) {
             LogS.log(1, 'Error saving AppPref ' + key + ':' + err);
+        }
+    }
+
+    // upsert one Mheard entry (unique per nodecall+callSign)
+    static async writeMheard(mh: MheardType) {
+        try {
+            if (!DatabaseService.db) return;
+            const q = `INSERT OR REPLACE INTO Mheard (mh_timestamp, mh_nodecall, mh_callSign, mh_date, mh_time, mh_rssi, mh_snr, mh_hw, mh_distance, mh_pl, mh_mesh, mh_ncnt) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`;
+            const v = [mh.mh_timestamp, mh.mh_nodecall, mh.mh_callSign, mh.mh_date, mh.mh_time, mh.mh_rssi, mh.mh_snr, mh.mh_hw, mh.mh_distance, mh.mh_pl, mh.mh_mesh, mh.mh_ncnt];
+            await DatabaseService.db.run(q, v);
+        } catch (err) {
+            LogS.log(1, 'Error writing Mheard:' + err);
+        }
+    }
+
+    // load persisted Mheard rows into the in-memory MheardStaticStore
+    static async loadMheards() {
+        try {
+            if (!DatabaseService.db) return;
+            const res = await DatabaseService.db.query('SELECT * FROM Mheard;');
+            if (res.values) {
+                MheardStaticStore.seedFromDB(res.values as MheardType[]);
+            }
+        } catch (err) {
+            LogS.log(1, 'Error loading Mheards:' + err);
+        }
+    }
+
+    // clear the persisted Mheard table (the in-memory clear is separate)
+    static async clearMheardsDB() {
+        try {
+            if (DatabaseService.db) await DatabaseService.db.execute('DELETE FROM Mheard;');
+        } catch (err) {
+            LogS.log(1, 'Error clearing Mheard table:' + err);
         }
     }
 

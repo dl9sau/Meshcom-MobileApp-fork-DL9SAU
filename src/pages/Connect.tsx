@@ -637,6 +637,9 @@ const Tab1: React.FC = () => {
               console.log("Connect: Mheard Node Call: " + res.mh_nodecall);
               res.mh_nodecall = ConfigObject.getConf().CALL;
               MheardStaticStore.setMhArr(res);
+              // persist so the Heard list survives an app restart (setMhArr has
+              // just stamped res.mh_timestamp and merged the ncnt)
+              DatabaseService.writeMheard(res);
             }
 
           })}).then(async () => {
