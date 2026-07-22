@@ -781,8 +781,12 @@ class DatabaseService {
                 return (msg.fromCall === currentCallsign && msg.isDM !== 1 && msg.isGrpMsg !== 1) || (msg.isDM !== 1 && msg.isGrpMsg !== 1);
             });
         } else if (this.chatFilterSetting === 'DM') {
+            const showAll = AppPrefsStore.getRawState().dmShowAll;
             filtered_msgs = msgs.filter((msg) => {
-                return (msg.isDM === 1 && msg.isGrpMsg !== 1) || (msg.fromCall === currentCallsign && msg.isDM === 1 && msg.isGrpMsg !== 1);
+                if (!(msg.isDM === 1 && msg.isGrpMsg !== 1)) return false;
+                // default: only my own DMs (to or from me); the toggle reveals all
+                // overheard DM traffic (monitoring)
+                return showAll || msg.fromCall === currentCallsign || msg.toCall === currentCallsign;
             });
         } else {
             // check if it is a group number
@@ -877,6 +881,7 @@ class DatabaseService {
             AppPrefsStore.update(s => {
                 // only override the default when a value was actually saved
                 if ('compactHeader' in prefs) s.compactHeader = prefs['compactHeader'] === '1';
+                if ('dmShowAll' in prefs) s.dmShowAll = prefs['dmShowAll'] === '1';
             });
         } catch (err) {
             LogS.log(1, 'Error loading AppPrefs:' + err);

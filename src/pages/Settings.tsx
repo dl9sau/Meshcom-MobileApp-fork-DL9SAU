@@ -302,6 +302,14 @@ const Tab2: React.FC = () => {
     await DataBaseService.setPref('compactHeader', checked ? '1' : '0');
   };
 
+  // DM tab: show all overheard DM traffic vs only my own DMs
+  const dmShowAll = useStoreState(AppPrefsStore, s => s.dmShowAll);
+  const setDmShowAll = async (checked: boolean) => {
+    AppPrefsStore.update(s => { s.dmShowAll = checked; });
+    await DataBaseService.setPref('dmShowAll', checked ? '1' : '0');
+    await DataBaseService.reapplyChatFilters();
+  };
+
   // Manual Position Settings Input Refs
   const [shManualPos, setShManualPos] = useState<boolean>(false);
   const manual_lat_ref = useRef<HTMLIonInputElement>(null);
@@ -2729,6 +2737,9 @@ const Tab2: React.FC = () => {
           <div className='setting_wrapper'>
             <IonItem>
               <IonToggle enableOnOffLabels={true} checked={compactHeader} onIonChange={(ev) => setCompactHeader(ev.detail.checked)}>Compact message header</IonToggle>
+            </IonItem>
+            <IonItem>
+              <IonToggle enableOnOffLabels={true} checked={dmShowAll} onIonChange={(ev) => setDmShowAll(ev.detail.checked)}>DM tab: show all traffic (monitoring)</IonToggle>
             </IonItem>
           </div>
 

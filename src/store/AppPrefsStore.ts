@@ -4,10 +4,13 @@ import { Store } from "pullstate";
 export interface AppPrefsState {
     // compact one-line chat message header (default) vs the legacy multi-line one
     compactHeader: boolean;
+    // DM tab: show all overheard DM traffic (monitoring) vs only my own DMs (default)
+    dmShowAll: boolean;
 }
 
 const AppPrefsStore = new Store<AppPrefsState>({
-    compactHeader: true
+    compactHeader: true,
+    dmShowAll: false
 });
 
 export default AppPrefsStore;

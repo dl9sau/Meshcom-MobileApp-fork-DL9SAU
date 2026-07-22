@@ -22,6 +22,8 @@ changes of this fork relative to upstream. The in-app version shows
 ### Features
 
 **Chat**
+- **DM tab shows only your own DMs** by default (to/from you). A *Settings →
+  Chat Display* toggle reveals all overheard DM traffic (monitoring).
 - **Compact one-line message header** (now the **default**): `sender (via …) ·time`,
   DMs also show the recipient. Toggle back to the legacy multi-line header in
   *Settings → Chat Display*.
@@ -78,7 +80,5 @@ changes of this fork relative to upstream. The in-app version shows
 
 ### Known / parked (planned DB redesign)
 
-- Persist runtime-only data across restarts (hops/path, Mheard table).
-- DM tab: show only *your* DMs with a toggle for "all DM traffic" (monitoring).
 - Per-category, configurable message/position retention (ALL short, personal DMs
   long, `0 = unlimited`).
