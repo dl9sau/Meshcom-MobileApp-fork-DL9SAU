@@ -83,6 +83,17 @@ jobs:
           else
             echo "badge step failed - using plain icon"
           fi
+          # overlay "DL9SAU fork" below the logo on both splash images (white bg,
+          # so red text); keep the plain splash if it fails
+          for SPL in assets/splash.png assets/splash-dark.png; do
+            if convert "$SPL" -gravity South -font "$FONT" -fill '#a01f2d' \
+                 -pointsize 120 -annotate +0+150 'DL9SAU fork' "${SPL}.tmp.png"; then
+              mv "${SPL}.tmp.png" "$SPL"
+              echo "splash badge applied: $SPL"
+            else
+              echo "splash badge failed - using plain splash: $SPL"
+            fi
+          done
           npx capacitor-assets generate --android
 
       # sign every build with the committed debug keystore so signatures are
