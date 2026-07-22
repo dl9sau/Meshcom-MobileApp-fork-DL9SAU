@@ -2,7 +2,7 @@ import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'io.ionic.meshcom',
-  appName: 'MeshCom',
+  appName: 'MeshCom DL9SAU',
   webDir: 'dist',
   server: {
     androidScheme: 'https'

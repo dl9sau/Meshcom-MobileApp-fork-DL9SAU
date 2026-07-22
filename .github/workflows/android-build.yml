@@ -57,6 +57,16 @@ jobs:
           npx cap add android
           npx cap sync android
 
+      # replace the default Capacitor icon with the real MeshCom icon
+      # (@capacitor/assets reads assets/icon.png + splash*.png)
+      - name: Generate app icons & splash
+        run: |
+          mkdir -p assets
+          cp resources/icon.png assets/icon.png
+          cp resources/splash.png assets/splash.png
+          cp resources/splash-dark.png assets/splash-dark.png
+          npx capacitor-assets generate --android
+
       - name: Build debug APK
         run: |
           chmod +x android/gradlew
