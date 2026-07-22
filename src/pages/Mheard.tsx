@@ -99,6 +99,11 @@ const Mheard = () => {
                                                         <div className='value_r'>Dist:</div>
                                                         <div className='value'>{mhs.mh_distance > 0 ? mhs.mh_distance + " km" : "n.a."}</div>
                                                     </div>
+                                                    {/* spacer to align #msg (right) with #pos (left) */}
+                                                    <div className='rowcont'>
+                                                        <div className='value_r'>&nbsp;</div>
+                                                        <div className='value'>&nbsp;</div>
+                                                    </div>
                                                     <div className='rowcont'>
                                                         <div className='value_r'>#msg:</div>
                                                         <div className='value'>{nodeInfoMap[mhs.mh_callSign?.toUpperCase()]?.msgCount ?? 0}</div>
