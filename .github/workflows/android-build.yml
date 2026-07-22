@@ -61,10 +61,28 @@ jobs:
       # (@capacitor/assets reads assets/icon.png + splash*.png)
       - name: Generate app icons & splash
         run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq imagemagick fonts-dejavu-core
           mkdir -p assets
           cp resources/icon.png assets/icon.png
           cp resources/splash.png assets/splash.png
           cp resources/splash-dark.png assets/splash-dark.png
+          # overlay a "DL9SAU" fork badge (bottom band) on the icon so the fork is
+          # visible even when the launcher truncates the app name. Keep the plain
+          # icon if the overlay fails, so the build never breaks over branding.
+          W=$(identify -format '%w' assets/icon.png)
+          BAND=$(( W * 22 / 100 ))
+          PS=$(( W * 150 / 1024 ))
+          OFF=$(( W * 38 / 1024 ))
+          FONT=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf
+          if convert assets/icon.png \
+               \( -size ${W}x${BAND} xc:'rgba(0,0,0,0.55)' \) -gravity South -composite \
+               -gravity South -font "$FONT" -fill white -pointsize ${PS} -annotate +0+${OFF} 'DL9SAU' \
+               assets/icon_badged.png; then
+            mv assets/icon_badged.png assets/icon.png
+            echo "DL9SAU badge applied"
+          else
+            echo "badge step failed - using plain icon"
+          fi
           npx capacitor-assets generate --android
 
       # use a fixed debug keystore so every build is signed identically -> you can
