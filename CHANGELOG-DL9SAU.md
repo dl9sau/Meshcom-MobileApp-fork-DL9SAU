@@ -74,6 +74,10 @@ changes of this fork relative to upstream. The in-app version shows
 
 - Map overlay: the **Close** button is now shown in the collapsed ("Less")
   state too, not only when expanded.
+- Map overlay: **buttons (Close / More / DM) now react on the first tap.** The map
+  was treating a touch on the card as the start of a pan and swallowed the click
+  (the button flashed but nothing happened, often needing 2–3 taps). The overlay
+  is now marked `pigeon-drag-block` / `pigeon-click-block`.
 - Connect: after changing the BLE PIN on a connected node (`--btcode`), show a
   hint to close/reopen the app if reconnect fails (the node needs a moment to
   apply the new code, which an immediate reconnect can race).

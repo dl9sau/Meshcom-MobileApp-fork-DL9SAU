@@ -104,7 +104,11 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
 
     return (
         <>
-            <div className="map-overlay-container">
+            {/* pigeon-drag-block: stop the map from treating a touch on the card
+                as the start of a pan - otherwise it eats the button's click (the
+                button visibly reacts but onClick never fires / needs 2-3 taps).
+                pigeon-click-block: don't let the tap fall through as a map click. */}
+            <div className="map-overlay-container pigeon-drag-block pigeon-click-block">
                 <IonCard>
                     <IonCardHeader>
                         <IonCardTitle>{callSign}</IonCardTitle>
