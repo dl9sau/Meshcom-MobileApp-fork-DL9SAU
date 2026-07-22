@@ -34,11 +34,13 @@ changes of this fork relative to upstream. The in-app version shows
   *Settings → Message Filter*, or use quick **Filter Call / Filter Message** on a
   message. (Removing a rule is done in Settings — a blocked message is hidden and
   can't be long-pressed.) Blocked messages also raise no notification.
-- **Reply**: prefills a compact reference into the input so the other side knows
-  what you refer to — `CALL: [HH:MM] ` in channels (who + which message),
-  `[HH:MM] ` in DMs (the recipient is already clear). Both parts are
-  independently deletable. (Channel "Reply" for others' messages; DM "Reply To"
-  for received DMs.)
+- **Reply** prefills a compact reference into the input:
+  - channel, others' message → an **`@call1, @call2: ` mention list** (press
+    Reply on several messages to reference multiple people; deduped);
+  - channel, your own message → **`[HH:MM] `** (time only, no self-mention);
+  - DM → **`[HH:MM] `** (recipient is already clear).
+- **Tap** (short press) a DM message to **prefill the To-Callsign** with the
+  conversation partner (their call if they wrote it, the recipient if you did).
 - **Resend** for your own *unacknowledged* messages — sends directly, no retype.
 - **🌐 via Gateway** marker: messages that already travelled via an MQTT gateway
   (header byte 6, bit `0x80`) are flagged in the chat bubble.

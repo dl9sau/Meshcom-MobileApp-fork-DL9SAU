@@ -546,10 +546,23 @@ const Tab3: React.FC = () => {
     console.log("Long Press time stop: " + btnstop);
     console.log("Diff: " + difftime);
 
-    if (difftime >= MIN_PRESS_TIME) { // is click
+    if (difftime >= MIN_PRESS_TIME) { // long press -> options
       console.log('selected msgnr: ' + msgNr);
       setMsgNrAS(msgNr);
       setIsOpenAS(true);
+    } else {
+      // short press/tap on a DM -> prefill To-Callsign with the conversation partner
+      // (their call if they wrote it; the recipient if I wrote it)
+      const m = msgArr_s.find(x => x.msgNr === msgNr);
+      if (m && m.isDM === 1 && m.isGrpMsg !== 1) {
+        const partner = m.fromCall === config_s.callSign ? m.toCall : m.fromCall;
+        if (partner) {
+          toCallsign_.current = partner;
+          lastDMcallsign.current = partner;
+          setShCallsign(true);
+          if (callsignInputRef.current) callsignInputRef.current.value = partner;
+        }
+      }
     }
   }
 
@@ -624,11 +637,24 @@ const Tab3: React.FC = () => {
 
       if (asActionDetail === "reply") {
         console.log("Reply pressed");
-        // prepend "CALL: [HH:MM] " — who + which message (both independently deletable)
-        const replyCall = selMsg[0].fromCall;
+        const m = selMsg[0];
         if (textAreaInputRef.current) {
           const existing = textAreaInputRef.current.value?.toString() ?? "";
-          textAreaInputRef.current.value = replyCall + ": " + timeRef(selMsg[0].msgTime) + existing;
+          if (m.fromCall === config_s.callSign) {
+            // own message: reference it by time only (no @self - I'm not talking to myself)
+            textAreaInputRef.current.value = timeRef(m.msgTime) + existing;
+          } else {
+            // others' message: build/extend an "@call1, @call2: " mention list (dedup)
+            const mention = "@" + m.fromCall;
+            const mm = existing.match(/^((?:@[^\s,:]+)(?:, @[^\s,:]+)*): (.*)$/s);
+            if (mm) {
+              const mentions = mm[1].split(", ");
+              if (!mentions.includes(mention)) mentions.push(mention);
+              textAreaInputRef.current.value = mentions.join(", ") + ": " + mm[2];
+            } else {
+              textAreaInputRef.current.value = mention + ": " + existing;
+            }
+          }
           textAreaInputRef.current.setFocus();
         }
       }
