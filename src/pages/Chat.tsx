@@ -553,6 +553,9 @@ const Tab3: React.FC = () => {
 
 
   // handle actionsheet result copy text / send DM for specific message
+  // exact pattern that "Filter Message" stores for a message text (^...$)
+  const messagePattern = (msgTxt: string): string => "^" + (msgTxt || "").trim() + "$";
+
   // append a line to a newline-separated rule list (dedup); returns new raw text
   const appendFilterLine = (raw: string, line: string): string => {
     const val = (line || "").trim();
@@ -561,6 +564,21 @@ const Tab3: React.FC = () => {
     if (lines.includes(val)) return raw;
     lines.push(val);
     return lines.join("\n");
+  };
+
+  // remove a line from a rule list (ci = case-insensitive, used for callsigns)
+  const removeFilterLine = (raw: string, line: string, ci: boolean): string => {
+    const target = ci ? line.trim().toUpperCase() : line.trim();
+    return raw.split(/\r?\n/).map(l => l.trim())
+      .filter(l => l !== "" && (ci ? l.toUpperCase() !== target : l !== target))
+      .join("\n");
+  };
+
+  // is a rule already present? (ci for callsigns)
+  const hasFilterLine = (raw: string, line: string, ci: boolean): boolean => {
+    const target = ci ? line.trim().toUpperCase() : line.trim();
+    return raw.split(/\r?\n/).map(l => l.trim())
+      .some(l => ci ? l.toUpperCase() === target : l === target);
   };
 
 
@@ -609,16 +627,22 @@ const Tab3: React.FC = () => {
       }
 
       if (asActionDetail === "filterCall") {
-        console.log("Filter Call pressed");
-        // add the sender's callsign to the block list; message disappears at once
-        const newCallRaw = appendFilterLine(msgFilter_s.callRaw, selMsg[0].fromCall);
+        // toggle the sender's callsign in the block list (avoids duplicates /
+        // lets you undo a misclick); message reappears/disappears at once
+        const call = selMsg[0].fromCall;
+        const newCallRaw = hasFilterLine(msgFilter_s.callRaw, call, true)
+          ? removeFilterLine(msgFilter_s.callRaw, call, true)
+          : appendFilterLine(msgFilter_s.callRaw, call);
         await DatabaseService.saveMsgFilters(newCallRaw, msgFilter_s.textRaw);
       }
 
-      if (asActionDetail === "filterText") {
-        console.log("Filter Text pressed");
-        // seed a text rule from the message text (refine later, e.g. "Test *")
-        const newTextRaw = appendFilterLine(msgFilter_s.textRaw, selMsg[0].msgTXT);
+      if (asActionDetail === "filterMessage") {
+        // toggle an exact "^message$" text rule (refine later in Settings,
+        // e.g. into "Test *")
+        const pat = messagePattern(selMsg[0].msgTXT);
+        const newTextRaw = hasFilterLine(msgFilter_s.textRaw, pat, false)
+          ? removeFilterLine(msgFilter_s.textRaw, pat, false)
+          : appendFilterLine(msgFilter_s.textRaw, pat);
         await DatabaseService.saveMsgFilters(msgFilter_s.callRaw, newTextRaw);
       }
 
@@ -764,6 +788,11 @@ const Tab3: React.FC = () => {
   
 
 
+  // action-sheet target message + its current filter state (for toggle labels)
+  const asSelMsg = msgArr_s.find(m => m.msgNr === msgNrAS);
+  const asCallFiltered = asSelMsg ? hasFilterLine(msgFilter_s.callRaw, asSelMsg.fromCall, true) : false;
+  const asMsgFiltered = asSelMsg ? hasFilterLine(msgFilter_s.textRaw, messagePattern(asSelMsg.msgTXT), false) : false;
+
   return (
     <IonPage>
       <IonHeader>
@@ -863,14 +892,14 @@ const Tab3: React.FC = () => {
               },
             }] : []),
             ...(segmentFilter !== "DM" && msgArr_s.some(m => m.msgNr === msgNrAS && m.fromCall !== nodeInfo_s.CALL) ? [{
-              text: 'Filter Call',
+              text: asCallFiltered ? 'Remove Call Filter' : 'Filter Call',
               data: {
                 action: 'filterCall',
               },
             }, {
-              text: 'Filter Text',
+              text: asMsgFiltered ? 'Remove Message Filter' : 'Filter Message',
               data: {
-                action: 'filterText',
+                action: 'filterMessage',
               },
             }] : []),
             {
