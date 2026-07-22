@@ -2437,18 +2437,18 @@ const Tab2: React.FC = () => {
               <div className='settings_btns'>
                 <div className='settings_btns_l'>
                   <div >
-                    <IonButton expand="block" fill={config_s.gps_on ? 'solid' : 'outline'} slot='start' onClick={() => sendTxtCmd("gps")}>GPS</IonButton>
+                    <IonButton expand="block" fill={config_s.gps_on ? 'solid' : 'outline'} slot='start' onClick={() => sendTxtCmd("gps")}>GPS-Chip</IonButton>
                   </div>
                   <div >
-                    <IonButton expand="block" fill={config_s.track_on ? 'solid' : 'outline'} slot='start' onClick={() => sendTxtCmd("track")}>TRACK</IonButton>
+                    <IonButton expand="block" fill={config_s.track_on ? 'solid' : 'outline'} slot='start' onClick={() => sendTxtCmd("track")}>{config_s.track_on ? "SmartBeaconing (track on)" : "Fixed Pos Interval (track off)"}</IonButton>
                   </div>
                 </div>
                 <div className='settings_btns_r'>
                   <div>
-                    <IonButton expand="block" fill='outline' slot='start' onClick={() => sendTxtCmd("txpos")}>Send POS</IonButton>
+                    <IonButton expand="block" fill='outline' slot='start' onClick={() => sendTxtCmd("txpos")}>Send POS LoRa-APRS</IonButton>
                   </div>
                   <div>
-                    <IonButton expand="block" fill='outline' slot='start' onClick={() => sendTxtCmd("posdebug")}>POS-Info</IonButton>
+                    <IonButton expand="block" fill='outline' slot='start' onClick={() => sendTxtCmd("posdebug")}>GPS-Status</IonButton>
                   </div>
                 </div>
               </div>
