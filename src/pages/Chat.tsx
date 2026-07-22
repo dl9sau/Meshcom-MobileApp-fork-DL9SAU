@@ -945,14 +945,13 @@ const Tab3: React.FC = () => {
                   </div>
                   {msg.via.length > 1 ? <>
                     <div className="ion-text-start">
-                      <IonText id="msg-via">via:{msg.via}</IonText>
+                      <IonText id="msg-via">{msg.gw === 1 ? "🌐 " : ""}via:{msg.via}</IonText>
                     </div>
-                  </> : <></>}
-                  {msg.gw === 1 ? <>
+                  </> : (msg.gw === 1 ? <>
                     <div className="ion-text-start">
                       <IonText id="msg-via">🌐 via Gateway</IonText>
                     </div>
-                  </> : <></>}
+                  </> : <></>)}
 
                   <div className="ion-text-start">
                     {msg.isDM ? <>
