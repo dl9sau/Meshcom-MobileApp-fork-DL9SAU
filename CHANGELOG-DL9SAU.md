@@ -63,6 +63,11 @@ changes of this fork relative to upstream. The in-app version shows
 **Settings**
 - Clearer *GPS-Position* button labels: **GPS-Chip**, **SmartBeaconing (track
   on) / Fixed Pos Interval (track off)**, **Send POS LoRa-APRS**, **GPS-Status**.
+- **Node UTC-Time-Offset: "From phone" button.** Instead of typing the offset by
+  hand (and forgetting to change it at the DST switch — a manual `1` in summer put
+  every node time 1 h off), one tap fills it from the phone's own time zone, which
+  already reflects the current location *and* daylight saving, then sends it to
+  the node.
 
 **App / Build**
 - App version shows the fork id + short git hash: `4.27-DL9SAU-g<hash>`.

@@ -1430,6 +1430,22 @@ const Tab2: React.FC = () => {
   }
 
 
+  // Derive the UTC offset from the PHONE's time zone instead of typing it by
+  // hand. getTimezoneOffset() is minutes behind UTC and already accounts for the
+  // current position's zone AND daylight saving (summer/winter) - so this can't
+  // drift 1 h out of date like a manual value does. Fill the field and send.
+  const setUTCOffsetFromPhone = () => {
+    const offsetH = -new Date().getTimezoneOffset() / 60; // e.g. CEST -> 2, CET -> 1
+    // clean number string: integer -> "2", fractional (e.g. India 5.5) -> "5.5"
+    const clean = Number.isInteger(offsetH)
+      ? offsetH.toString()
+      : offsetH.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+    if (node_utc_offset_ref.current) node_utc_offset_ref.current.value = clean;
+    node_utc_offset.current = offsetH;
+    setUTCOffset(); // reuse the existing validate + send-to-node path
+  }
+
+
   // set the onewire pin number
   const setOnewirePin = () => {
 
@@ -2323,13 +2339,14 @@ const Tab2: React.FC = () => {
                 <IonText id="wifi-text">Node UTC-Time-Offset</IonText>
               </div>
               <div>
+                <IonButton size="small" fill="outline" onClick={() => setUTCOffsetFromPhone()}>From phone</IonButton>
                 <IonButton size="small" fill="outline" color='success' onClick={() => setUTCOffset()}>
                   <IonIcon icon={checkmarkCircle} ></IonIcon>
                 </IonButton>
               </div>
             </div>
             <IonItem>
-              <IonInput value={node_utc_offset.current} ref={node_utc_offset_ref} label='Set UTC Offset' labelPlacement="floating" type='text' maxlength={3}></IonInput>
+              <IonInput value={node_utc_offset.current} ref={node_utc_offset_ref} label='Set UTC Offset' labelPlacement="floating" type='text' maxlength={4}></IonInput>
             </IonItem>
           </div>
 
