@@ -980,12 +980,19 @@ const Tab3: React.FC = () => {
                         <IonText id="from-call">To: {msg.toCall}</IonText>
                         </div>
                       </>:<>
-                      <IonText id="from-call" >{msg.fromCall}: </IonText>
+                      {msg.isGrpMsg ? <>
+                        {/* group: recipient is the group (already in the GROUP-MESSAGE badge) */}
+                        <IonText id="from-call" >{msg.fromCall}: </IonText>
+                      </>:<>
+                        {/* received DM: show sender AND recipient, so you can tell
+                            whether it was actually addressed to you or overheard */}
+                        <IonText id="from-call" >{msg.fromCall} → {msg.toCall}: </IonText>
+                      </>}
                       </>}
                     </> : <>
                     <IonText id="from-call" >{msg.fromCall}: </IonText>
                     </>}
-                    
+
                   </div>
 
                   <div id="spacer-txtbox"></div>
