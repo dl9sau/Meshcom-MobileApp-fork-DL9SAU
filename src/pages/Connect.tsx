@@ -28,6 +28,7 @@ import BLEconnStore from '../store/BLEconnected';
 import DatabaseService from '../DBservices/DataBaseService';
 import ConfigObject from '../utils/ConfigObject';
 import MheardStaticStore from '../utils/MheardStaticStore';
+import MsgFilterService from '../utils/MsgFilterService';
 import BleConfigFinish from '../store/BLEConfFin';
 import UpdateFW from '../store/UpdtFW';
 import { usePhoneGps } from '../utils/PhoneGps';
@@ -616,7 +617,7 @@ const Tab1: React.FC = () => {
               await DatabaseService.writeTxtMsg(res, !canNotify.current);  // we need to send a flag if this is during init load on node connection or normal msg for marking segmentbuttons in chat
               // do the notification if from another callsign
               const curr_call = ConfigObject.getConf().CALL;
-              if (res.fromCall !== curr_call && (!res.msgTXT.startsWith("--")) && canNotify.current) {
+              if (res.fromCall !== curr_call && (!res.msgTXT.startsWith("--")) && canNotify.current && !MsgFilterService.isChannelMsgBlocked(res)) {
                 console.log("Connect: Notification from: " + res.fromCall);
                 NotifyMsgState.update(s => {
                   s.notifyMsg = res;

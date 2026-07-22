@@ -10,6 +10,7 @@ import MsgStore from "../store/MsgStore";
 import { format, sub } from "date-fns";
 import LogS from "../utils/LogService";
 import ConfigObject from "../utils/ConfigObject";
+import MsgFilterService from "../utils/MsgFilterService";
 
 
 class DatabaseService {
@@ -162,6 +163,22 @@ class DatabaseService {
                 });
             } else {
                 LogS.log(1, 'Error creating ble_pins table. Database connection not open.');
+            }
+
+            // MsgFilters table (chat block-filter rules; backwards compatible)
+            if (DatabaseService.db) {
+                console.log('Creating MsgFilters table');
+                await DatabaseService.db.execute(`CREATE TABLE IF NOT EXISTS MsgFilters (
+                    id INTEGER PRIMARY KEY,
+                    ftype TEXT NOT NULL,
+                    pattern TEXT NOT NULL
+                );`).catch((err) => {
+                    LogS.log(1, 'Error creating MsgFilters table:' + err);
+                });
+                // load the saved rules into MsgFilterService
+                await DatabaseService.loadMsgFilters();
+            } else {
+                LogS.log(1, 'Error creating MsgFilters table. Database connection not open.');
             }
 
 
@@ -708,7 +725,11 @@ class DatabaseService {
                 });
             }
         }
-        
+
+        // apply the configurable block filter (channel messages only; DMs and
+        // own messages are never blocked - see MsgFilterService)
+        filtered_msgs = filtered_msgs.filter(msg => !MsgFilterService.isChannelMsgBlocked(msg));
+
         // update the store
         MsgStore.update(s => {
             s.msgArr = filtered_msgs;
@@ -718,6 +739,62 @@ class DatabaseService {
     // get the current chat filter setting string
     static getChatFilterSetting() {
         return this.chatFilterSetting;
+    }
+
+    // load the block-filter rules from the MsgFilters table into MsgFilterService
+    static async loadMsgFilters() {
+        try {
+            if (!DatabaseService.db) return;
+            const res = await DatabaseService.db.query('SELECT ftype, pattern FROM MsgFilters ORDER BY id;');
+            const calls: string[] = [];
+            const texts: string[] = [];
+            if (res.values) {
+                for (const row of res.values) {
+                    if (row.ftype === 'call') calls.push(row.pattern);
+                    else if (row.ftype === 'text') texts.push(row.pattern);
+                }
+            }
+            MsgFilterService.setRules(calls.join('\n'), texts.join('\n'));
+            LogS.log(0, `MsgFilters loaded: ${calls.length} calls, ${texts.length} text patterns`);
+        } catch (err) {
+            LogS.log(1, 'Error loading MsgFilters:' + err);
+        }
+    }
+
+    // persist the block-filter rules and refresh the chat view
+    static async saveMsgFilters(callRaw: string, textRaw: string) {
+        // update the in-memory rules right away
+        MsgFilterService.setRules(callRaw, textRaw);
+
+        try {
+            if (DatabaseService.db) {
+                await DatabaseService.db.execute('DELETE FROM MsgFilters;');
+                const calls = callRaw.split(/\r?\n/).map(l => l.trim()).filter(l => l !== '');
+                const texts = textRaw.split(/\r?\n/).map(l => l.trim()).filter(l => l !== '');
+                for (const c of calls) {
+                    await DatabaseService.db.run('INSERT INTO MsgFilters (ftype, pattern) VALUES (?, ?);', ['call', c]);
+                }
+                for (const t of texts) {
+                    await DatabaseService.db.run('INSERT INTO MsgFilters (ftype, pattern) VALUES (?, ?);', ['text', t]);
+                }
+                LogS.log(0, `MsgFilters saved: ${calls.length} calls, ${texts.length} text patterns`);
+            }
+        } catch (err) {
+            LogS.log(1, 'Error saving MsgFilters:' + err);
+        }
+
+        // re-run the current segment filter so the chat updates immediately
+        await DatabaseService.reapplyChatFilters();
+    }
+
+    // re-apply the current segment + block filters to the stored messages
+    static async reapplyChatFilters() {
+        try {
+            const msgs = await DatabaseService.getTextMessages();
+            DatabaseService.applyFilters(msgs);
+        } catch (err) {
+            LogS.log(1, 'Error reapplying chat filters:' + err);
+        }
     }
 
 }

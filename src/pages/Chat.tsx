@@ -21,6 +21,7 @@ import BLEconnStore from '../store/BLEconnected';
 import {getBLEconnStore} from '../store/Selectors';
 import DMfrmMapStore from '../store/DMfrmMap';
 import NotifyMsgState from '../store/NotifyMsg';
+import MsgFilterStore from '../store/MsgFilterStore';
 import { useHistory } from "react-router";
 import LogS from '../utils/LogService';
 import DatabaseService from '../DBservices/DataBaseService';
@@ -117,6 +118,8 @@ const Tab3: React.FC = () => {
 
   // Nodeinfostore to get the groups subscribed on the node
   const nodeInfo_s:InfoData = useStoreState(NodeInfoStore, s => s.infoData);
+  // current block-filter rules (raw lines), for quick-filter from the action sheet
+  const msgFilter_s = useStoreState(MsgFilterStore, s => s);
 
   // Segment chat filter state
   const [segmentFilter, setSegmentFilter] = useState<string>("ALL");
@@ -550,6 +553,17 @@ const Tab3: React.FC = () => {
 
 
   // handle actionsheet result copy text / send DM for specific message
+  // append a line to a newline-separated rule list (dedup); returns new raw text
+  const appendFilterLine = (raw: string, line: string): string => {
+    const val = (line || "").trim();
+    if (val === "") return raw;
+    const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(l => l !== "");
+    if (lines.includes(val)) return raw;
+    lines.push(val);
+    return lines.join("\n");
+  };
+
+
   const handleActionSheet = async (detailAS: OverlayEventDetail) => {
 
     console.log("AS Detail: ");
@@ -592,6 +606,20 @@ const Tab3: React.FC = () => {
           textAreaInputRef.current.value = replyCall + ": " + existing;
           textAreaInputRef.current.setFocus();
         }
+      }
+
+      if (asActionDetail === "filterCall") {
+        console.log("Filter Call pressed");
+        // add the sender's callsign to the block list; message disappears at once
+        const newCallRaw = appendFilterLine(msgFilter_s.callRaw, selMsg[0].fromCall);
+        await DatabaseService.saveMsgFilters(newCallRaw, msgFilter_s.textRaw);
+      }
+
+      if (asActionDetail === "filterText") {
+        console.log("Filter Text pressed");
+        // seed a text rule from the message text (refine later, e.g. "Test *")
+        const newTextRaw = appendFilterLine(msgFilter_s.textRaw, selMsg[0].msgTXT);
+        await DatabaseService.saveMsgFilters(msgFilter_s.callRaw, newTextRaw);
       }
 
       if (asActionDetail === "replyTo") {
@@ -832,6 +860,17 @@ const Tab3: React.FC = () => {
               text: 'Reply To',
               data: {
                 action: 'replyTo',
+              },
+            }] : []),
+            ...(segmentFilter !== "DM" && msgArr_s.some(m => m.msgNr === msgNrAS && m.fromCall !== nodeInfo_s.CALL) ? [{
+              text: 'Filter Call',
+              data: {
+                action: 'filterCall',
+              },
+            }, {
+              text: 'Filter Text',
+              data: {
+                action: 'filterText',
               },
             }] : []),
             {

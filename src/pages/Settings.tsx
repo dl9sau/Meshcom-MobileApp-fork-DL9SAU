@@ -1,5 +1,5 @@
 
-import { IonContent, IonHeader, IonPage, IonText, IonTitle, IonToolbar, IonLabel, IonInput, IonItem, IonButton, IonToggle, IonRange, IonIcon, IonRow, IonCol, IonGrid, IonSelect, IonSelectOption, useIonViewWillEnter, IonAlert, IonProgressBar, useIonViewDidEnter, useIonViewWillLeave } from '@ionic/react';
+import { IonContent, IonHeader, IonPage, IonText, IonTitle, IonToolbar, IonLabel, IonInput, IonTextarea, IonItem, IonButton, IonToggle, IonRange, IonIcon, IonRow, IonCol, IonGrid, IonSelect, IonSelectOption, useIonViewWillEnter, IonAlert, IonProgressBar, useIonViewDidEnter, useIonViewWillLeave } from '@ionic/react';
 import { useEffect, useRef, useState } from 'react';
 import {useBLE} from '../hooks/BleHandler';
 
@@ -30,6 +30,7 @@ import WxDataStore from '../store/WxData';
 import SensorSettingsS1Store from '../store/SensorSettingsS1';
 import WifiSettingsStore2 from '../store/WiFiSettings2';
 import GpsDataStore from '../store/GpsData';
+import MsgFilterStore from '../store/MsgFilterStore';
 
 
 
@@ -278,6 +279,20 @@ const Tab2: React.FC = () => {
   const ext_udp_ip_ref = useRef<HTMLIonInputElement>(null);
   const ext_udp_IP_str = useRef<string>("");
   const ext_udp_enable_str = useRef<string>("");
+
+  // Chat message block-filter settings
+  const [shMsgFilter, setShMsgFilter] = useState<boolean>(false);
+  const msgFilter_s = useStoreState(MsgFilterStore, s => s);
+  const filterCallsRef = useRef<HTMLIonTextareaElement>(null);
+  const filterTextRef = useRef<HTMLIonTextareaElement>(null);
+
+  // persist the block-filter rules and refresh the chat view
+  const saveMsgFilters = async () => {
+    const callRaw = filterCallsRef.current?.value?.toString() ?? "";
+    const textRaw = filterTextRef.current?.value?.toString() ?? "";
+    await DataBaseService.saveMsgFilters(callRaw, textRaw);
+    LogS.log(0, "Settings: Msg filters saved");
+  };
 
   // Manual Position Settings Input Refs
   const [shManualPos, setShManualPos] = useState<boolean>(false);
@@ -2696,6 +2711,40 @@ const Tab2: React.FC = () => {
                 </IonItem>
               </div>
             </>}
+          </div>
+
+          <div id="spacer-buttons" />
+          {/* Chat message block filter */}
+          <div className='dropdown_arrow'>
+            <div className='dropdown_arrow_header'>
+              <div id="advIcon">
+                <IonIcon icon={shMsgFilter ? chevronDown : chevronForward} id="advIcon" color="primary" onClick={() => setShMsgFilter(!shMsgFilter)} />
+              </div>
+              <IonText >Message Filter</IonText>
+            </div>
+            {shMsgFilter &&
+              <div className='setting_wrapper'>
+                <div className="flex-row mb-3">
+                  <div>
+                    <IonText id="wifi-text">Block Rules</IonText>
+                  </div>
+                  <div>
+                    <IonButton size="small" fill="outline" color='success' onClick={() => saveMsgFilters()}>
+                      <IonIcon icon={checkmarkCircle} ></IonIcon>
+                    </IonButton>
+                  </div>
+                </div>
+                <div className='mt-3 mb-3'>Blocked callsigns (one per line, incl. SSID)</div>
+                <IonItem>
+                  <IonTextarea value={msgFilter_s.callRaw} ref={filterCallsRef} label='Callsigns' labelPlacement="floating" autoGrow={true} rows={3} placeholder='OE1ABC-2'></IonTextarea>
+                </IonItem>
+                <div className='mt-3 mb-3'>Text filters (one per line): Wort · ^Beginn · Ende$ · *Wild*card</div>
+                <IonItem>
+                  <IonTextarea value={msgFilter_s.textRaw} ref={filterTextRef} label='Text patterns' labelPlacement="floating" autoGrow={true} rows={4} placeholder='^wetter'></IonTextarea>
+                </IonItem>
+                <div className='mt-3'>Applies to channel messages only. DMs and your own messages are never blocked.</div>
+              </div>
+            }
           </div>
 
           <div id="spacer-buttons" />
