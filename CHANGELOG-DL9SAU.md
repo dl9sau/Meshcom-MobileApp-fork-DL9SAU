@@ -18,6 +18,10 @@ changes of this fork relative to upstream. The in-app version shows
   `*`), which made the message filter skip them entirely — only ALL/broadcast
   was ever filtered. Call *and* text filters now work in every channel; personal
   DMs and your own messages stay exempt.
+- **Chat scrolling & long-press feel right now.** Scrolling through messages no
+  longer accidentally opens the context menu (a finger move cancels the press),
+  and long-press reliably opens it instead of needing several tries (timing kept
+  in refs so a re-render can't break it). A clear usability win.
 
 ### Features
 
@@ -65,9 +69,6 @@ changes of this fork relative to upstream. The in-app version shows
 
 ### Fixes
 
-- Chat: message **long-press is now scroll-safe and reliable** — a finger move
-  cancels the gesture (no more context menu while scrolling), and the press
-  timing survives re-renders (no more needing several tries).
 - Map overlay: the **Close** button is now shown in the collapsed ("Less")
   state too, not only when expanded.
 - Connect: after changing the BLE PIN on a connected node (`--btcode`), show a
