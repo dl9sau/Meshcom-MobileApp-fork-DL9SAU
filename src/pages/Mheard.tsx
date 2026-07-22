@@ -2,6 +2,7 @@ import { IonButton, IonCard, IonContent, IonHeader, IonIcon, IonPage, IonTitle, 
 import MhStore from '../store/MheardStore';
 import ConfigStore from '../store/ConfStore';
 import RelayCountStore from '../store/RelayCountStore';
+import NodeRuntimeStore from '../store/NodeRuntimeStore';
 import { getMheards, getConfigStore } from '../store/Selectors';
 import {ConfType, MheardType} from '../utils/AppInterfaces';
 import './Mheard.css';
@@ -16,7 +17,14 @@ const Mheard = () => {
     // config state to know on which node we are
     const currConfig:ConfType = useStoreState(ConfigStore, getConfigStore);
     // runtime relay counts (fallback for Neighbours when firmware reports 0)
+    // TODO(persist): relayCounts and nodeInfoMap are runtime-only and reset on
+    // app restart. Once Positions/Mheard persist hops/via (see AppInterfaces
+    // PosType/MheardType TODOs), a persistent "Hops x" row and the neighbour
+    // count could be sourced from the DB instead. Design of NodeRuntimeStore
+    // already keeps this a drop-in swap (same per-callsign shape).
     const relayCounts = useStoreState(RelayCountStore, s => s.counts);
+    // runtime per-node counters (#pos / #msg received this session)
+    const nodeInfoMap = useStoreState(NodeRuntimeStore, s => s.info);
 
 
     useEffect(()=>{
@@ -72,6 +80,10 @@ const Mheard = () => {
                                                             return counted > 0 ? "≈" + counted : mhs.mh_ncnt;
                                                         })()}</div>
                                                     </div>
+                                                    <div className='rowcont'>
+                                                        <div>#pos:</div>
+                                                        <div className='value'>{nodeInfoMap[mhs.mh_callSign?.toUpperCase()]?.posCount ?? 0}</div>
+                                                    </div>
                                                 </div>
                                                 <div>
                                                     <div className='rowcont'>
@@ -86,6 +98,10 @@ const Mheard = () => {
                                                     <div className='rowcont'>
                                                         <div className='value_r'>Dist:</div>
                                                         <div className='value'>{mhs.mh_distance > 0 ? mhs.mh_distance + " km" : "n.a."}</div>
+                                                    </div>
+                                                    <div className='rowcont'>
+                                                        <div className='value_r'>#msg:</div>
+                                                        <div className='value'>{nodeInfoMap[mhs.mh_callSign?.toUpperCase()]?.msgCount ?? 0}</div>
                                                     </div>
                                                 </div>
                                             </div>

@@ -17,6 +17,11 @@ export interface MsgType {
 }
 
 // position interface
+// TODO(persist hops/path, backwards compatible): add `hops?: number` and
+// `via?: string` here once the Positions table has the matching columns (see
+// DataBaseService Positions-table TODO). Keep them optional so older DB rows
+// (without the columns) still map cleanly. Then the map overlay can read hops/
+// path from the persisted position instead of only NodeRuntimeStore.
 export interface PosType {
     timestamp:number,
     callSign:string,
@@ -70,6 +75,11 @@ export interface ConfType {
 }
 
 // Mheard Interface
+// TODO(persist Hops in Heard list): add `mh_hops?: number` here and persist the
+// Mheard entries (currently runtime-only in MheardStaticStore). Once persisted,
+// a "Hops x" row in the Heard list can be sourced from the DB instead of the
+// runtime NodeRuntimeStore. Same for the relay/neighbour count (see the
+// Neighbours ≈N fallback in Mheard.tsx / RelayCountStore).
 export interface MheardType {
     mh_timestamp:number,
     mh_nodecall:string,

@@ -2,7 +2,10 @@ import { IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCol
 
 import { PosType } from "../utils/AppInterfaces";
 import { useState } from "react";
+import { useStoreState } from "pullstate";
 import DMfrmMapStore from "../store/DMfrmMap";
+import MhStore from "../store/MheardStore";
+import NodeRuntimeStore from "../store/NodeRuntimeStore";
 import { useHistory } from "react-router";
 import ConfigObject from "../utils/ConfigObject";
 import { distanceKm } from "../utils/GeoUtils";
@@ -50,6 +53,16 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
     const ownPos = ConfigObject.getOwnPosition();
     const dist = distanceKm(lat, lon, ownPos.LAT, ownPos.LON);
 
+    const callUp = callSign?.toUpperCase();
+
+    // SNR/RSSI is only available for directly heard nodes (from the Mheard list)
+    const mhArr = useStoreState(MhStore, s => s.mhArr);
+    const mheard = mhArr.find(m => m.mh_callSign?.toUpperCase() === callUp);
+
+    // runtime hops / path / #pos / #msg for this node
+    const nodeInfoMap = useStoreState(NodeRuntimeStore, s => s.info);
+    const nodeInfo = callUp ? nodeInfoMap[callUp] : undefined;
+
 
     // handle DM Button and switch to chat page
     const handleDM = (toCall:string) => {
@@ -80,6 +93,12 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
                                 <IonText>Latitude: {lat}</IonText><br />
                                 <IonText>Longitude: {lon}</IonText><br />
                                 <IonText>Altitude: {alt}m</IonText><br />
+                                {mheard ? <>
+                                    <IonText>SNR {mheard.mh_snr}dB / RSSI {mheard.mh_rssi}dBm</IonText><br />
+                                </> : <></>}
+                                {nodeInfo && nodeInfo.hops >= 0 ? <>
+                                    <IonText>Hops: {nodeInfo.hops}</IonText><br />
+                                </> : <></>}
                                 {bat !== "N.A." ? <>
                                     <IonText>Battery: {bat}%</IonText><br />
                                 </> : <></>}    
@@ -94,6 +113,10 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
                                     <IonText>QNH: {qnh}hPa</IonText><br />
                                     <IonText>eCO2: {co2}ppm</IonText><br />
                                     <IonText>Gas Res.: {gas_res}k&Omega;</IonText><br />
+                                    {nodeInfo && nodeInfo.path ? <>
+                                        <IonText>Path: {nodeInfo.path}</IonText><br />
+                                    </> : <></>}
+                                    <IonText>#pos: {nodeInfo?.posCount ?? 0}&nbsp;&nbsp;#msg: {nodeInfo?.msgCount ?? 0}</IonText><br />
                                 </div>
                             )}
                         </div>

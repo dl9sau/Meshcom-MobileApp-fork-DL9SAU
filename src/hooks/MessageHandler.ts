@@ -49,6 +49,7 @@ import UpdateFW from '../store/UpdtFW';
 import WifiSettingsStore from '../store/WifiSettings';
 import MheardStaticStore from '../utils/MheardStaticStore';
 import RelayCountService from '../utils/RelayCountService';
+import NodeRuntimeService from '../utils/NodeRuntimeService';
 import { distanceKm } from '../utils/GeoUtils';
 import NodeSettingsStore from '../store/NodeSettingsStore';
 import LogS from '../utils/LogService';
@@ -214,6 +215,10 @@ export function useMSG() {
                             RelayCountService.addHeardVia(neighbour, heard_via);
                         }
 
+                        // record hop count + route path for the originating node.
+                        // runtime only for now (see NodeRuntimeStore TODO for DB persistence).
+                        NodeRuntimeService.setPath(route_call_arr[0], route_call_cnt - 1, via_str);
+
                         // the last 4 bytes are the unix timestamp from node
                         const unix_time = msg.getUint32(msg_len - 5, false) * 1000; // convert to ms
                         console.log("Node Unix Time: " + unix_time);
@@ -227,6 +232,9 @@ export function useMSG() {
                         } else {
                             console.log("Node Time not valid! Using current time!");
                         }
+                    } else if (from_callsign_ !== "") {
+                        // direct reception (no relay in path) -> 0 hops
+                        NodeRuntimeService.setPath(from_callsign_, 0, from_callsign_);
                     }
 
                     // get the destination callsign if we have a direct message. After destCallsign we have a : stop there
@@ -559,6 +567,11 @@ export function useMSG() {
                     // add it to DB
                     if(from_callsign_ !== "response"){
 
+                        // count incoming text messages per node (skip -- command echoes)
+                        if (!msg_text_.startsWith("--")) {
+                            NodeRuntimeService.incMsg(from_callsign_);
+                        }
+
                         const newMsgDB: MsgType = {
                             timestamp:now_timestamp,
                             msgNr:msgID,
@@ -886,6 +899,8 @@ export function useMSG() {
                         }
 
                         LogS.log(0, `Pos Msg from ${from_callsign_} via ${via_str}: Lat ${lat_degree_final} Lon ${lon_degree_final} Alt ${alt_nr_meter}m`);
+                        // count position reports per node (runtime)
+                        NodeRuntimeService.incPos(from_callsign_);
                         return (newPosDB);
 
                     } else {

@@ -83,6 +83,14 @@ class DatabaseService {
             }
 
             // Positions table
+            // TODO(persist hops/path, backwards compatible): to store routing info
+            // per node in the DB, add columns `hops INTEGER` and `via TEXT` here.
+            // Existing installs already have a Positions table, so `CREATE TABLE IF
+            // NOT EXISTS` will NOT add the new columns for them. Do a guarded
+            // migration instead: query PRAGMA table_info(Positions) and only run
+            // `ALTER TABLE Positions ADD COLUMN hops INTEGER` / `... ADD COLUMN via
+            // TEXT` when the column is missing. Then extend PosType + writePos and
+            // seed NodeRuntimeStore from the DB on load (see NodeRuntimeStore TODO).
             if (DatabaseService.db) {
                 await DatabaseService.db.execute(`
                     CREATE TABLE IF NOT EXISTS Positions (
