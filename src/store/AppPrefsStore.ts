@@ -26,7 +26,7 @@ const AppPrefsStore = new Store<AppPrefsState>({
     retGroup: 7,
     retMyDM: 90,
     retForeignDM: 2,
-    retPos: 3,
+    retPos: 7,
     retMheard: 2
 });
 

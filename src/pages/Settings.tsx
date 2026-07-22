@@ -2796,7 +2796,7 @@ const Tab2: React.FC = () => {
             {shRetention &&
               <div className='setting_wrapper'>
                 <div className="flex-row mb-3">
-                  <div><IonText id="wifi-text">Keep for … days</IonText></div>
+                  <div><IonText id="wifi-text">Keep messages for … days</IonText></div>
                   <div>
                     <IonButton size="small" fill="outline" color='success' onClick={() => saveRetention()}>
                       <IonIcon icon={checkmarkCircle} ></IonIcon>
@@ -2804,9 +2804,9 @@ const Tab2: React.FC = () => {
                   </div>
                 </div>
                 <IonItem><IonInput value={retAll} ref={retAllRef} label='ALL / broadcast' labelPlacement="floating" type='number' inputmode="numeric"></IonInput></IonItem>
-                <IonItem><IonInput value={retGroup} ref={retGroupRef} label='Group channels' labelPlacement="floating" type='number' inputmode="numeric"></IonInput></IonItem>
-                <IonItem><IonInput value={retMyDM} ref={retMyDMRef} label='My DMs (0 = keep forever)' labelPlacement="floating" type='number' inputmode="numeric"></IonInput></IonItem>
-                <IonItem><IonInput value={retForeignDM} ref={retForeignDMRef} label='Overheard DMs' labelPlacement="floating" type='number' inputmode="numeric"></IonInput></IonItem>
+                <IonItem><IonInput value={retGroup} ref={retGroupRef} label='Talk groups (TGs)' labelPlacement="floating" type='number' inputmode="numeric"></IonInput></IonItem>
+                <IonItem><IonInput value={retMyDM} ref={retMyDMRef} label='DMs: for me' labelPlacement="floating" type='number' inputmode="numeric"></IonInput></IonItem>
+                <IonItem><IonInput value={retForeignDM} ref={retForeignDMRef} label='DMs: others' labelPlacement="floating" type='number' inputmode="numeric"></IonInput></IonItem>
                 <IonItem><IonInput value={retPos} ref={retPosRef} label='Positions (map)' labelPlacement="floating" type='number' inputmode="numeric"></IonInput></IonItem>
                 <IonItem><IonInput value={retMheard} ref={retMheardRef} label='Heard list' labelPlacement="floating" type='number' inputmode="numeric"></IonInput></IonItem>
               </div>
