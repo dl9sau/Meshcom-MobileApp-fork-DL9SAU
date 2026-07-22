@@ -556,6 +556,17 @@ const Tab3: React.FC = () => {
   // exact pattern that "Filter Message" stores for a message text (^...$)
   const messagePattern = (msgTxt: string): string => "^" + (msgTxt || "").trim() + "$";
 
+  // "via" path with the leading origin dropped: via_str[0] is always the sender
+  // (== fromCall, shown separately), so "via: SENDER > A > B" is redundant -
+  // show only the intermediate hops "A > B".
+  const viaRelays = (via: string, fromCall: string): string => {
+    const parts = via.split(" > ").map(p => p.trim()).filter(p => p !== "");
+    if (parts.length > 0 && parts[0].toUpperCase() === (fromCall || "").toUpperCase()) {
+      parts.shift();
+    }
+    return parts.join(" > ");
+  };
+
   // append a line to a newline-separated rule list (dedup); returns new raw text
   const appendFilterLine = (raw: string, line: string): string => {
     const val = (line || "").trim();
@@ -943,15 +954,24 @@ const Tab3: React.FC = () => {
                   <div className="ion-text-start">
                     <IonText id="msg-time">{msg.msgTime}</IonText>
                   </div>
-                  {msg.via.length > 1 ? <>
-                    <div className="ion-text-start">
-                      <IonText id="msg-via">{msg.gw === 1 ? "🌐 " : ""}via:{msg.via}</IonText>
-                    </div>
-                  </> : (msg.gw === 1 ? <>
-                    <div className="ion-text-start">
-                      <IonText id="msg-via">🌐 via Gateway</IonText>
-                    </div>
-                  </> : <></>)}
+                  {(() => {
+                    const relays = viaRelays(msg.via, msg.fromCall);
+                    if (relays.length > 0) {
+                      return (
+                        <div className="ion-text-start">
+                          <IonText id="msg-via">{msg.gw === 1 ? "🌐 " : ""}via:{relays}</IonText>
+                        </div>
+                      );
+                    }
+                    if (msg.gw === 1) {
+                      return (
+                        <div className="ion-text-start">
+                          <IonText id="msg-via">🌐 via Gateway</IonText>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
 
                   <div className="ion-text-start">
                     {msg.isDM ? <>
