@@ -1,0 +1,73 @@
+name: Android APK (WIP)
+
+# Two ways to trigger a build:
+#   1. Manually: GitHub -> Actions -> "Android APK (WIP)" -> Run workflow
+#   2. By pushing a tag like v0.0.1-wip:  git tag v0.0.1-wip && git push origin v0.0.1-wip
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write   # required to publish the (pre)release
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # runs "tsc && vite build" -> also type-checks the whole project
+      - name: Build web app
+        run: npm run build
+
+      - name: Setup Java (JDK 17)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      # android/ is not committed, so create the native project on the fly
+      - name: Add & sync Android platform
+        run: |
+          npx cap add android
+          npx cap sync android
+
+      - name: Build debug APK
+        run: |
+          chmod +x android/gradlew
+          cd android
+          ./gradlew assembleDebug
+
+      - name: Rename APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk meshcom-wip-${{ github.run_number }}.apk
+
+      # available on the Actions run even if the release step is skipped
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: meshcom-wip-apk
+          path: meshcom-wip-${{ github.run_number }}.apk
+
+      - name: Publish prerelease
+        uses: softprops/action-gh-release@v2
+        with:
+          prerelease: true
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || format('wip-{0}', github.run_number) }}
+          name: ${{ github.ref_type == 'tag' && github.ref_name || format('WIP build {0}', github.run_number) }}
+          files: meshcom-wip-${{ github.run_number }}.apk
+          body: |
+            Work-in-progress build — debug APK (debug-signed, installable via "unknown sources").
+            Branch: `${{ github.ref_name }}`
+            Commit: ${{ github.sha }}
