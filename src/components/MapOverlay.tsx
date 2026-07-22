@@ -4,7 +4,28 @@ import { PosType } from "../utils/AppInterfaces";
 import { useState } from "react";
 import DMfrmMapStore from "../store/DMfrmMap";
 import { useHistory } from "react-router";
+import ConfigObject from "../utils/ConfigObject";
+import { distanceKm } from "../utils/GeoUtils";
 import './MapOverlay.css';
+
+
+// format the age of a position (ms timestamp -> "2h 15min", days only if > 0)
+const formatAge = (ts: number): string => {
+    if (!ts || ts <= 0) return "n.a.";
+    let diff = Date.now() - ts;
+    if (diff < 0) diff = 0;
+
+    const totalMin = Math.floor(diff / 60000);
+    const days = Math.floor(totalMin / 1440);
+    const hours = Math.floor((totalMin % 1440) / 60);
+    const mins = totalMin % 60;
+
+    let out = "";
+    if (days > 0) out += days + "d ";
+    if (days > 0 || hours > 0) out += hours + "h ";
+    out += mins + "min";
+    return out;
+};
 
 
 interface MapOverlayProps extends PosType {
@@ -24,6 +45,10 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
 
     // state to show more info like pressure, etc
     const [shExtInfo, setShExtInfo] = useState(false);
+
+    // distance from our own position to this node
+    const ownPos = ConfigObject.getOwnPosition();
+    const dist = distanceKm(lat, lon, ownPos.LAT, ownPos.LON);
 
 
     // handle DM Button and switch to chat page
@@ -50,6 +75,8 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
                     <IonCardContent>
                         <div className="info-container">
                             <div className="info">
+                                <IonText>Age: {formatAge(timestamp)}</IonText><br />
+                                <IonText>Dist: {dist > 0 ? dist.toFixed(2) + " km" : "n.a."}</IonText><br />
                                 <IonText>Latitude: {lat}</IonText><br />
                                 <IonText>Longitude: {lon}</IonText><br />
                                 <IonText>Altitude: {alt}m</IonText><br />

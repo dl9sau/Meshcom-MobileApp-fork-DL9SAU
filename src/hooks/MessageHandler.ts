@@ -48,6 +48,8 @@ import BleConfigFinish from '../store/BLEConfFin';
 import UpdateFW from '../store/UpdtFW';
 import WifiSettingsStore from '../store/WifiSettings';
 import MheardStaticStore from '../utils/MheardStaticStore';
+import RelayCountService from '../utils/RelayCountService';
+import { distanceKm } from '../utils/GeoUtils';
 import NodeSettingsStore from '../store/NodeSettingsStore';
 import LogS from '../utils/LogService';
 import AprsSettingsStore from '../store/AprSettingsStore';
@@ -202,6 +204,15 @@ export function useMSG() {
                         }
 
                         console.log("Route Calls: " + via_str);
+
+                        // count unique nodes relayed to us via our direct neighbour.
+                        // last call in the route = node we heard directly (neighbour),
+                        // every call before it reached us "via" that neighbour.
+                        if (route_call_cnt >= 2) {
+                            const neighbour = route_call_arr[route_call_cnt - 1];
+                            const heard_via = route_call_arr.slice(0, route_call_cnt - 1);
+                            RelayCountService.addHeardVia(neighbour, heard_via);
+                        }
 
                         // the last 4 bytes are the unix timestamp from node
                         const unix_time = msg.getUint32(msg_len - 5, false) * 1000; // convert to ms
@@ -1527,23 +1538,7 @@ export function useMSG() {
             return 0;
         }
 
-        // calculate the distance
-        let radlat1 = Math.PI * pos.lat / 180;
-        let radlat2 = Math.PI * own_lat / 180;
-        let theta = pos.lon - own_lon;
-        let radtheta = Math.PI * theta / 180;
-        let distance = Math.sin(radlat1) * Math.sin(radlat2) + Math.cos(radlat1) * Math.cos(radlat2) * Math.cos(radtheta);
-        if (distance > 1) {
-            distance = 1;
-        }
-        distance = Math.acos(distance);
-        distance = distance * 180 / Math.PI;
-        distance = distance * 60 * 1.1515;
-        distance = distance * 1.609344;
-
-        distance = Math.round(distance * 100) / 100;
-
-        return distance;
+        return distanceKm(pos.lat, pos.lon, own_lat, own_lon);
     }
 
     return {
