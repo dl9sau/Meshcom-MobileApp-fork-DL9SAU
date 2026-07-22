@@ -589,22 +589,6 @@ const Tab3: React.FC = () => {
     return lines.join("\n");
   };
 
-  // remove a line from a rule list (ci = case-insensitive, used for callsigns)
-  const removeFilterLine = (raw: string, line: string, ci: boolean): string => {
-    const target = ci ? line.trim().toUpperCase() : line.trim();
-    return raw.split(/\r?\n/).map(l => l.trim())
-      .filter(l => l !== "" && (ci ? l.toUpperCase() !== target : l !== target))
-      .join("\n");
-  };
-
-  // is a rule already present? (ci for callsigns)
-  const hasFilterLine = (raw: string, line: string, ci: boolean): boolean => {
-    const target = ci ? line.trim().toUpperCase() : line.trim();
-    return raw.split(/\r?\n/).map(l => l.trim())
-      .some(l => ci ? l.toUpperCase() === target : l === target);
-  };
-
-
   const handleActionSheet = async (detailAS: OverlayEventDetail) => {
 
     console.log("AS Detail: ");
@@ -650,22 +634,16 @@ const Tab3: React.FC = () => {
       }
 
       if (asActionDetail === "filterCall") {
-        // toggle the sender's callsign in the block list (avoids duplicates /
-        // lets you undo a misclick); message reappears/disappears at once
-        const call = selMsg[0].fromCall;
-        const newCallRaw = hasFilterLine(msgFilter_s.callRaw, call, true)
-          ? removeFilterLine(msgFilter_s.callRaw, call, true)
-          : appendFilterLine(msgFilter_s.callRaw, call);
+        // add the sender's callsign to the block list (dedup); message hides at once.
+        // removal is done in Settings - a hidden message can't be long-pressed.
+        const newCallRaw = appendFilterLine(msgFilter_s.callRaw, selMsg[0].fromCall);
         await DatabaseService.saveMsgFilters(newCallRaw, msgFilter_s.textRaw);
       }
 
       if (asActionDetail === "filterMessage") {
-        // toggle an exact "^message$" text rule (refine later in Settings,
-        // e.g. into "Test *")
+        // add an exact "^message$" text rule (refine later in Settings, e.g. "Test *")
         const pat = messagePattern(selMsg[0].msgTXT);
-        const newTextRaw = hasFilterLine(msgFilter_s.textRaw, pat, false)
-          ? removeFilterLine(msgFilter_s.textRaw, pat, false)
-          : appendFilterLine(msgFilter_s.textRaw, pat);
+        const newTextRaw = appendFilterLine(msgFilter_s.textRaw, pat);
         await DatabaseService.saveMsgFilters(msgFilter_s.callRaw, newTextRaw);
       }
 
@@ -816,11 +794,6 @@ const Tab3: React.FC = () => {
   
 
 
-  // action-sheet target message + its current filter state (for toggle labels)
-  const asSelMsg = msgArr_s.find(m => m.msgNr === msgNrAS);
-  const asCallFiltered = asSelMsg ? hasFilterLine(msgFilter_s.callRaw, asSelMsg.fromCall, true) : false;
-  const asMsgFiltered = asSelMsg ? hasFilterLine(msgFilter_s.textRaw, messagePattern(asSelMsg.msgTXT), false) : false;
-
   return (
     <IonPage>
       <IonHeader>
@@ -920,12 +893,12 @@ const Tab3: React.FC = () => {
               },
             }] : []),
             ...(segmentFilter !== "DM" && msgArr_s.some(m => m.msgNr === msgNrAS && m.fromCall !== nodeInfo_s.CALL) ? [{
-              text: asCallFiltered ? 'Remove Call Filter' : 'Filter Call',
+              text: 'Filter Call',
               data: {
                 action: 'filterCall',
               },
             }, {
-              text: asMsgFiltered ? 'Remove Message Filter' : 'Filter Message',
+              text: 'Filter Message',
               data: {
                 action: 'filterMessage',
               },

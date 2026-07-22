@@ -30,7 +30,8 @@ changes of this fork relative to upstream. The in-app version shows
   (case-insensitive, UTF-8/emoji/multi-line aware). You can add **any number of
   rules — one per line** — in the callsign and text fields separately. Manage in
   *Settings → Message Filter*, or use quick **Filter Call / Filter Message** on a
-  message (press again to remove). Blocked messages also raise no notification.
+  message. (Removing a rule is done in Settings — a blocked message is hidden and
+  can't be long-pressed.) Blocked messages also raise no notification.
 - **Reply**: prefills a compact reference into the input so the other side knows
   what you refer to — `CALL: [HH:MM] ` in channels (who + which message),
   `[HH:MM] ` in DMs (the recipient is already clear). Both parts are
