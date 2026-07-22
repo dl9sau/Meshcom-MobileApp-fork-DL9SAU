@@ -65,6 +65,9 @@ changes of this fork relative to upstream. The in-app version shows
 
 ### Fixes
 
+- Chat: message **long-press is now scroll-safe and reliable** — a finger move
+  cancels the gesture (no more context menu while scrolling), and the press
+  timing survives re-renders (no more needing several tries).
 - Map overlay: the **Close** button is now shown in the collapsed ("Less")
   state too, not only when expanded.
 - Connect: after changing the BLE PIN on a connected node (`--btcode`), show a
