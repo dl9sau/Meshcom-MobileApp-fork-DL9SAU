@@ -38,19 +38,21 @@ class MsgFilterService {
             .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
             .replace(/\\\*/g, ".*");
 
-        // whole-word boundaries only make sense next to a word char; a pattern
-        // that starts/ends with punctuation (e.g. "- . ... -") would never match
-        // with \b there, so only add the boundary where the edge is a word char.
-        const startBoundary = plainWord && /^\w/.test(pat) ? "\\b" : "";
-        const endBoundary = plainWord && /\w$/.test(pat) ? "\\b" : "";
+        // Unicode-aware whole-word boundaries (only for plain words, no anchors/
+        // wildcards). \b is ASCII-only, so it mishandles umlauts/emoji at the
+        // edges; these lookarounds treat any Unicode letter/number as a word
+        // char and also work when the pattern edge is punctuation (e.g. "- . -").
+        const LB = "(?<![\\p{L}\\p{N}_])";
+        const RB = "(?![\\p{L}\\p{N}_])";
 
         let src = "";
-        src += anchorStart ? "^" : startBoundary;
+        src += anchorStart ? "^" : (plainWord ? LB : "");
         src += body;
-        src += anchorEnd ? "$" : endBoundary;
+        src += anchorEnd ? "$" : (plainWord ? RB : "");
 
         try {
-            return new RegExp(src, "i");
+            // 'u' = correct code-point handling for UTF-8 / emoji
+            return new RegExp(src, "iu");
         } catch {
             return null;
         }
@@ -76,9 +78,12 @@ class MsgFilterService {
         });
     }
 
-    // true if this CHANNEL message should be hidden. Never blocks DMs or own msgs.
+    // true if this CHANNEL message should be hidden. Never blocks real DMs or
+    // own msgs. NOTE: group messages carry isDM=1 too (destination is a group
+    // number, not a broadcast '*'), so a real DM is isDM=1 AND isGrpMsg!=1 -
+    // otherwise the filter would never touch any group-channel message.
     isChannelMsgBlocked(msg: MsgType): boolean {
-        if (msg.isDM === 1) return false;
+        if (msg.isDM === 1 && msg.isGrpMsg !== 1) return false;
 
         const own = ConfigObject.getConf().CALL;
         if (own && msg.fromCall === own) return false;
