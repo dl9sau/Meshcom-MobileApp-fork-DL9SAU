@@ -1,4 +1,10 @@
 
+/* EXPERIMENT (revertable): stabilise overlay width so it doesn't jump when
+   toggling More/Less. Revert this rule if it doesn't feel right. */
+.map-overlay-container ion-card {
+  min-width: 250px;
+}
+
 .button-container {
   display: flex;
   flex-wrap: wrap;
