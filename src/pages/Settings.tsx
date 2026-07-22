@@ -310,6 +310,47 @@ const Tab2: React.FC = () => {
     await DataBaseService.reapplyChatFilters();
   };
 
+  // per-category retention in days (0 = unlimited)
+  const [shRetention, setShRetention] = useState<boolean>(false);
+  const retAll = useStoreState(AppPrefsStore, s => s.retAll);
+  const retGroup = useStoreState(AppPrefsStore, s => s.retGroup);
+  const retMyDM = useStoreState(AppPrefsStore, s => s.retMyDM);
+  const retForeignDM = useStoreState(AppPrefsStore, s => s.retForeignDM);
+  const retPos = useStoreState(AppPrefsStore, s => s.retPos);
+  const retMheard = useStoreState(AppPrefsStore, s => s.retMheard);
+  const retAllRef = useRef<HTMLIonInputElement>(null);
+  const retGroupRef = useRef<HTMLIonInputElement>(null);
+  const retMyDMRef = useRef<HTMLIonInputElement>(null);
+  const retForeignDMRef = useRef<HTMLIonInputElement>(null);
+  const retPosRef = useRef<HTMLIonInputElement>(null);
+  const retMheardRef = useRef<HTMLIonInputElement>(null);
+
+  const saveRetention = async () => {
+    const parse = (ref: { current: HTMLIonInputElement | null }, cur: number): number => {
+      const v = parseInt(ref.current?.value?.toString() ?? '');
+      return isNaN(v) || v < 0 ? cur : v;
+    };
+    const vals: { [k: string]: number } = {
+      retAll: parse(retAllRef, retAll),
+      retGroup: parse(retGroupRef, retGroup),
+      retMyDM: parse(retMyDMRef, retMyDM),
+      retForeignDM: parse(retForeignDMRef, retForeignDM),
+      retPos: parse(retPosRef, retPos),
+      retMheard: parse(retMheardRef, retMheard),
+    };
+    AppPrefsStore.update(s => {
+      s.retAll = vals.retAll; s.retGroup = vals.retGroup; s.retMyDM = vals.retMyDM;
+      s.retForeignDM = vals.retForeignDM; s.retPos = vals.retPos; s.retMheard = vals.retMheard;
+    });
+    for (const k of Object.keys(vals)) await DataBaseService.setPref(k, vals[k].toString());
+    // apply immediately: prune now, then refresh the chat view
+    await DataBaseService.housekeeping();
+    await DataBaseService.reapplyChatFilters();
+    setAlHeader("Retention saved");
+    setAlMsg("Old data pruned according to the new retention.");
+    setShAlertCard(true);
+  };
+
   // Manual Position Settings Input Refs
   const [shManualPos, setShManualPos] = useState<boolean>(false);
   const manual_lat_ref = useRef<HTMLIonInputElement>(null);
@@ -2741,6 +2782,35 @@ const Tab2: React.FC = () => {
             <IonItem>
               <IonToggle enableOnOffLabels={true} checked={dmShowAll} onIonChange={(ev) => setDmShowAll(ev.detail.checked)}>DM tab: show all traffic (monitoring)</IonToggle>
             </IonItem>
+          </div>
+
+          <div id="spacer-buttons" />
+          {/* Data retention per category (days; 0 = unlimited) */}
+          <div className='dropdown_arrow'>
+            <div className='dropdown_arrow_header'>
+              <div id="advIcon">
+                <IonIcon icon={shRetention ? chevronDown : chevronForward} id="advIcon" color="primary" onClick={() => setShRetention(!shRetention)} />
+              </div>
+              <IonText >Data Retention (days, 0 = unlimited)</IonText>
+            </div>
+            {shRetention &&
+              <div className='setting_wrapper'>
+                <div className="flex-row mb-3">
+                  <div><IonText id="wifi-text">Keep for … days</IonText></div>
+                  <div>
+                    <IonButton size="small" fill="outline" color='success' onClick={() => saveRetention()}>
+                      <IonIcon icon={checkmarkCircle} ></IonIcon>
+                    </IonButton>
+                  </div>
+                </div>
+                <IonItem><IonInput value={retAll} ref={retAllRef} label='ALL / broadcast' labelPlacement="floating" type='number' inputmode="numeric"></IonInput></IonItem>
+                <IonItem><IonInput value={retGroup} ref={retGroupRef} label='Group channels' labelPlacement="floating" type='number' inputmode="numeric"></IonInput></IonItem>
+                <IonItem><IonInput value={retMyDM} ref={retMyDMRef} label='My DMs (0 = keep forever)' labelPlacement="floating" type='number' inputmode="numeric"></IonInput></IonItem>
+                <IonItem><IonInput value={retForeignDM} ref={retForeignDMRef} label='Overheard DMs' labelPlacement="floating" type='number' inputmode="numeric"></IonInput></IonItem>
+                <IonItem><IonInput value={retPos} ref={retPosRef} label='Positions (map)' labelPlacement="floating" type='number' inputmode="numeric"></IonInput></IonItem>
+                <IonItem><IonInput value={retMheard} ref={retMheardRef} label='Heard list' labelPlacement="floating" type='number' inputmode="numeric"></IonInput></IonItem>
+              </div>
+            }
           </div>
 
           <div id="spacer-buttons" />

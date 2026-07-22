@@ -725,31 +725,39 @@ class DatabaseService {
     // Both have the timestamp field
     static async housekeeping() {
         LogS.log(0, 'DB Housekeeping');
-        // get current date
-        const today = new Date();
-        const max_timestamp_txt = sub(today, { days: DatabaseService.MAX_AGE_TXT_MSG });
-        const max_timestamp_pos = sub(today, { days: DatabaseService.MAX_AGE_POS });
-        const max_timestamp_unix_txt =  max_timestamp_txt.getTime();
-        const max_timestamp_unix_pos =  max_timestamp_pos.getTime();
-        console.log('Max timestamp txt:', max_timestamp_unix_txt);
-        console.log('Max timestamp txt:', format(max_timestamp_txt, 'yyyy-MM-dd HH:mm:ss'));
-        console.log('Max timestamp pos:', format(max_timestamp_pos, 'yyyy-MM-dd HH:mm:ss'));
-
-        // delete all messages older than max_timestamp_txt
-        if (DatabaseService.db) {
-            const sql_str = `DELETE FROM TextMessages WHERE timestamp < ${max_timestamp_unix_txt};`;
-            const ret_txt = await DatabaseService.db?.execute(sql_str);
-            console.log('DB housekeeping TextMessages ret:', ret_txt?.changes?.values);
-            // delete all positions older than max_timestamp_pos
-            const sql_str_pos = `DELETE FROM Positions WHERE timestamp < ${max_timestamp_unix_pos};`;
-            const ret_pos = await DatabaseService.db?.execute(sql_str_pos);
-            console.log('DB housekeeping Positions ret:', ret_pos?.changes?.values);
-            // delete Mheard entries older than MAX_AGE_MHEARD
-            const max_timestamp_unix_mh = sub(today, { days: DatabaseService.MAX_AGE_MHEARD }).getTime();
-            const ret_mh = await DatabaseService.db?.execute(`DELETE FROM Mheard WHERE mh_timestamp < ${max_timestamp_unix_mh};`);
-            console.log('DB housekeeping Mheard ret:', ret_mh?.changes?.values);
-        } else {
+        if (!DatabaseService.db) {
             LogS.log(1, 'Error housekeeping. Database not open.');
+            return;
+        }
+        const today = new Date();
+        const p = AppPrefsStore.getRawState();
+        const own = (p.ownCall || '').replace(/'/g, "''");
+        // days -> cutoff ms; a retention of 0 means "unlimited" (skip the delete)
+        const cutoff = (days: number) => sub(today, { days }).getTime();
+
+        try {
+            // ALL / broadcast (isDM=0, isGrpMsg=0)
+            if (p.retAll > 0)
+                await DatabaseService.db.execute(`DELETE FROM TextMessages WHERE isDM = 0 AND isGrpMsg = 0 AND timestamp < ${cutoff(p.retAll)};`);
+            // group channels (isGrpMsg=1)
+            if (p.retGroup > 0)
+                await DatabaseService.db.execute(`DELETE FROM TextMessages WHERE isGrpMsg = 1 AND timestamp < ${cutoff(p.retGroup)};`);
+            // DMs need the own call to split mine vs overheard; skip if unknown (first run before any connect)
+            if (own) {
+                if (p.retMyDM > 0)
+                    await DatabaseService.db.execute(`DELETE FROM TextMessages WHERE isDM = 1 AND isGrpMsg = 0 AND (fromCall = '${own}' OR toCall = '${own}') AND timestamp < ${cutoff(p.retMyDM)};`);
+                if (p.retForeignDM > 0)
+                    await DatabaseService.db.execute(`DELETE FROM TextMessages WHERE isDM = 1 AND isGrpMsg = 0 AND fromCall != '${own}' AND toCall != '${own}' AND timestamp < ${cutoff(p.retForeignDM)};`);
+            }
+            // positions
+            if (p.retPos > 0)
+                await DatabaseService.db.execute(`DELETE FROM Positions WHERE timestamp < ${cutoff(p.retPos)};`);
+            // Mheard
+            if (p.retMheard > 0)
+                await DatabaseService.db.execute(`DELETE FROM Mheard WHERE mh_timestamp < ${cutoff(p.retMheard)};`);
+            console.log('DB housekeeping done');
+        } catch (err) {
+            LogS.log(1, 'Error during housekeeping deletes: ' + err);
         }
     }
 
@@ -878,10 +886,22 @@ class DatabaseService {
             if (res.values) {
                 for (const row of res.values) prefs[row.key] = row.val;
             }
+            const numPref = (key: string, cur: number): number => {
+                if (!(key in prefs)) return cur;
+                const n = parseInt(prefs[key]);
+                return isNaN(n) ? cur : n;
+            };
             AppPrefsStore.update(s => {
                 // only override the default when a value was actually saved
                 if ('compactHeader' in prefs) s.compactHeader = prefs['compactHeader'] === '1';
                 if ('dmShowAll' in prefs) s.dmShowAll = prefs['dmShowAll'] === '1';
+                if ('ownCall' in prefs) s.ownCall = prefs['ownCall'];
+                s.retAll = numPref('retAll', s.retAll);
+                s.retGroup = numPref('retGroup', s.retGroup);
+                s.retMyDM = numPref('retMyDM', s.retMyDM);
+                s.retForeignDM = numPref('retForeignDM', s.retForeignDM);
+                s.retPos = numPref('retPos', s.retPos);
+                s.retMheard = numPref('retMheard', s.retMheard);
             });
         } catch (err) {
             LogS.log(1, 'Error loading AppPrefs:' + err);

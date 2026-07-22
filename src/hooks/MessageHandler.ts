@@ -1164,6 +1164,11 @@ export function useMSG() {
                                 LogS.log(0, "Node Callsign: " + callsign);
                                 // update callsign ref
                                 node_call_ref.current = callsign;
+                                // persist own call so housekeeping can tell my DMs from
+                                // overheard ones on the next app start (before connect)
+                                if (callsign && callsign !== "XX0XXX-00") {
+                                    DatabaseService.setPref('ownCall', callsign);
+                                }
 
                                 // show set baseconfig alert on unset node
                                 if (callsign === "" || callsign === "XX0XXX-00") {

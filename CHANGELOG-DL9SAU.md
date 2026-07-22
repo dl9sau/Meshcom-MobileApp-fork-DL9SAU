@@ -78,7 +78,15 @@ changes of this fork relative to upstream. The in-app version shows
 - Build: declared the missing **date-fns** dependency; added the missing
   **BPIN** default in `ConfigObject`; use **JDK 21** (Capacitor 7 requirement).
 
-### Known / parked (planned DB redesign)
+**Storage / persistence**
+- The **Heard list** and per-node **hops/path** now **survive an app restart**
+  (new Mheard table; hops/via columns on Positions) instead of being lost.
+- **Configurable retention per category** (*Settings → Data Retention*, days,
+  `0 = unlimited`): ALL/broadcast, group channels, my DMs, overheard DMs,
+  positions, Heard list — each with its own value. Saving prunes immediately.
+  Own callsign is persisted so my DMs can be told apart from overheard ones.
 
-- Per-category, configurable message/position retention (ALL short, personal DMs
-  long, `0 = unlimited`).
+### Known / parked
+
+- Message filter: optional **per-channel scope** (block weather in ALL but allow
+  it in a dedicated weather channel).
