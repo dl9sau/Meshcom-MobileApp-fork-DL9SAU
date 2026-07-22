@@ -530,24 +530,38 @@ const Tab3: React.FC = () => {
 
 
 
-  // LongPress Handling on Messages to fire actionsheet
-  let btnpresstime = 0;
+  // Long-press / tap detection on messages. Refs (not a re-created `let`) survive
+  // re-renders, and a finger move cancels the gesture so scrolling never fires the
+  // context menu.
+  const PRESS_MOVE_THRESHOLD = 10; // px
+  const pressStart = useRef<number>(0);
+  const pressStartX = useRef<number>(0);
+  const pressStartY = useRef<number>(0);
+  const pressMoved = useRef<boolean>(false);
 
-  const handleButtonPress = () => {
-    btnpresstime = Date.now();
-    console.log("Long Press time start: " + btnpresstime);
+  const handleButtonPress = (e: any) => {
+    pressStart.current = Date.now();
+    pressMoved.current = false;
+    const t = e?.touches?.[0];
+    if (t) { pressStartX.current = t.clientX; pressStartY.current = t.clientY; }
   }
 
-  // check how long clicked on a message to show options
-  const handleButtonRelease = (msgNr: number) => {
+  // a movement beyond the threshold means the user is scrolling, not pressing
+  const handleButtonMove = (e: any) => {
+    const t = e?.touches?.[0];
+    if (!t) return;
+    if (Math.abs(t.clientX - pressStartX.current) > PRESS_MOVE_THRESHOLD ||
+        Math.abs(t.clientY - pressStartY.current) > PRESS_MOVE_THRESHOLD) {
+      pressMoved.current = true;
+    }
+  }
 
-    const btnstop = Date.now();
-    const difftime = btnstop - btnpresstime;
-    console.log("Long Press time stop: " + btnstop);
-    console.log("Diff: " + difftime);
+  // decide tap vs long-press on release; ignored entirely if it was a scroll
+  const handleButtonRelease = (msgNr: number) => {
+    if (pressMoved.current) return; // was a scroll, not a press
+    const difftime = Date.now() - pressStart.current;
 
     if (difftime >= MIN_PRESS_TIME) { // long press -> options
-      console.log('selected msgnr: ' + msgNr);
       setMsgNrAS(msgNr);
       setIsOpenAS(true);
     } else {
@@ -953,7 +967,7 @@ const Tab3: React.FC = () => {
 
               {msg.msgNr !== 0 ? <>
 
-                <div key={i} onTouchStart={handleButtonPress} onTouchEnd={() => handleButtonRelease(msg.msgNr)} className={msgType(msg)}>
+                <div key={i} onTouchStart={handleButtonPress} onTouchMove={handleButtonMove} onTouchEnd={() => handleButtonRelease(msg.msgNr)} className={msgType(msg)}>
 
                   {compactHeader ? (
                     /* COMPACT: one header line - sender (bold), (via ...), time.
