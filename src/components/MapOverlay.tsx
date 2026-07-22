@@ -137,7 +137,9 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
                                     <IonText>QNH: {qnh}hPa</IonText><br />
                                     <IonText>eCO2: {co2}ppm</IonText><br />
                                     <IonText>Gas Res.: {gas_res}k&Omega;</IonText><br />
-                                    {pathLines.length > 0 ? <>
+                                    {nodeInfo && nodeInfo.hops === 0 ? <>
+                                        <IonText>Path: direct</IonText><br />
+                                    </> : pathLines.length > 0 ? <>
                                         <IonText>Path: {pathLines.map((ln, i) => (
                                             <span key={i}>{i > 0 ? <br /> : null}{i > 0 ? "  " : ""}{ln}</span>
                                         ))}</IonText><br />
