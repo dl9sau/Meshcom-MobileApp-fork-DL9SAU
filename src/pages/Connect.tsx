@@ -491,6 +491,11 @@ const Tab1: React.FC = () => {
     if (connFlag && devID_s === dev.dev_id_) {
       sendTxtCmdNode("--btcode " + pin);
       LogS.log(0, "Sent --btcode to connected node: " + dev.devName);
+      // the node needs a moment to apply the new code; an immediate reconnect can
+      // race it. Inform the user instead of forcing an app restart.
+      setAlHeader("BLE PIN changed");
+      setAlMsg("The node's BLE code was updated. If the connection drops and won't reconnect, please close and reopen the app once.");
+      setShAlertCard(true);
     }
   };
 

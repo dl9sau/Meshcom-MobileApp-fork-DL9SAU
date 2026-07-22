@@ -55,6 +55,9 @@ changes of this fork relative to upstream. The in-app version shows
 
 ### Fixes
 
+- Connect: after changing the BLE PIN on a connected node (`--btcode`), show a
+  hint to close/reopen the app if reconnect fails (the node needs a moment to
+  apply the new code, which an immediate reconnect can race).
 - Chat: dropped the redundant origin (sender) from the `via:` path — it equals
   the from-call already shown, so only the intermediate hops are listed now.
 - Message filter: Unicode-aware whole-word boundaries (patterns starting/ending
