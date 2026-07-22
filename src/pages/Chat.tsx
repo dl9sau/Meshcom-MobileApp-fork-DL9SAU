@@ -573,6 +573,12 @@ const Tab3: React.FC = () => {
     return parts.join(" > ");
   };
 
+  // reply time reference "[HH:MM] " from a message's msgTime ("HH:MM:SS")
+  const timeRef = (msgTime: string): string => {
+    const t = (msgTime || "").slice(0, 5);
+    return t ? "[" + t + "] " : "";
+  };
+
   // append a line to a newline-separated rule list (dedup); returns new raw text
   const appendFilterLine = (raw: string, line: string): string => {
     const val = (line || "").trim();
@@ -634,11 +640,11 @@ const Tab3: React.FC = () => {
 
       if (asActionDetail === "reply") {
         console.log("Reply pressed");
-        // prepend "CALL: " of the referenced sender into the input line
+        // prepend "CALL: [HH:MM] " — who + which message (both independently deletable)
         const replyCall = selMsg[0].fromCall;
         if (textAreaInputRef.current) {
           const existing = textAreaInputRef.current.value?.toString() ?? "";
-          textAreaInputRef.current.value = replyCall + ": " + existing;
+          textAreaInputRef.current.value = replyCall + ": " + timeRef(selMsg[0].msgTime) + existing;
           textAreaInputRef.current.setFocus();
         }
       }
@@ -671,6 +677,11 @@ const Tab3: React.FC = () => {
         setShCallsign(true);
         if (callsignInputRef.current) {
           callsignInputRef.current.value = replyToCall;
+        }
+        // DM: recipient is clear, so only reference which message by time
+        if (textAreaInputRef.current) {
+          const existing = textAreaInputRef.current.value?.toString() ?? "";
+          textAreaInputRef.current.value = timeRef(selMsg[0].msgTime) + existing;
         }
       }
 

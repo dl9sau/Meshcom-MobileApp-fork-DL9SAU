@@ -31,7 +31,11 @@ changes of this fork relative to upstream. The in-app version shows
   rules — one per line** — in the callsign and text fields separately. Manage in
   *Settings → Message Filter*, or use quick **Filter Call / Filter Message** on a
   message (press again to remove). Blocked messages also raise no notification.
-- **Reply** (channel): prepends `CALL: ` of the referenced sender into the input.
+- **Reply**: prefills a compact reference into the input so the other side knows
+  what you refer to — `CALL: [HH:MM] ` in channels (who + which message),
+  `[HH:MM] ` in DMs (the recipient is already clear). Both parts are
+  independently deletable. (Channel "Reply" for others' messages; DM "Reply To"
+  for received DMs.)
 - **Resend** for your own *unacknowledged* messages — sends directly, no retype.
 - **🌐 via Gateway** marker: messages that already travelled via an MQTT gateway
   (header byte 6, bit `0x80`) are flagged in the chat bubble.
