@@ -55,8 +55,9 @@ changes of this fork relative to upstream. The in-app version shows
 **Map & Heard**
 - Node detail overlay reworked: **Age**, **Dist** (km to you), **SNR/RSSI** (for
   directly heard nodes), **Hops**, **Path** (origin dropped, wrapped after 2
-  calls, `direct` for direct nodes), and **#pos / #msg** counters. Empty sensor
-  values (0 / n.a.) are hidden.
+  calls, `direct` for direct nodes), **#pos / #msg** counters and — for directly
+  heard nodes only — the **Neighbours** count (`current (max N)`, same as the
+  Heard list). Empty sensor values (0 / n.a.) are hidden.
 - **Relay-neighbour count** fallback when the firmware reports `NCNT = 0`: shows
   the nodes relayed via that neighbour as **`current (max N)`** — the live count
   for this session plus the all-time total, which is reconstructed on startup from

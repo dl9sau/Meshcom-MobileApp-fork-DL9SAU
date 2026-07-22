@@ -6,6 +6,7 @@ import { useStoreState } from "pullstate";
 import DMfrmMapStore from "../store/DMfrmMap";
 import MhStore from "../store/MheardStore";
 import NodeRuntimeStore from "../store/NodeRuntimeStore";
+import RelayCountStore from "../store/RelayCountStore";
 import { useHistory } from "react-router";
 import ConfigObject from "../utils/ConfigObject";
 import { distanceKm } from "../utils/GeoUtils";
@@ -80,6 +81,19 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
     // SNR/RSSI is only available for directly heard nodes (from the Mheard list)
     const mhArr = useStoreState(MhStore, s => s.mhArr);
     const mheard = mhArr.find(m => m.mh_callSign?.toUpperCase() === callUp);
+
+    // relay-neighbour counts (only meaningful for a directly heard node = one in
+    // the Mheard list); current session + all-time "(max N)", same as Mheard
+    const relayCounts = useStoreState(RelayCountStore, s => s.counts);
+    const relayMax = useStoreState(RelayCountStore, s => s.max);
+    const neighboursText = (() => {
+        if (!mheard) return null;                       // not directly heard -> no line
+        if (mheard.mh_ncnt > 0) return "" + mheard.mh_ncnt; // firmware value
+        const session = (callUp ? relayCounts[callUp] : 0) ?? 0;
+        const overall = (callUp ? relayMax[callUp] : 0) ?? 0;
+        if (overall <= 0) return null;                  // no data -> no line
+        return overall > session ? session + " (max " + overall + ")" : "≈" + session;
+    })();
 
     // runtime hops / path / #pos / #msg for this node
     const nodeInfoMap = useStoreState(NodeRuntimeStore, s => s.info);
@@ -173,6 +187,8 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
                                         ))}</IonText><br />
                                     </> : <></>}
                                     <IonText>#pos: {nodeInfo?.posCount ?? 0}&nbsp;&nbsp;#msg: {nodeInfo?.msgCount ?? 0}</IonText><br />
+                                    {/* Neighbours: only for directly heard nodes (in the Mheard list) */}
+                                    {neighboursText !== null ? <><IonText>Neighbours: {neighboursText}</IonText><br /></> : <></>}
                                     {/* sensor values: hidden when empty (0 = no sensor; temp uses 999 as n.a.) */}
                                     {pressure !== 0 ? <><IonText>Pressure: {pressure}hPa</IonText><br /></> : <></>}
                                     {temperature !== 999 ? <><IonText>Temp: {temperature}°C</IonText><br/></> : <></>}
