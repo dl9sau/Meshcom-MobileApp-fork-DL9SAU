@@ -22,6 +22,9 @@ changes of this fork relative to upstream. The in-app version shows
 ### Features
 
 **Chat**
+- **Compact one-line message header** (now the **default**): `sender (via …) ·time`,
+  DMs also show the recipient. Toggle back to the legacy multi-line header in
+  *Settings → Chat Display*.
 - Configurable **block filter** for channel messages — block by **callsign** or
   **text pattern**: `Wort` (whole word), `^start`, `end$`, `*wild*card`
   (case-insensitive, UTF-8/emoji aware). Manage in *Settings → Message Filter*,

@@ -31,6 +31,7 @@ import SensorSettingsS1Store from '../store/SensorSettingsS1';
 import WifiSettingsStore2 from '../store/WiFiSettings2';
 import GpsDataStore from '../store/GpsData';
 import MsgFilterStore from '../store/MsgFilterStore';
+import AppPrefsStore from '../store/AppPrefsStore';
 
 
 
@@ -292,6 +293,13 @@ const Tab2: React.FC = () => {
     const textRaw = filterTextRef.current?.value?.toString() ?? "";
     await DataBaseService.saveMsgFilters(callRaw, textRaw);
     LogS.log(0, "Settings: Msg filters saved");
+  };
+
+  // compact vs legacy chat message header (app preference)
+  const compactHeader = useStoreState(AppPrefsStore, s => s.compactHeader);
+  const setCompactHeader = async (checked: boolean) => {
+    AppPrefsStore.update(s => { s.compactHeader = checked; });
+    await DataBaseService.setPref('compactHeader', checked ? '1' : '0');
   };
 
   // Manual Position Settings Input Refs
@@ -2711,6 +2719,17 @@ const Tab2: React.FC = () => {
                 </IonItem>
               </div>
             </>}
+          </div>
+
+          <div id="spacer-buttons" />
+          {/* Chat display preferences */}
+          <IonText color="primary" class='txt-center'>
+            <h3>Chat Display</h3>
+          </IonText>
+          <div className='setting_wrapper'>
+            <IonItem>
+              <IonToggle enableOnOffLabels={true} checked={compactHeader} onIonChange={(ev) => setCompactHeader(ev.detail.checked)}>Compact message header</IonToggle>
+            </IonItem>
           </div>
 
           <div id="spacer-buttons" />

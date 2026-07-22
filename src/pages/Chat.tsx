@@ -22,6 +22,7 @@ import {getBLEconnStore} from '../store/Selectors';
 import DMfrmMapStore from '../store/DMfrmMap';
 import NotifyMsgState from '../store/NotifyMsg';
 import MsgFilterStore from '../store/MsgFilterStore';
+import AppPrefsStore from '../store/AppPrefsStore';
 import { useHistory } from "react-router";
 import LogS from '../utils/LogService';
 import DatabaseService from '../DBservices/DataBaseService';
@@ -120,6 +121,8 @@ const Tab3: React.FC = () => {
   const nodeInfo_s:InfoData = useStoreState(NodeInfoStore, s => s.infoData);
   // current block-filter rules (raw lines), for quick-filter from the action sheet
   const msgFilter_s = useStoreState(MsgFilterStore, s => s);
+  // compact one-line message header vs legacy multi-line
+  const compactHeader = useStoreState(AppPrefsStore, s => s.compactHeader);
 
   // Segment chat filter state
   const [segmentFilter, setSegmentFilter] = useState<string>("ALL");
@@ -939,6 +942,20 @@ const Tab3: React.FC = () => {
 
                 <div key={i} onTouchStart={handleButtonPress} onTouchEnd={() => handleButtonRelease(msg.msgNr)} className={msgType(msg)}>
 
+                  {compactHeader ? (
+                    /* COMPACT: one header line - sender (bold), (via ...), time.
+                       DMs also show the recipient, same fix as the legacy header. */
+                    <div className="ion-text-start">
+                      <IonText id="from-call">{msg.isDM ? (msg.fromCall === config_s.callSign ? "To " + msg.toCall : (msg.isGrpMsg ? msg.fromCall : msg.fromCall + " → " + msg.toCall)) : msg.fromCall}</IonText>
+                      {(() => {
+                        const relays = viaRelays(msg.via, msg.fromCall);
+                        const viaTxt = relays.length > 0 ? (msg.gw === 1 ? "🌐 via " : "via ") + relays : (msg.gw === 1 ? "🌐 via Gateway" : "");
+                        return viaTxt ? <IonText id="msg-via"> ({viaTxt})</IonText> : null;
+                      })()}
+                      <IonText id="msg-time"> ·{msg.msgTime?.slice(0, 5)}</IonText>
+                    </div>
+                  ) : (
+                    <>
                   {msg.isDM ? <>
                     {(!isNaN(+msg.toCall) || msg.isGrpMsg) ? <>
                       <div className="ion-text-start">
@@ -994,6 +1011,8 @@ const Tab3: React.FC = () => {
                     </>}
 
                   </div>
+                    </>
+                  )}
 
                   <div id="spacer-txtbox"></div>
 

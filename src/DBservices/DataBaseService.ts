@@ -11,6 +11,7 @@ import { format, sub } from "date-fns";
 import LogS from "../utils/LogService";
 import ConfigObject from "../utils/ConfigObject";
 import MsgFilterService from "../utils/MsgFilterService";
+import AppPrefsStore from "../store/AppPrefsStore";
 
 
 class DatabaseService {
@@ -188,6 +189,21 @@ class DatabaseService {
                 await DatabaseService.loadMsgFilters();
             } else {
                 LogS.log(1, 'Error creating MsgFilters table. Database connection not open.');
+            }
+
+            // AppPrefs table (key/value UI preferences; backwards compatible)
+            if (DatabaseService.db) {
+                console.log('Creating AppPrefs table');
+                await DatabaseService.db.execute(`CREATE TABLE IF NOT EXISTS AppPrefs (
+                    key TEXT PRIMARY KEY NOT NULL,
+                    val TEXT
+                );`).catch((err) => {
+                    LogS.log(1, 'Error creating AppPrefs table:' + err);
+                });
+                // load saved preferences into AppPrefsStore
+                await DatabaseService.loadAppPrefs();
+            } else {
+                LogS.log(1, 'Error creating AppPrefs table. Database connection not open.');
             }
 
 
@@ -803,6 +819,34 @@ class DatabaseService {
             DatabaseService.applyFilters(msgs);
         } catch (err) {
             LogS.log(1, 'Error reapplying chat filters:' + err);
+        }
+    }
+
+    // load UI preferences from the AppPrefs table into AppPrefsStore
+    static async loadAppPrefs() {
+        try {
+            if (!DatabaseService.db) return;
+            const res = await DatabaseService.db.query(`SELECT key, val FROM AppPrefs;`);
+            const prefs: { [k: string]: string } = {};
+            if (res.values) {
+                for (const row of res.values) prefs[row.key] = row.val;
+            }
+            AppPrefsStore.update(s => {
+                // only override the default when a value was actually saved
+                if ('compactHeader' in prefs) s.compactHeader = prefs['compactHeader'] === '1';
+            });
+        } catch (err) {
+            LogS.log(1, 'Error loading AppPrefs:' + err);
+        }
+    }
+
+    // persist a single UI preference (key/value)
+    static async setPref(key: string, val: string) {
+        try {
+            if (!DatabaseService.db) return;
+            await DatabaseService.db.run(`INSERT OR REPLACE INTO AppPrefs (key, val) VALUES (?, ?);`, [key, val]);
+        } catch (err) {
+            LogS.log(1, 'Error saving AppPref ' + key + ':' + err);
         }
     }
 
