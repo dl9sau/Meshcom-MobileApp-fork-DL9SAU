@@ -816,7 +816,7 @@ const Tab3: React.FC = () => {
                 action: 'copy',
               },
             },
-            ...(msgArr_s.some(m => m.msgNr === msgNrAS && m.fromCall === nodeInfo_s.CALL) ? [{
+            ...(msgArr_s.some(m => m.msgNr === msgNrAS && m.fromCall === nodeInfo_s.CALL && m.ack === 0) ? [{
               text: 'Resend Message',
               data: {
                 action: 'resend',
