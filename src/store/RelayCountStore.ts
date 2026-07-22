@@ -1,16 +1,21 @@
 import { Store } from "pullstate";
 
-// Runtime-only store (RAM, not persisted): for each directly heard neighbour
-// it holds the number of unique nodes that were relayed to us via that neighbour.
-// Used as a fallback for the Mheard "Neighbours" value when older firmware
-// reports NCNT = 0.
+// Store for the Mheard "Neighbours" fallback (used when older firmware reports
+// NCNT = 0). Two figures per directly heard neighbour:
+//   counts: unique nodes relayed via them THIS session (live, RAM only, resets
+//           on restart) -> the current activity value.
+//   max:    all-time unique nodes, reconstructed on startup from the persisted
+//           positions' route paths and grown by live traffic -> the overall
+//           value, shown as "(max N)". Survives a restart, matches the map.
 export interface RelayCountState {
     // key: neighbour callsign (UPPERCASE) -> count of unique relayed nodes
     counts: { [neighbour: string]: number };
+    max: { [neighbour: string]: number };
 }
 
 const RelayCountStore = new Store<RelayCountState>({
-    counts: {}
+    counts: {},
+    max: {}
 });
 
 export default RelayCountStore;

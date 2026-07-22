@@ -7,6 +7,7 @@ import {
 import { MsgType, PosType, MheardType } from "../utils/AppInterfaces";
 import MheardStaticStore from "../utils/MheardStaticStore";
 import NodeRuntimeService from "../utils/NodeRuntimeService";
+import RelayCountService from "../utils/RelayCountService";
 import PosiStore from "../store/PosiStore";
 import MsgStore from "../store/MsgStore";
 import { format, sub } from "date-fns";
@@ -263,7 +264,19 @@ class DatabaseService {
                     // seed runtime hops/path from persisted positions so the map
                     // overlay shows them right after a restart
                     for (const p of positions as PosType[]) {
-                        if (p.via) NodeRuntimeService.setPath(p.callSign, p.hops ?? -1, p.via);
+                        if (p.via) {
+                            NodeRuntimeService.setPath(p.callSign, p.hops ?? -1, p.via);
+                            // reconstruct the all-time "Neighbours (max N)" value: the
+                            // via path is "ORIGIN > ... > NEIGHBOUR"; the last hop is
+                            // our direct neighbour, every call before it was heard via
+                            // them. (Direct nodes have via == own call -> single entry,
+                            // skipped.)
+                            const hops = p.via.split(" > ").map(s => s.trim()).filter(s => s !== "");
+                            if (hops.length >= 2) {
+                                const neighbour = hops[hops.length - 1];
+                                RelayCountService.seedMax(neighbour, hops.slice(0, hops.length - 1));
+                            }
+                        }
                     }
                 }
 

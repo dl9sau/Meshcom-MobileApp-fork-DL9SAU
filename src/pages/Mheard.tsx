@@ -23,6 +23,8 @@ const Mheard = () => {
     // count could be sourced from the DB instead. Design of NodeRuntimeStore
     // already keeps this a drop-in swap (same per-callsign shape).
     const relayCounts = useStoreState(RelayCountStore, s => s.counts);
+    // all-time neighbour counts (survives restart, shown as "(max N)")
+    const relayMax = useStoreState(RelayCountStore, s => s.max);
     // runtime per-node counters (#pos / #msg received this session)
     const nodeInfoMap = useStoreState(NodeRuntimeStore, s => s.info);
 
@@ -74,10 +76,16 @@ const Mheard = () => {
                                                         <div className='value'>{(() => {
                                                             // firmware reported a value -> use it
                                                             if (mhs.mh_ncnt > 0) return mhs.mh_ncnt;
-                                                            // older firmware reports 0 -> fall back to our
-                                                            // runtime count of nodes relayed via this neighbour
-                                                            const counted = relayCounts[mhs.mh_callSign?.toUpperCase()] ?? 0;
-                                                            return counted > 0 ? "≈" + counted : mhs.mh_ncnt;
+                                                            // older firmware reports 0 -> fall back to our count of
+                                                            // nodes relayed via this neighbour: current session,
+                                                            // plus the all-time "(max N)" reconstructed from stored
+                                                            // positions (so a restart doesn't drop it to a low value).
+                                                            const key = mhs.mh_callSign?.toUpperCase();
+                                                            const session = relayCounts[key] ?? 0;
+                                                            const overall = relayMax[key] ?? 0;
+                                                            if (overall <= 0) return mhs.mh_ncnt;           // no data -> 0
+                                                            if (overall > session) return session + " (max " + overall + ")";
+                                                            return "≈" + session;                          // all-time == session
                                                         })()}</div>
                                                     </div>
                                                     <div className='rowcont'>

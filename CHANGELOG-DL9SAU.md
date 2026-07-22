@@ -57,7 +57,11 @@ changes of this fork relative to upstream. The in-app version shows
   directly heard nodes), **Hops**, **Path** (origin dropped, wrapped after 2
   calls, `direct` for direct nodes), and **#pos / #msg** counters. Empty sensor
   values (0 / n.a.) are hidden.
-- **Relay-neighbour count** fallback shown as `≈N` when the firmware reports 0.
+- **Relay-neighbour count** fallback when the firmware reports `NCNT = 0`: shows
+  the nodes relayed via that neighbour as **`current (max N)`** — the live count
+  for this session plus the all-time total, which is reconstructed on startup from
+  the stored positions so a restart no longer drops it to a low value (`≈N` when
+  the two are equal).
 - Tab renamed to **"Heard Direct Nodes"**.
 
 **Settings**
