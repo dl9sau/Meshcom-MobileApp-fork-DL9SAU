@@ -109,6 +109,8 @@ export function useMSG() {
                 let text_offset = 0;
                 let from_callsign_ = "";
                 let to_callsign_ = "";
+                let node_hops = -1;   // hops of this packet (0 = direct), for persisting on the position
+                let node_via = "";    // route path string, for persisting on the position
                 const msgID = msg.getUint32(2, false);
                 console.log("MSGID: " + msgID);
                 let route_calls = false;
@@ -215,9 +217,10 @@ export function useMSG() {
                             RelayCountService.addHeardVia(neighbour, heard_via);
                         }
 
-                        // record hop count + route path for the originating node.
-                        // runtime only for now (see NodeRuntimeStore TODO for DB persistence).
-                        NodeRuntimeService.setPath(route_call_arr[0], route_call_cnt - 1, via_str);
+                        // record hop count + route path for the originating node
+                        node_hops = route_call_cnt - 1;
+                        node_via = via_str;
+                        NodeRuntimeService.setPath(route_call_arr[0], node_hops, node_via);
 
                         // the last 4 bytes are the unix timestamp from node
                         const unix_time = msg.getUint32(msg_len - 5, false) * 1000; // convert to ms
@@ -234,7 +237,9 @@ export function useMSG() {
                         }
                     } else if (from_callsign_ !== "") {
                         // direct reception (no relay in path) -> 0 hops
-                        NodeRuntimeService.setPath(from_callsign_, 0, from_callsign_);
+                        node_hops = 0;
+                        node_via = from_callsign_;
+                        NodeRuntimeService.setPath(from_callsign_, node_hops, node_via);
                     }
 
                     // get the destination callsign if we have a direct message. After destCallsign we have a : stop there
@@ -897,7 +902,9 @@ export function useMSG() {
                             temp_2: temp_out_,
                             gas_res: gas_res_,
                             co2: co2_,
-                            alt_press: alt_press_
+                            alt_press: alt_press_,
+                            hops: node_hops,
+                            via: node_via
                         }
 
                         LogS.log(0, `Pos Msg from ${from_callsign_} via ${via_str}: Lat ${lat_degree_final} Lon ${lon_degree_final} Alt ${alt_nr_meter}m`);

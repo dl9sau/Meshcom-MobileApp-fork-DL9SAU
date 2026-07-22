@@ -6,6 +6,7 @@ import {
 
 import { MsgType, PosType, MheardType } from "../utils/AppInterfaces";
 import MheardStaticStore from "../utils/MheardStaticStore";
+import NodeRuntimeService from "../utils/NodeRuntimeService";
 import PosiStore from "../store/PosiStore";
 import MsgStore from "../store/MsgStore";
 import { format, sub } from "date-fns";
@@ -95,15 +96,7 @@ class DatabaseService {
                 });
             }
 
-            // Positions table
-            // TODO(persist hops/path, backwards compatible): to store routing info
-            // per node in the DB, add columns `hops INTEGER` and `via TEXT` here.
-            // Existing installs already have a Positions table, so `CREATE TABLE IF
-            // NOT EXISTS` will NOT add the new columns for them. Do a guarded
-            // migration instead: query PRAGMA table_info(Positions) and only run
-            // `ALTER TABLE Positions ADD COLUMN hops INTEGER` / `... ADD COLUMN via
-            // TEXT` when the column is missing. Then extend PosType + writePos and
-            // seed NodeRuntimeStore from the DB on load (see NodeRuntimeStore TODO).
+            // Positions table (hops/via persist the routing info for the map overlay)
             if (DatabaseService.db) {
                 await DatabaseService.db.execute(`
                     CREATE TABLE IF NOT EXISTS Positions (
@@ -123,10 +116,21 @@ class DatabaseService {
                         temp_2 REAL,
                         co2 REAL,
                         alt_press REAL,
-                        gas_res REAL
+                        gas_res REAL,
+                        hops INTEGER DEFAULT -1,
+                        via TEXT
                     )
                 `).catch((err) => {
                     LogS.log(1, 'Error creating Positions table:' + err);
+                });
+            }
+
+            // guarded migration: add hops/via to existing Positions tables
+            if (DatabaseService.db) {
+                await DatabaseService.db.query(`SELECT hops FROM Positions;`).catch(async (err) => {
+                    LogS.log(1, 'Checking/adding hops, via in Positions table:' + err);
+                    await DatabaseService.db?.execute(`ALTER TABLE Positions ADD COLUMN hops INTEGER DEFAULT -1;`);
+                    await DatabaseService.db?.execute(`ALTER TABLE Positions ADD COLUMN via TEXT;`);
                 });
             }
 
@@ -256,6 +260,11 @@ class DatabaseService {
                     PosiStore.update(s => {
                         s.posArr = positions;
                     });
+                    // seed runtime hops/path from persisted positions so the map
+                    // overlay shows them right after a restart
+                    for (const p of positions as PosType[]) {
+                        if (p.via) NodeRuntimeService.setPath(p.callSign, p.hops ?? -1, p.via);
+                    }
                 }
 
                 DatabaseService.isInit = true;
@@ -450,8 +459,8 @@ class DatabaseService {
             console.log('DB Writing position:', pos.callSign);
             try {
                 const id = Date.now();
-                const query_str = `INSERT INTO positions (id,timestamp, callSign, lat, lon, alt, bat, hw, pressure, temperature, humidity, qnh, comment, temp_2, co2, alt_press, gas_res) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
-                const values = [id, pos.timestamp, pos.callSign, pos.lat, pos.lon, pos.alt, pos.bat, pos.hw, pos.pressure, pos.temperature, pos.humidity, pos.qnh, pos.comment, pos.temp_2, pos.co2, pos.alt_press, pos.gas_res];
+                const query_str = `INSERT INTO positions (id,timestamp, callSign, lat, lon, alt, bat, hw, pressure, temperature, humidity, qnh, comment, temp_2, co2, alt_press, gas_res, hops, via) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
+                const values = [id, pos.timestamp, pos.callSign, pos.lat, pos.lon, pos.alt, pos.bat, pos.hw, pos.pressure, pos.temperature, pos.humidity, pos.qnh, pos.comment, pos.temp_2, pos.co2, pos.alt_press, pos.gas_res, pos.hops ?? -1, pos.via ?? ""];
                 const ret = await DatabaseService.db.run(query_str, values);
                 console.log('DB writePos ret:', ret.changes?.values);
                 // update the store
@@ -472,8 +481,8 @@ class DatabaseService {
         if (DatabaseService.db) {
             console.log('DB Updating position:', pos.callSign);
             try {
-                const query_str = `UPDATE positions SET timestamp = ?, lat = ?, lon = ?, alt = ?, bat = ?, hw = ?, pressure = ?, temperature = ?, humidity = ?, qnh = ?, comment = ?, temp_2 = ?, co2 = ?, alt_press = ?, gas_res = ? WHERE callSign = ?`;
-                const values = [pos.timestamp, pos.lat, pos.lon, pos.alt, pos.bat, pos.hw, pos.pressure, pos.temperature, pos.humidity, pos.qnh, pos.comment, pos.temp_2, pos.co2, pos.alt_press, pos.gas_res, pos.callSign];
+                const query_str = `UPDATE positions SET timestamp = ?, lat = ?, lon = ?, alt = ?, bat = ?, hw = ?, pressure = ?, temperature = ?, humidity = ?, qnh = ?, comment = ?, temp_2 = ?, co2 = ?, alt_press = ?, gas_res = ?, hops = ?, via = ? WHERE callSign = ?`;
+                const values = [pos.timestamp, pos.lat, pos.lon, pos.alt, pos.bat, pos.hw, pos.pressure, pos.temperature, pos.humidity, pos.qnh, pos.comment, pos.temp_2, pos.co2, pos.alt_press, pos.gas_res, pos.hops ?? -1, pos.via ?? "", pos.callSign];
                 const ret = await DatabaseService.db.run(query_str, values);
                 console.log('DB updatePos ret:', ret.changes?.values);
                 // read back all positions

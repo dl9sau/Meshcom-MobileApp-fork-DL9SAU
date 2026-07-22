@@ -18,11 +18,6 @@ export interface MsgType {
 }
 
 // position interface
-// TODO(persist hops/path, backwards compatible): add `hops?: number` and
-// `via?: string` here once the Positions table has the matching columns (see
-// DataBaseService Positions-table TODO). Keep them optional so older DB rows
-// (without the columns) still map cleanly. Then the map overlay can read hops/
-// path from the persisted position instead of only NodeRuntimeStore.
 export interface PosType {
     timestamp:number,
     callSign:string,
@@ -39,7 +34,9 @@ export interface PosType {
     temp_2:number,
     co2:number,
     alt_press:number,
-    gas_res:number
+    gas_res:number,
+    hops?:number,   // relays between origin and us (0 = direct); persisted for the map overlay
+    via?:string     // route path string (incl. origin), e.g. "OE1KFR-2 > OE1KFR-1"
 }
 
 // config interface
