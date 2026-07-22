@@ -140,19 +140,32 @@ jobs:
           name: ${{ env.APK_NAME }}
           path: ${{ env.APK_NAME }}
 
-      # mark each build as "latest" so GitHub always shows it at the very top of
-      # the Releases page (prerelease releases are NOT sorted reliably -> users
-      # would grab an older build). Debug/WIP status is conveyed in the name.
+      # WIP builds publish to ONE rolling release at a fixed tag (wip-latest).
+      # GitHub sorts the Releases *list* by tag name, not recency, so per-hash
+      # tags (wip-g<hash>) landed in random order and users grabbed an older
+      # build. With a single release there is nothing to mis-sort - it's always
+      # the newest, at a stable link (/releases/tag/wip-latest). The git hash
+      # stays in the APK name + release title for verification. Delete the old
+      # one first (incl. its tag) so only the newest APK remains. Real version
+      # tags (v*) keep their own separate release.
+      - name: Remove previous WIP release
+        if: github.ref_type != 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release delete wip-latest --yes --cleanup-tag || true
+
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
           prerelease: false
           make_latest: true
-          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || format('wip-g{0}', env.GIT_HASH) }}
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || 'wip-latest' }}
+          target_commitish: ${{ github.sha }}
           name: Meshcom ${{ env.APP_VERSION }}-DL9SAU WIP (g${{ env.GIT_HASH }})
           files: ${{ env.APK_NAME }}
           body: |
             Work-in-progress build — debug APK (debug-signed, installable via "unknown sources").
+            Rolling release — always the newest WIP build. Version below / in the APK name.
             Version: ${{ env.APP_VERSION }}-DL9SAU-g${{ env.GIT_HASH }}
             Branch: `${{ github.ref_name }}`
             Commit: ${{ github.sha }}

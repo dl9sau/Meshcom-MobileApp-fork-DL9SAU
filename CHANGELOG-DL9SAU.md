@@ -71,8 +71,14 @@ changes of this fork relative to upstream. The in-app version shows
 
 **App / Build**
 - App version shows the fork id + short git hash: `4.27-DL9SAU-g<hash>`.
-- GitHub Actions workflow builds a debug APK and publishes it as a **prerelease**
-  named `Meshcom-<version>-DL9SAU-g<hash>.apk`.
+- GitHub Actions workflow builds a debug APK named
+  `Meshcom-<version>-DL9SAU-g<hash>.apk`.
+- **Stable debug signing** (committed keystore): a new build **installs over the
+  previous one without uninstalling** — the database and BLE PIN are kept.
+- **Single rolling release** at a fixed `wip-latest` tag: always the newest build,
+  at a stable link, so the Releases list can't show a stale build on top (GitHub
+  sorts that list by tag name, not by date). The git hash stays in the APK name
+  and release title.
 - Real MeshCom icon generated in CI + fork app name **"MeshCom DL9SAU"**.
 
 ### Fixes
