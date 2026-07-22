@@ -81,8 +81,9 @@ const Tab3: React.FC = () => {
   // last callsign when DM segment was active
   const lastDMcallsign = useRef<string>("");
 
-  // longpress event
-  const MIN_PRESS_TIME = 800; //ms
+  // longpress event: the menu now opens WHILE the finger is held (native
+  // long-press feel), so this can be shorter than the old release-based value.
+  const MIN_PRESS_TIME = 500; //ms
   //actionsheet
   const [isOpenAS, setIsOpenAS] = useState(false);
   // message number from long press event
@@ -531,19 +532,32 @@ const Tab3: React.FC = () => {
 
 
   // Long-press / tap detection on messages. Refs (not a re-created `let`) survive
-  // re-renders, and a finger move cancels the gesture so scrolling never fires the
-  // context menu.
+  // re-renders. The action sheet opens on a TIMER while the finger is still held
+  // (like a native long-press), instead of waiting for release - the old
+  // release-based feel was confusing (nothing happened until you let go). A
+  // finger move cancels the gesture so scrolling never fires the context menu.
   const PRESS_MOVE_THRESHOLD = 10; // px
-  const pressStart = useRef<number>(0);
   const pressStartX = useRef<number>(0);
   const pressStartY = useRef<number>(0);
   const pressMoved = useRef<boolean>(false);
+  const pressTimer = useRef<any>(null);
 
-  const handleButtonPress = (e: any) => {
-    pressStart.current = Date.now();
+  const clearPressTimer = () => {
+    if (pressTimer.current) { clearTimeout(pressTimer.current); pressTimer.current = null; }
+  };
+
+  const handleButtonPress = (e: any, msgNr: number) => {
     pressMoved.current = false;
     const t = e?.touches?.[0];
     if (t) { pressStartX.current = t.clientX; pressStartY.current = t.clientY; }
+    clearPressTimer();
+    // open the menu mid-hold; move/end cancels it before it fires
+    pressTimer.current = setTimeout(() => {
+      pressTimer.current = null;
+      if (pressMoved.current) return; // scrolling, not a press
+      setMsgNrAS(msgNr);
+      setIsOpenAS(true);
+    }, MIN_PRESS_TIME);
   }
 
   // a movement beyond the threshold means the user is scrolling, not pressing
@@ -553,29 +567,28 @@ const Tab3: React.FC = () => {
     if (Math.abs(t.clientX - pressStartX.current) > PRESS_MOVE_THRESHOLD ||
         Math.abs(t.clientY - pressStartY.current) > PRESS_MOVE_THRESHOLD) {
       pressMoved.current = true;
+      clearPressTimer();
     }
   }
 
-  // decide tap vs long-press on release; ignored entirely if it was a scroll
+  // release: if the long-press timer already fired, the menu is open - do nothing.
+  // Otherwise it was a short tap (cancel the pending timer and treat as tap).
   const handleButtonRelease = (msgNr: number) => {
+    const longPressFired = pressTimer.current === null;
+    clearPressTimer();
     if (pressMoved.current) return; // was a scroll, not a press
-    const difftime = Date.now() - pressStart.current;
+    if (longPressFired) return;     // long press already handled while holding
 
-    if (difftime >= MIN_PRESS_TIME) { // long press -> options
-      setMsgNrAS(msgNr);
-      setIsOpenAS(true);
-    } else {
-      // short press/tap on a DM -> prefill To-Callsign with the conversation partner
-      // (their call if they wrote it; the recipient if I wrote it)
-      const m = msgArr_s.find(x => x.msgNr === msgNr);
-      if (m && m.isDM === 1 && m.isGrpMsg !== 1) {
-        const partner = m.fromCall === config_s.callSign ? m.toCall : m.fromCall;
-        if (partner) {
-          toCallsign_.current = partner;
-          lastDMcallsign.current = partner;
-          setShCallsign(true);
-          if (callsignInputRef.current) callsignInputRef.current.value = partner;
-        }
+    // short press/tap on a DM -> prefill To-Callsign with the conversation partner
+    // (their call if they wrote it; the recipient if I wrote it)
+    const m = msgArr_s.find(x => x.msgNr === msgNr);
+    if (m && m.isDM === 1 && m.isGrpMsg !== 1) {
+      const partner = m.fromCall === config_s.callSign ? m.toCall : m.fromCall;
+      if (partner) {
+        toCallsign_.current = partner;
+        lastDMcallsign.current = partner;
+        setShCallsign(true);
+        if (callsignInputRef.current) callsignInputRef.current.value = partner;
       }
     }
   }
@@ -652,11 +665,18 @@ const Tab3: React.FC = () => {
       if (asActionDetail === "reply") {
         console.log("Reply pressed");
         const m = selMsg[0];
-        if (textAreaInputRef.current) {
+        if (textAreaInputRef.current && m) {
           const existing = textAreaInputRef.current.value?.toString() ?? "";
-          if (m.fromCall === config_s.callSign) {
-            // own message: reference it by time only (no @self - I'm not talking to myself)
-            textAreaInputRef.current.value = timeRef(m.msgTime) + existing;
+          const isDMmsg = m.isDM === 1 && m.isGrpMsg !== 1;
+          if (isDMmsg || m.fromCall === config_s.callSign) {
+            // own message, or a DM (single partner): reference by time only, no
+            // @self / no mention list. Don't stack the SAME timestamp twice
+            // (double-tapping one message adds no benefit); a different time is
+            // fine as a real multi-reference.
+            const ref = timeRef(m.msgTime);
+            if (ref && !existing.startsWith(ref)) {
+              textAreaInputRef.current.value = ref + existing;
+            }
           } else {
             // others' message: build/extend an "@call1, @call2: " mention list (dedup)
             const mention = "@" + m.fromCall;
@@ -697,9 +717,13 @@ const Tab3: React.FC = () => {
           callsignInputRef.current.value = replyToCall;
         }
         // DM: recipient is clear, so only reference which message by time
+        // (don't stack the same timestamp twice on repeated taps)
         if (textAreaInputRef.current) {
           const existing = textAreaInputRef.current.value?.toString() ?? "";
-          textAreaInputRef.current.value = timeRef(selMsg[0].msgTime) + existing;
+          const ref = timeRef(selMsg[0].msgTime);
+          if (ref && !existing.startsWith(ref)) {
+            textAreaInputRef.current.value = ref + existing;
+          }
         }
       }
 
@@ -902,7 +926,7 @@ const Tab3: React.FC = () => {
         <IonActionSheet
           isOpen={isOpenAS}
           buttons={[
-            ...(segmentFilter !== "DM" ? [{
+            ...(segmentFilter !== "DM" || msgArr_s.some(m => m.msgNr === msgNrAS && m.fromCall === nodeInfo_s.CALL) ? [{
               text: 'Reply',
               data: {
                 action: 'reply',
@@ -967,7 +991,7 @@ const Tab3: React.FC = () => {
 
               {msg.msgNr !== 0 ? <>
 
-                <div key={i} onTouchStart={handleButtonPress} onTouchMove={handleButtonMove} onTouchEnd={() => handleButtonRelease(msg.msgNr)} className={msgType(msg)}>
+                <div key={i} onTouchStart={(e) => handleButtonPress(e, msg.msgNr)} onTouchMove={handleButtonMove} onTouchEnd={() => handleButtonRelease(msg.msgNr)} className={msgType(msg)}>
 
                   {compactHeader ? (
                     /* COMPACT: one header line - sender (bold), (via ...), time.

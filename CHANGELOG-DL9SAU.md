@@ -18,10 +18,10 @@ changes of this fork relative to upstream. The in-app version shows
   `*`), which made the message filter skip them entirely — only ALL/broadcast
   was ever filtered. Call *and* text filters now work in every channel; personal
   DMs and your own messages stay exempt.
-- **Chat scrolling & long-press feel right now.** Scrolling through messages no
-  longer accidentally opens the context menu (a finger move cancels the press),
-  and long-press reliably opens it instead of needing several tries (timing kept
-  in refs so a re-render can't break it). A clear usability win.
+- **Chat scrolling & long-press feel right now.** The message menu now opens
+  **while the finger is still held** (native long-press feel, ~0.5 s) instead of
+  only reacting on release — the old behaviour felt laggy and confusing. A finger
+  move cancels the gesture, so scrolling never accidentally opens the menu.
 
 ### Features
 
@@ -40,9 +40,12 @@ changes of this fork relative to upstream. The in-app version shows
   can't be long-pressed.) Blocked messages also raise no notification.
 - **Reply** prefills a compact reference into the input:
   - channel, others' message → an **`@call1, @call2: ` mention list** (press
-    Reply on several messages to reference multiple people; deduped);
+    Reply on several messages to reference multiple people; deduped, so replying
+    twice to the same call never repeats it);
   - channel, your own message → **`[HH:MM] `** (time only, no self-mention);
-  - DM → **`[HH:MM] `** (recipient is already clear).
+  - DM (your own or the partner's) → **`[HH:MM] `** (recipient is already clear).
+  The same timestamp is never stacked twice — tapping Reply on one message again
+  adds nothing; only referencing a *different* message adds another `[HH:MM]`.
 - **Tap** (short press) a DM message to **prefill the To-Callsign** with the
   conversation partner (their call if they wrote it, the recipient if you did).
 - **Resend** for your own *unacknowledged* messages — sends directly, no retype.
