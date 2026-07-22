@@ -117,26 +117,19 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
                                 <IonText>Latitude: {lat}</IonText><br />
                                 <IonText>Longitude: {lon}</IonText><br />
                                 <IonText>Altitude: {alt}m</IonText><br />
+                                {bat !== "N.A." ? <>
+                                    <IonText>Battery: {bat}%</IonText><br />
+                                </> : <></>}    
+                                <IonText>HW: {hw}</IonText><br />
                                 {mheard ? <>
                                     <IonText>SNR {mheard.mh_snr}dB / RSSI {mheard.mh_rssi}dBm</IonText><br />
                                 </> : <></>}
                                 {nodeInfo && nodeInfo.hops >= 0 ? <>
                                     <IonText>Hops: {nodeInfo.hops}</IonText><br />
                                 </> : <></>}
-                                {bat !== "N.A." ? <>
-                                    <IonText>Battery: {bat}%</IonText><br />
-                                </> : <></>}    
-                                <IonText>HW: {hw}</IonText><br />
                             </div>
                             {shExtInfo && (
                                 <div className="info">
-                                    <IonText>Pressure: {pressure}hPa</IonText><br />
-                                    <IonText>Temp: {temperature == 999 ? "n.a." : temperature}°C</IonText><br/>
-                                    <IonText>Temp 2: {temp_2 == 999 ? "n.a." : temp_2}°C</IonText><br/>
-                                    <IonText>Humidity: {humidity}%</IonText><br/>
-                                    <IonText>QNH: {qnh}hPa</IonText><br />
-                                    <IonText>eCO2: {co2}ppm</IonText><br />
-                                    <IonText>Gas Res.: {gas_res}k&Omega;</IonText><br />
                                     {nodeInfo && nodeInfo.hops === 0 ? <>
                                         <IonText>Path: direct</IonText><br />
                                     </> : pathLines.length > 0 ? <>
@@ -145,6 +138,14 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
                                         ))}</IonText><br />
                                     </> : <></>}
                                     <IonText>#pos: {nodeInfo?.posCount ?? 0}&nbsp;&nbsp;#msg: {nodeInfo?.msgCount ?? 0}</IonText><br />
+                                    {/* sensor values: hidden when empty (0 = no sensor; temp uses 999 as n.a.) */}
+                                    {pressure !== 0 ? <><IonText>Pressure: {pressure}hPa</IonText><br /></> : <></>}
+                                    {temperature !== 999 ? <><IonText>Temp: {temperature}°C</IonText><br/></> : <></>}
+                                    {temp_2 !== 999 ? <><IonText>Temp 2: {temp_2}°C</IonText><br/></> : <></>}
+                                    {humidity !== 0 ? <><IonText>Humidity: {humidity}%</IonText><br/></> : <></>}
+                                    {qnh !== 0 ? <><IonText>QNH: {qnh}hPa</IonText><br /></> : <></>}
+                                    {co2 !== 0 ? <><IonText>eCO2: {co2}ppm</IonText><br /></> : <></>}
+                                    {gas_res !== 0 ? <><IonText>Gas Res.: {gas_res}k&Omega;</IonText><br /></> : <></>}
                                 </div>
                             )}
                         </div>
