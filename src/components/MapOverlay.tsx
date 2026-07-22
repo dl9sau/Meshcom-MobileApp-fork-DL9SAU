@@ -31,6 +31,28 @@ const formatAge = (ts: number): string => {
 };
 
 
+// build the display lines for a route path: drop the leading origin (the node
+// itself, already shown as the card title) and wrap after every 2 calls, so a
+// long path doesn't blow up the overlay width. Keeps the " > " notation.
+// Returns [] when there is no relay path (e.g. a directly heard node).
+const formatPathLines = (path: string, ownCall: string): string[] => {
+    if (!path) return [];
+    let parts = path.split(" > ").map(p => p.trim()).filter(p => p !== "");
+    if (parts.length > 0 && parts[0].toUpperCase() === (ownCall || "").toUpperCase()) {
+        parts = parts.slice(1); // drop the originating node itself
+    }
+    if (parts.length === 0) return [];
+
+    const lines: string[] = [];
+    for (let i = 0; i < parts.length; i += 2) {
+        const pair = parts.slice(i, i + 2);
+        const isLast = i + 2 >= parts.length;
+        lines.push(pair.join(" > ") + (isLast ? "" : " >"));
+    }
+    return lines;
+};
+
+
 interface MapOverlayProps extends PosType {
     onCloseOverlay: () => void;
   }
@@ -62,6 +84,8 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
     // runtime hops / path / #pos / #msg for this node
     const nodeInfoMap = useStoreState(NodeRuntimeStore, s => s.info);
     const nodeInfo = callUp ? nodeInfoMap[callUp] : undefined;
+    // route path for display: origin dropped, wrapped after every 2 calls
+    const pathLines = nodeInfo ? formatPathLines(nodeInfo.path, callSign) : [];
 
 
     // handle DM Button and switch to chat page
@@ -113,8 +137,10 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
                                     <IonText>QNH: {qnh}hPa</IonText><br />
                                     <IonText>eCO2: {co2}ppm</IonText><br />
                                     <IonText>Gas Res.: {gas_res}k&Omega;</IonText><br />
-                                    {nodeInfo && nodeInfo.path ? <>
-                                        <IonText>Path: {nodeInfo.path}</IonText><br />
+                                    {pathLines.length > 0 ? <>
+                                        <IonText>Path: {pathLines.map((ln, i) => (
+                                            <span key={i}>{i > 0 ? <br /> : null}{i > 0 ? "  " : ""}{ln}</span>
+                                        ))}</IonText><br />
                                     </> : <></>}
                                     <IonText>#pos: {nodeInfo?.posCount ?? 0}&nbsp;&nbsp;#msg: {nodeInfo?.msgCount ?? 0}</IonText><br />
                                 </div>

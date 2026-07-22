@@ -37,13 +37,13 @@ const Mheard = () => {
             <IonPage>
                 <IonHeader>
                     <IonToolbar>
-                        <IonTitle>Heard Nodes</IonTitle>
+                        <IonTitle>Heard Direct Nodes</IonTitle>
                     </IonToolbar>
                 </IonHeader>
                 <IonContent className="ion-padding">
                     <IonHeader collapse="condense">
                         <IonToolbar>
-                            <IonTitle size="large">Heard Nodes</IonTitle>
+                            <IonTitle size="large">Heard Direct Nodes</IonTitle>
                         </IonToolbar>
                     </IonHeader>
                     {mharr_s.length > 0 ? <>
