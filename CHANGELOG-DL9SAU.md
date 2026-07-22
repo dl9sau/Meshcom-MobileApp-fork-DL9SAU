@@ -77,7 +77,9 @@ changes of this fork relative to upstream. The in-app version shows
 - Map overlay: **buttons (Close / More / DM) now react on the first tap.** The map
   was treating a touch on the card as the start of a pan and swallowed the click
   (the button flashed but nothing happened, often needing 2–3 taps). The overlay
-  is now marked `pigeon-drag-block` / `pigeon-click-block`.
+  is marked `pigeon-drag-block` / `pigeon-click-block`, and the buttons detect the
+  tap themselves on `touchend` (with a small movement tolerance) instead of
+  relying on the browser's flaky synthesized click on a small target.
 - Connect: after changing the BLE PIN on a connected node (`--btcode`), show a
   hint to close/reopen the app if reconnect fails (the node needs a moment to
   apply the new code, which an immediate reconnect can race).

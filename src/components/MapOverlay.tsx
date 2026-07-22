@@ -1,7 +1,7 @@
 import { IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCol, IonGrid, IonRow, IonText } from "@ionic/react";
 
 import { PosType } from "../utils/AppInterfaces";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useStoreState } from "pullstate";
 import DMfrmMapStore from "../store/DMfrmMap";
 import MhStore from "../store/MheardStore";
@@ -101,6 +101,37 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
     }
 
 
+    // Reliable tap for the overlay buttons. On a map the browser's synthesized
+    // click is flaky: a few px of finger drift on a small button and the click
+    // never fires (the button flashes but nothing happens). So detect the tap
+    // ourselves on touchend within a small movement threshold, and preventDefault
+    // so the (possibly missing) ghost click can't double-fire. onClick stays for
+    // mouse/desktop; pigeon-drag-block on the container already stops map panning.
+    const TAP_MOVE = 14; // px
+    const tapX = useRef(0);
+    const tapY = useRef(0);
+    const tapMoved = useRef(false);
+
+    const onTapStart = (e: any) => {
+        const t = e?.touches?.[0];
+        if (t) { tapX.current = t.clientX; tapY.current = t.clientY; }
+        tapMoved.current = false;
+    };
+    const onTapMove = (e: any) => {
+        const t = e?.touches?.[0];
+        if (!t) return;
+        if (Math.abs(t.clientX - tapX.current) > TAP_MOVE ||
+            Math.abs(t.clientY - tapY.current) > TAP_MOVE) {
+            tapMoved.current = true;
+        }
+    };
+    const tap = (fn: () => void) => (e: any) => {
+        if (tapMoved.current) return; // was a scroll/drag, not a tap
+        if (e?.cancelable) e.preventDefault(); // suppress the ghost click -> no double fire
+        fn();
+    };
+
+
 
     return (
         <>
@@ -154,11 +185,14 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
                             )}
                         </div>
                         <div className="button-container">
-                            <IonButton size="small" onClick={() => handleDM(callSign)}>DM</IonButton>
-                            <IonButton size="small" onClick={() => setShExtInfo(!shExtInfo)}>
+                            <IonButton size="small" onClick={() => handleDM(callSign)}
+                                onTouchStart={onTapStart} onTouchMove={onTapMove} onTouchEnd={tap(() => handleDM(callSign))}>DM</IonButton>
+                            <IonButton size="small" onClick={() => setShExtInfo(!shExtInfo)}
+                                onTouchStart={onTapStart} onTouchMove={onTapMove} onTouchEnd={tap(() => setShExtInfo(!shExtInfo))}>
                                 {shExtInfo ? "Less" : "More"}
                             </IonButton>
-                            <IonButton size="small" onClick={onCloseOverlay}>Close</IonButton>
+                            <IonButton size="small" onClick={onCloseOverlay}
+                                onTouchStart={onTapStart} onTouchMove={onTapMove} onTouchEnd={tap(onCloseOverlay)}>Close</IonButton>
                         </div>
                     </IonCardContent>
                 </IonCard>
