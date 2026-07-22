@@ -95,9 +95,12 @@ changes of this fork relative to upstream. The in-app version shows
 - The **Heard list** and per-node **hops/path** now **survive an app restart**
   (new Mheard table; hops/via columns on Positions) instead of being lost.
 - **Configurable retention per category** (*Settings → Data Retention*, days,
-  `0 = unlimited`): ALL/broadcast, group channels, my DMs, overheard DMs,
-  positions, Heard list — each with its own value. Saving prunes immediately.
-  Own callsign is persisted so my DMs can be told apart from overheard ones.
+  `0 = unlimited`): ALL/broadcast, talk groups (TGs), *DMs: for me*, *DMs: others*,
+  positions (map) and the Heard list — each with its own value. Saving prunes
+  immediately. Own callsign is persisted so DMs for me can be told apart from
+  others'. Positions are kept **7 days** by default (a week-long trip keeps all
+  collected map nodes), while the Heard list and others' DMs stay at **2 days**
+  so they reflect what's heard *now*.
 
 ### Known / parked
 
