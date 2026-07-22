@@ -949,7 +949,7 @@ const Tab3: React.FC = () => {
                     /* COMPACT: one header line - sender (bold), (via ...), time.
                        DMs also show the recipient, same fix as the legacy header. */
                     <div className="ion-text-start">
-                      <IonText id="from-call">{msg.isDM ? (msg.fromCall === config_s.callSign ? "To " + msg.toCall : (msg.isGrpMsg ? msg.fromCall : msg.fromCall + " → " + msg.toCall)) : msg.fromCall}</IonText>
+                      <IonText id="from-call">{(msg.isDM && !msg.isGrpMsg) ? (msg.fromCall === config_s.callSign ? "To " + msg.toCall : msg.fromCall + " → " + msg.toCall) : msg.fromCall}</IonText>
                       {(() => {
                         const relays = viaRelays(msg.via, msg.fromCall);
                         const viaTxt = relays.length > 0 ? (msg.gw === 1 ? "🌐 via " : "via ") + relays : (msg.gw === 1 ? "🌐 via Gateway" : "");
