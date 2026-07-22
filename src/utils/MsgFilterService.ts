@@ -38,10 +38,16 @@ class MsgFilterService {
             .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
             .replace(/\\\*/g, ".*");
 
+        // whole-word boundaries only make sense next to a word char; a pattern
+        // that starts/ends with punctuation (e.g. "- . ... -") would never match
+        // with \b there, so only add the boundary where the edge is a word char.
+        const startBoundary = plainWord && /^\w/.test(pat) ? "\\b" : "";
+        const endBoundary = plainWord && /\w$/.test(pat) ? "\\b" : "";
+
         let src = "";
-        src += anchorStart ? "^" : (plainWord ? "\\b" : "");
+        src += anchorStart ? "^" : startBoundary;
         src += body;
-        src += anchorEnd ? "$" : (plainWord ? "\\b" : "");
+        src += anchorEnd ? "$" : endBoundary;
 
         try {
             return new RegExp(src, "i");
@@ -77,7 +83,7 @@ class MsgFilterService {
         const own = ConfigObject.getConf().CALL;
         if (own && msg.fromCall === own) return false;
 
-        if (this.callSet.has((msg.fromCall || "").toUpperCase())) return true;
+        if (this.callSet.has((msg.fromCall || "").trim().toUpperCase())) return true;
 
         const text = msg.msgTXT || "";
         for (const re of this.textRegexes) {
