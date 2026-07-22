@@ -584,7 +584,9 @@ export function useMSG() {
                             isDM: isDM_,
                             isGrpMsg: isGrpMsg_,
                             grpNum: grpNum_,
-                            notify:notify_
+                            notify:notify_,
+                            // byte 6 = MAX-HOP+flags; bit 0x80 = already ran via MQTT gateway
+                            gw: (msg.getUint8(6) & 0x80) ? 1 : 0
                         }
 
                         return (newMsgDB);

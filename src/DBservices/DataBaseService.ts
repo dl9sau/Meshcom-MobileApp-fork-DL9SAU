@@ -66,7 +66,8 @@ class DatabaseService {
                         isDM INTEGER,
                         isGrpMsg INTEGER,
                         grpNum INTEGER,
-                        notify INTEGER
+                        notify INTEGER,
+                        gw INTEGER DEFAULT 0
                     )
                 `).catch((err) => {
                     LogS.log(1, 'Error creating TextMessages table:' + err);
@@ -80,6 +81,14 @@ class DatabaseService {
                     // add isGrpMsg and grpNum columns
                     await DatabaseService.db?.execute(`ALTER TABLE TextMessages ADD COLUMN isGrpMsg INTEGER DEFAULT 0;`);
                     await DatabaseService.db?.execute(`ALTER TABLE TextMessages ADD COLUMN grpNum INTEGER DEFAULT 0;`);
+                });
+            }
+
+            // check if we have the gw column (gateway/MQTT flag, byte6 bit 0x80) in TextMessages
+            if (DatabaseService.db) {
+                await DatabaseService.db.query(`SELECT gw FROM TextMessages;`).catch(async (err) => {
+                    LogS.log(1, 'Checking/adding gw in TextMessages table:' + err);
+                    await DatabaseService.db?.execute(`ALTER TABLE TextMessages ADD COLUMN gw INTEGER DEFAULT 0;`);
                 });
             }
 
@@ -250,8 +259,8 @@ class DatabaseService {
 
             try {
                 const id = Date.now();
-                const query_str = `INSERT INTO TextMessages (id,timestamp, msgNr, msgTime, fromCall, toCall, msgTXT, via, ack, isDM, isGrpMsg, grpNum, notify) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`;
-                const values = [id, msg.timestamp, msg.msgNr, msg.msgTime, msg.fromCall, msg.toCall, msg.msgTXT, msg.via, msg.ack, msg.isDM, msg.isGrpMsg, msg.grpNum, msg.notify];
+                const query_str = `INSERT INTO TextMessages (id,timestamp, msgNr, msgTime, fromCall, toCall, msgTXT, via, ack, isDM, isGrpMsg, grpNum, notify, gw) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
+                const values = [id, msg.timestamp, msg.msgNr, msg.msgTime, msg.fromCall, msg.toCall, msg.msgTXT, msg.via, msg.ack, msg.isDM, msg.isGrpMsg, msg.grpNum, msg.notify, msg.gw ?? 0];
                 const ret = await DatabaseService.db.run(query_str, values);
                 console.log('DB writeTxtMsg ret:' + ret.changes?.values);
                 // read back all messages

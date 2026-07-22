@@ -13,7 +13,8 @@ export interface MsgType {
     isDM:number,
     isGrpMsg:number,
     grpNum:number,
-    notify:number
+    notify:number,
+    gw?:number    // 1 if the message already travelled via an MQTT gateway (byte6 bit 0x80)
 }
 
 // position interface
