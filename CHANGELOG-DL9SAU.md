@@ -55,6 +55,8 @@ changes of this fork relative to upstream. The in-app version shows
 
 ### Fixes
 
+- Map overlay: the **Close** button is now shown in the collapsed ("Less")
+  state too, not only when expanded.
 - Connect: after changing the BLE PIN on a connected node (`--btcode`), show a
   hint to close/reopen the app if reconnect fails (the node needs a moment to
   apply the new code, which an immediate reconnect can race).

@@ -154,7 +154,7 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
                             <IonButton size="small" onClick={() => setShExtInfo(!shExtInfo)}>
                                 {shExtInfo ? "Less" : "More"}
                             </IonButton>
-                            {shExtInfo && (<IonButton size="small" onClick={onCloseOverlay}>Close</IonButton>)}
+                            <IonButton size="small" onClick={onCloseOverlay}>Close</IonButton>
                         </div>
                     </IonCardContent>
                 </IonCard>
