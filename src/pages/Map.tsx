@@ -40,6 +40,9 @@ const NodeMap = () => {
 
   // store coordinates of all nodes received
   const positions = PosiStore.useState(s => s.posArr);
+  // per-node runtime path (subscribed, so the drawn hop line updates live when a
+  // new packet arrives via a different path)
+  const nodeInfoMap = NodeRuntimeStore.useState(s => s.info);
   // for testing insert Positions here
   //const positions = testPosis;
 
@@ -495,7 +498,7 @@ const NodeMap = () => {
 
   // the callsign chain of a node's path: ORIGIN > … > NEIGHBOUR, then me
   const pathChain = (call: string): string[] => {
-    const info = NodeRuntimeStore.getRawState().info[(call || "").toUpperCase()];
+    const info = nodeInfoMap[(call || "").toUpperCase()];
     const via = info?.path || "";
     const hops = via.split(" > ").map((s: string) => s.trim()).filter((s: string) => s !== "");
     return hops.concat([currConfig.callSign]);
