@@ -2416,15 +2416,15 @@ const Tab2: React.FC = () => {
                 </IonItem>
                 <div className='mt-3 mb-3'>Group 2</div>
                 <IonItem>
-                  <IonInput value={grpDisplay(grp1, labelRefs[1].current)} onIonInput={(ev) => grpChanged(1, ev)} label='Set Group 2' labelPlacement="floating" type='text' maxlength={32}></IonInput>
+                  <IonInput value={grpDisplay(grp1, labelRefs[1].current)} onIonInput={(ev) => grpChanged(1, ev)} label='Set Group 2' labelPlacement="floating" type='text' maxlength={32} placeholder='20 DACH'></IonInput>
                 </IonItem>
                 <div className='mt-3 mb-3'>Group 3</div>
                 <IonItem>
-                  <IonInput value={grpDisplay(grp2, labelRefs[2].current)} onIonInput={(ev) => grpChanged(2, ev)} label='Set Group 3' labelPlacement="floating" type='text' maxlength={32}></IonInput>
+                  <IonInput value={grpDisplay(grp2, labelRefs[2].current)} onIonInput={(ev) => grpChanged(2, ev)} label='Set Group 3' labelPlacement="floating" type='text' maxlength={32} placeholder='262 DL'></IonInput>
                 </IonItem>
                 <div className='mt-3 mb-3'>Group 4</div>
                 <IonItem>
-                  <IonInput value={grpDisplay(grp3, labelRefs[3].current)} onIonInput={(ev) => grpChanged(3, ev)} label='Set Group 4' labelPlacement="floating" type='text' maxlength={32}></IonInput>
+                  <IonInput value={grpDisplay(grp3, labelRefs[3].current)} onIonInput={(ev) => grpChanged(3, ev)} label='Set Group 4' labelPlacement="floating" type='text' maxlength={32} placeholder='232 OE'></IonInput>
                 </IonItem>
                 <div className='mt-3 mb-3'>Group 5</div>
                 <IonItem>

@@ -89,8 +89,9 @@ changes of this fork relative to upstream. The in-app version shows
   of what a talk group is. **Only the number is ever sent to the node**; the label
   is stored app-locally (per TG number, not per slot) and rebuilt from the fields
   on every save, so there are no orphan or mis-assigned labels. `9 -` clears a
-  label back to just `9`. (Labels are device-local — the firmware has no label
-  field.)
+  label back to just `9`. Empty slots show example placeholders (MeshCom TG
+  numbers): `9 local (rf-only)`, `20 DACH`, `262 DL`, `232 OE`. (Labels are
+  device-local — the firmware has no label field.)
 
 **App / Build**
 - App version shows the fork id + short git hash: `4.27-DL9SAU-g<hash>`.
