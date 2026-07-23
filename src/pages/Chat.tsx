@@ -265,24 +265,36 @@ const Tab3: React.FC = () => {
     ];
   };
 
-  // render one segment tab: tap selects it, long-press opens the mute menu, and a
-  // small bell marks tabs whose notifications are on
-  const renderTab = (val: string, label: string, isGroup: boolean) => (
-    <IonSegmentButton key={val} value={val} id={val}
-      className={tabDiscarded(val) ? 'tab-dimmed' : undefined}
-      onClick={() => handleSegmentChange(val, isGroup)}
-      onTouchStart={(e) => handleTabPress(e, val)}
-      onTouchMove={handleTabMove}
-      onTouchEnd={handleTabRelease}>
-      <IonLabel>
-        <span className="tab-label-wrap">
-          {label}
-          {tabBellOn(val) && <IonIcon icon={notificationsOutline} className="tab-bell" />}
-          {val === "DM" && dmShowAll && <IonIcon icon={eyeOutline} className="tab-eye" />}
-        </span>
-      </IonLabel>
-    </IonSegmentButton>
-  );
+  // render one segment tab: tap selects it, long-press opens the tab menu. Markers
+  // (bell = beeps, eye = DM monitoring) sit in reserved padding inside the label
+  // and are absolutely centered via inline styles, so they can't shift the label
+  // height (class-based positioning didn't apply reliably through the shadow DOM).
+  const markStyle = (side: "left" | "right"): any => ({
+    position: "absolute", [side]: 0, top: "50%", transform: "translateY(-50%)",
+    fontSize: "0.7em", opacity: 0.85
+  });
+  const renderTab = (val: string, label: string, isGroup: boolean) => {
+    const bell = tabBellOn(val);
+    const eye = val === "DM" && dmShowAll;
+    return (
+      <IonSegmentButton key={val} value={val} id={val}
+        className={tabDiscarded(val) ? 'tab-dimmed' : undefined}
+        onClick={() => handleSegmentChange(val, isGroup)}
+        onTouchStart={(e) => handleTabPress(e, val)}
+        onTouchMove={handleTabMove}
+        onTouchEnd={handleTabRelease}>
+        <IonLabel>
+          <span style={{ position: "relative", display: "inline-block",
+                         paddingRight: bell ? "0.95em" : undefined,
+                         paddingLeft: eye ? "0.95em" : undefined }}>
+            {label}
+            {bell && <IonIcon icon={notificationsOutline} style={markStyle("right")} />}
+            {eye && <IonIcon icon={eyeOutline} style={markStyle("left")} />}
+          </span>
+        </IonLabel>
+      </IonSegmentButton>
+    );
+  };
 
   // one-time onboarding hint about the long-press gesture
   const [shTabHint, setShTabHint] = useState<boolean>(false);

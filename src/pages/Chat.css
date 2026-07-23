@@ -175,28 +175,8 @@ ion-textarea.customTextAreaInput{
 .textarea_field{
     margin-top: 5px;
 }
-/* channel-tab markers: absolutely positioned so they never change the label
-   height (an inline icon shifted the label and misaligned the tabs). bell = the
-   tab beeps, eye = DM monitoring (showing others' DMs) */
-.tab-label-wrap{
-    position: relative;
-    display: inline-block;
-}
-.tab-bell{
-    position: absolute;
-    top: -0.35em;
-    right: -0.95em;
-    font-size: 0.6em;
-    opacity: 0.85;
-}
-.tab-eye{
-    position: absolute;
-    top: -0.35em;
-    left: -0.95em;
-    font-size: 0.6em;
-    opacity: 0.85;
-}
-/* a discarded channel's tab is dimmed */
+/* a discarded channel's tab is dimmed (the bell/eye markers are inline-styled in
+   renderTab so they never shift the label height) */
 .tab-dimmed{
     opacity: 0.45;
 }
