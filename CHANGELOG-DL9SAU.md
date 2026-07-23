@@ -13,11 +13,6 @@ changes of this fork relative to upstream. The in-app version shows
   addressed to you or just overheard — the DM tab also surfaces DMs sent to
   other stations. Previously only the sender was shown, which made foreign DMs
   look like they were meant for you.
-- **The block filter now works in group channels.** Group messages carry
-  `isDM=1` internally (their destination is a group number, not a broadcast
-  `*`), which made the message filter skip them entirely — only ALL/broadcast
-  was ever filtered. Call *and* text filters now work in every channel; personal
-  DMs and your own messages stay exempt.
 - **Chat scrolling & long-press feel right now.** The message menu now opens
   **while the finger is still held** (native long-press feel, ~0.5 s) instead of
   only reacting on release — the old behaviour felt laggy and confusing. A finger
@@ -33,11 +28,13 @@ changes of this fork relative to upstream. The in-app version shows
   *Settings → Chat Display*.
 - Configurable **block filter** for channel messages — block by **callsign** or
   **text pattern**: `Wort` (whole word), `^start`, `end$`, `*wild*card`
-  (case-insensitive, UTF-8/emoji/multi-line aware). You can add **any number of
-  rules — one per line** — in the callsign and text fields separately. Manage in
-  *Settings → Message Filter*, or use quick **Filter Call / Filter Message** on a
-  message. (Removing a rule is done in Settings — a blocked message is hidden and
-  can't be long-pressed.) Blocked messages also raise no notification.
+  (case-insensitive, UTF-8/emoji/multi-line aware). Works in the **ALL/broadcast
+  channel and every talk group**; **personal DMs and your own messages are never
+  blocked**. You can add **any number of rules — one per line** — in the callsign
+  and text fields separately. Manage in *Settings → Message Filter*, or use quick
+  **Filter Call / Filter Message** on a message. (Removing a rule is done in
+  Settings — a blocked message is hidden and can't be long-pressed.) Blocked
+  messages also raise no notification.
 - **Reply** prefills a compact reference into the input:
   - channel, others' message → an **`@call1, @call2: ` mention list** (press
     Reply on several messages to reference multiple people; deduped, so replying
