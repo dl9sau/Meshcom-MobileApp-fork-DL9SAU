@@ -12,6 +12,7 @@ import { ConfType, PosType, MheardType } from '../utils/AppInterfaces';
 import { MapOverlay } from '../components/MapOverlay';
 import {compass, chevronUpCircle, search, swapHorizontal, contract} from 'ionicons/icons';
 import MhStore from '../store/MheardStore';
+import NodeRuntimeStore from '../store/NodeRuntimeStore';
 import AppActiveState from '../store/AppActive';
 import DevIDStore from '../store/DevIDstore';
 import BLEconnStore from '../store/BLEconnected';
@@ -471,10 +472,106 @@ const NodeMap = () => {
 
     const geoJsonSample = {
       type: "FeatureCollection",
-      features: line_datas.current    
+      features: line_datas.current
     };
 
     return geoJsonSample;
+  }
+
+
+  // --- full hop-path line for a selected node -----------------------------
+  // position [lon, lat] for a callsign (own node or any stored position);
+  // (0,0) counts as unknown so it never distorts the line or the zoom
+  const posByCall = (call: string): [number, number] | null => {
+    const c = (call || "").toUpperCase();
+    if (c === (currConfig.callSign || "").toUpperCase() && currConfig.lat !== 0 && currConfig.lon !== 0) {
+      return [currConfig.lon, currConfig.lat];
+    }
+    for (const p of positions) {
+      if ((p.callSign || "").toUpperCase() === c && p.lat !== 0 && p.lon !== 0) return [p.lon, p.lat];
+    }
+    return null;
+  }
+
+  // the callsign chain of a node's path: ORIGIN > … > NEIGHBOUR, then me
+  const pathChain = (call: string): string[] => {
+    const info = NodeRuntimeStore.getRawState().info[(call || "").toUpperCase()];
+    const via = info?.path || "";
+    const hops = via.split(" > ").map((s: string) => s.trim()).filter((s: string) => s !== "");
+    return hops.concat([currConfig.callSign]);
+  }
+
+  // GeoJson for the node's hop path: green segments between known consecutive
+  // positions, a grey dashed "bridge" where an intermediate hop has no position
+  const genPathLineData = (call: string): any => {
+    const features: any[] = [];
+    let last: [number, number] | null = null;
+    let skipped = false;
+    for (const hopCall of pathChain(call)) {
+      const pos = posByCall(hopCall);
+      if (pos) {
+        if (last) {
+          features.push({
+            type: "Feature",
+            geometry: { type: "LineString", coordinates: [last, pos] },
+            properties: { bridged: skipped },
+          });
+        }
+        last = pos; skipped = false;
+      } else {
+        skipped = true; // hop with unknown position -> next segment bridges it
+      }
+    }
+    return { type: "FeatureCollection", features };
+  }
+
+  // known positions of a node's path (for auto-fit); [lon, lat]
+  const pathPoints = (call: string): [number, number][] => {
+    const pts: [number, number][] = [];
+    for (const hopCall of pathChain(call)) { const p = posByCall(hopCall); if (p) pts.push(p); }
+    return pts;
+  }
+
+  // zoom level that fits a lat/lon box into the current viewport (Google-style)
+  const boundsZoom = (minLat: number, maxLat: number, minLon: number, maxLon: number): number => {
+    const WORLD = 256;
+    const latRad = (lat: number) => {
+      const s = Math.sin(lat * Math.PI / 180);
+      const r = Math.log((1 + s) / (1 - s)) / 2;
+      return Math.max(Math.min(r, Math.PI), -Math.PI) / 2;
+    };
+    const w = Math.max(window.innerWidth || 360, 100);
+    const h = Math.max((window.innerHeight || 640) - 120, 100);
+    let latFrac = (latRad(maxLat) - latRad(minLat)) / Math.PI;
+    if (latFrac <= 0) latFrac = 1e-6;
+    let lonDiff = maxLon - minLon;
+    let lonFrac = (lonDiff < 0 ? lonDiff + 360 : lonDiff) / 360;
+    if (lonFrac <= 0) lonFrac = 1e-6;
+    const zoomFor = (px: number, frac: number) => Math.log(px / WORLD / frac) / Math.LN2;
+    const z = Math.floor(Math.min(zoomFor(h, latFrac), zoomFor(w, lonFrac))) - 1; // -1 = a little padding
+    return Math.max(2, Math.min(z, 16));
+  }
+
+  // center + zoom the map so the whole path fits (skips (0,0)/unknown nodes)
+  const fitPathBounds = (call: string) => {
+    const pts = pathPoints(call);
+    if (pts.length < 2) return;
+    const lons = pts.map(p => p[0]);
+    const lats = pts.map(p => p[1]);
+    const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+    const minLon = Math.min(...lons), maxLon = Math.max(...lons);
+    setCenter([(minLat + maxLat) / 2, (minLon + maxLon) / 2]);
+    setZoom(boundsZoom(minLat, maxLat, minLon, maxLon));
+  }
+
+  // FAB line toggle: with a node selected, show that node's full path and
+  // auto-fit; otherwise the neighbour overview (existing behaviour)
+  const toggleLines = () => {
+    const turningOn = !shLines;
+    setShLines(turningOn);
+    if (turningOn && showCurrentPointInfo && markerInfo.call_) {
+      fitPathBounds(markerInfo.call_);
+    }
   }
   
 
@@ -562,16 +659,30 @@ const NodeMap = () => {
             }
             
 
-            {shLines ?   
+            {shLines ? (
+              (showCurrentPointInfo && markerInfo.call_) ?
+              /* selected node: its full hop path (green; grey dashed = bridged over an unknown hop) */
               <GeoJson
-              data={genGeoJsonLineData()}
-              styleCallback={(feature:any) => {
-                if (feature.geometry.type === "LineString") {
-                  return { strokeWidth: "2", stroke: "red" };
-                }
-
-              }}
-            /> : <></>}
+                data={genPathLineData(markerInfo.call_)}
+                styleCallback={(feature:any) => {
+                  if (feature.geometry.type === "LineString") {
+                    return feature.properties?.bridged
+                      ? { strokeWidth: "2", stroke: "#888888", strokeDasharray: "6 6" }
+                      : { strokeWidth: "3", stroke: "#2dd36f" };
+                  }
+                }}
+              />
+              :
+              /* no node selected: lines to my directly heard neighbours (existing) */
+              <GeoJson
+                data={genGeoJsonLineData()}
+                styleCallback={(feature:any) => {
+                  if (feature.geometry.type === "LineString") {
+                    return { strokeWidth: "2", stroke: "red" };
+                  }
+                }}
+              />
+            ) : <></>}
 
             <ZoomControl buttonStyle={{ background: '#3578e5', color: 'white', width: 40, height: 40, marginBottom: 5 }} style={{ right: 10, top: 10, zIndex: 100 }} />
             <div className='top_right'>Map Tracking {track_map_btn ? "ON":"OFF"}</div>
@@ -593,7 +704,7 @@ const NodeMap = () => {
               <IonIcon icon={search} className='ion-icon-fab' color='primary' onClick={() => setShSrchBar(!shSrchBar)}></IonIcon>
             </IonFabButton>
             <IonFabButton className='ion-btn-fab'>
-              <IonIcon icon={swapHorizontal} className='ion-icon-fab' color='primary' onClick={() => setShLines(!shLines)}></IonIcon>
+              <IonIcon icon={swapHorizontal} className='ion-icon-fab' color='primary' onClick={() => toggleLines()}></IonIcon>
             </IonFabButton>
           </IonFabList>
         </IonFab>

@@ -74,6 +74,13 @@ changes of this fork relative to upstream. The in-app version shows
   for this session plus the all-time total, which is reconstructed on startup from
   the stored positions so a restart no longer drops it to a low value (`≈N` when
   the two are equal).
+- **Full hop path on the map.** The map's line toggle (FAB) now draws, when a
+  node is selected, that node's **whole route** as a line — `you → neighbour → …
+  → origin` (green), instead of only the line to your direct neighbour. Hops with
+  an unknown position are **bridged with a grey dashed segment**. The map
+  **auto-fits** to the path (nodes at `0.00/0.00` are treated as unknown, so they
+  never distort the zoom). With no node selected the toggle still shows the
+  neighbour overview.
 - Tab renamed to **"Heard Direct Nodes"**.
 
 **Settings**
