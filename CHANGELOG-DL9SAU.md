@@ -35,6 +35,12 @@ changes of this fork relative to upstream. The in-app version shows
   **Filter Call / Filter Message** on a message. (Removing a rule is done in
   Settings — a blocked message is hidden and can't be long-pressed.) Blocked
   messages also raise no notification.
+- **Per-channel notifications (mute).** **Long-press a channel tab** (All, DM, a
+  talk group) to mute/unmute its notifications; a small **🔔** on the tab marks
+  the ones that beep. Quiet by default — **only DMs addressed to you notify**;
+  ALL/broadcast and talk groups are silent until you switch them on. All in-app
+  (works the same on Android and iOS, nothing gets stuck in the OS). A one-time
+  hint points out the long-press gesture.
 - **Reply** prefills a compact reference into the input:
   - channel, one other person → **`@call: [HH:MM] `** (mention + that message's
     time); referencing **more people** turns it into an **`@call1, @call2: `

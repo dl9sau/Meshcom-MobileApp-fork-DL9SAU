@@ -175,3 +175,10 @@ ion-textarea.customTextAreaInput{
 .textarea_field{
     margin-top: 5px;
 }
+/* small bell next to a channel tab label = notifications on for that tab */
+.tab-bell{
+    font-size: 0.7em;
+    margin-left: 3px;
+    vertical-align: middle;
+    opacity: 0.85;
+}

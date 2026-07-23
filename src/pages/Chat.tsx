@@ -1,4 +1,4 @@
-import { IonButton, IonActionSheet, IonContent, IonFooter, IonGrid, IonHeader, IonIcon, IonInput, IonItem, IonPage, IonText, IonTitle, IonToolbar, useIonViewDidEnter, useIonViewWillEnter, IonAlert, useIonViewWillLeave, IonButtons, IonModal, IonCheckbox, IonSegmentButton, IonLabel, IonSegment, IonTextarea } from '@ionic/react';
+import { IonButton, IonActionSheet, IonContent, IonFooter, IonGrid, IonHeader, IonIcon, IonInput, IonItem, IonPage, IonText, IonTitle, IonToolbar, useIonViewDidEnter, useIonViewWillEnter, IonAlert, useIonViewWillLeave, IonButtons, IonModal, IonCheckbox, IonSegmentButton, IonLabel, IonSegment, IonTextarea, IonToast } from '@ionic/react';
 import React,{ useEffect, useRef, useState, createRef } from 'react';
 import {ConfType, MsgType, InfoData} from '../utils/AppInterfaces';
 import {useBLE} from '../hooks/BleHandler';
@@ -8,7 +8,7 @@ import { DevIDStore } from '../store';
 import { getConfigStore, getDevID, getMsgStore, getPlatformStore } from '../store/Selectors';
 import MsgStore from '../store/MsgStore';
 import ConfigStore from '../store/ConfStore';
-import { checkmark, cloudDoneOutline, cloudOutline, caretForwardCircle, settings} from 'ionicons/icons';
+import { checkmark, cloudDoneOutline, cloudOutline, caretForwardCircle, settings, notificationsOutline} from 'ionicons/icons';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import PlatformStore from '../store/PlatformStore';
 import { Keyboard } from '@capacitor/keyboard';
@@ -23,6 +23,7 @@ import DMfrmMapStore from '../store/DMfrmMap';
 import NotifyMsgState from '../store/NotifyMsg';
 import MsgFilterStore from '../store/MsgFilterStore';
 import AppPrefsStore from '../store/AppPrefsStore';
+import { parseTGset } from '../utils/NotifyPrefs';
 import { useHistory } from "react-router";
 import LogS from '../utils/LogService';
 import DatabaseService from '../DBservices/DataBaseService';
@@ -125,8 +126,107 @@ const Tab3: React.FC = () => {
   // compact one-line message header vs legacy multi-line
   const compactHeader = useStoreState(AppPrefsStore, s => s.compactHeader);
 
+  // per-scope notification ("alert = beeps") state, for the tab bell icon + menu
+  const alertAll = useStoreState(AppPrefsStore, s => s.alertAll);
+  const alertDMmine = useStoreState(AppPrefsStore, s => s.alertDMmine);
+  const alertTGs = useStoreState(AppPrefsStore, s => s.alertTGs);
+  // is the bell (notifications) on for a given tab value ("ALL" | "DM" | "<TG>")
+  const tabBellOn = (val: string): boolean => {
+    if (val === "ALL") return alertAll;
+    if (val === "DM") return alertDMmine;
+    const tg = parseInt(val);
+    return !isNaN(tg) && parseTGset(alertTGs).has(tg);
+  };
+
   // Segment chat filter state
   const [segmentFilter, setSegmentFilter] = useState<string>("ALL");
+
+  // long-press on a channel tab -> mute/unmute menu (Etappe 1). Refs like the
+  // message long-press; a finger move cancels it (the segment bar is scrollable).
+  const [tabMenuOpen, setTabMenuOpen] = useState<boolean>(false);
+  const [tabMenuFor, setTabMenuFor] = useState<string>("");
+  const tabPressX = useRef<number>(0);
+  const tabPressY = useRef<number>(0);
+  const tabPressMoved = useRef<boolean>(false);
+  const tabPressTimer = useRef<any>(null);
+
+  const handleTabPress = (e: any, val: string) => {
+    tabPressMoved.current = false;
+    const t = e?.touches?.[0];
+    if (t) { tabPressX.current = t.clientX; tabPressY.current = t.clientY; }
+    if (tabPressTimer.current) clearTimeout(tabPressTimer.current);
+    tabPressTimer.current = setTimeout(() => {
+      tabPressTimer.current = null;
+      if (tabPressMoved.current) return; // was a scroll of the tab bar
+      setTabMenuFor(val);
+      setTabMenuOpen(true);
+    }, 500);
+  };
+  const handleTabMove = (e: any) => {
+    const t = e?.touches?.[0];
+    if (!t) return;
+    if (Math.abs(t.clientX - tabPressX.current) > 10 || Math.abs(t.clientY - tabPressY.current) > 10) {
+      tabPressMoved.current = true;
+      if (tabPressTimer.current) { clearTimeout(tabPressTimer.current); tabPressTimer.current = null; }
+    }
+  };
+  const handleTabRelease = () => {
+    if (tabPressTimer.current) { clearTimeout(tabPressTimer.current); tabPressTimer.current = null; }
+  };
+
+  // toggle notifications for the tab (persist to AppPrefs)
+  const toggleTabMute = async (val: string) => {
+    const s = AppPrefsStore.getRawState();
+    if (val === "ALL") {
+      const nv = !s.alertAll;
+      AppPrefsStore.update(x => { x.alertAll = nv; });
+      await DatabaseService.setPref('alertAll', nv ? '1' : '0');
+    } else if (val === "DM") {
+      const nv = !s.alertDMmine;
+      AppPrefsStore.update(x => { x.alertDMmine = nv; });
+      await DatabaseService.setPref('alertDMmine', nv ? '1' : '0');
+    } else {
+      const tg = parseInt(val);
+      if (isNaN(tg)) return;
+      const set = parseTGset(s.alertTGs);
+      if (set.has(tg)) set.delete(tg); else set.add(tg);
+      const csv = Array.from(set).join(",");
+      AppPrefsStore.update(x => { x.alertTGs = csv; });
+      await DatabaseService.setPref('alertTGs', csv);
+    }
+  };
+
+  // a readable header for the tab menu
+  const tabMenuHeader = (val: string): string => {
+    if (val === "ALL") return "All / Public";
+    if (val === "DM") return "Direct messages";
+    return "TG " + val;
+  };
+
+  // render one segment tab: tap selects it, long-press opens the mute menu, and a
+  // small bell marks tabs whose notifications are on
+  const renderTab = (val: string, label: string, isGroup: boolean) => (
+    <IonSegmentButton key={val} value={val} id={val}
+      onClick={() => handleSegmentChange(val, isGroup)}
+      onTouchStart={(e) => handleTabPress(e, val)}
+      onTouchMove={handleTabMove}
+      onTouchEnd={handleTabRelease}>
+      <IonLabel>
+        {label}
+        {tabBellOn(val) && <IonIcon icon={notificationsOutline} className="tab-bell" />}
+      </IonLabel>
+    </IonSegmentButton>
+  );
+
+  // one-time onboarding hint about the long-press gesture
+  const [shTabHint, setShTabHint] = useState<boolean>(false);
+  useEffect(() => {
+    if (!AppPrefsStore.getRawState().tabHintSeen) {
+      setShTabHint(true);
+      AppPrefsStore.update(x => { x.tabHintSeen = true; });
+      DatabaseService.setPref('tabHintSeen', '1');
+    }
+  }, []);
 
   // Flag that we send an DM. This should be active when we are in DM segment and in a group segment
   const [sendDMGrpFlag, setSendDMGrpFlag] = useState<boolean>(false);
@@ -868,42 +968,11 @@ const Tab3: React.FC = () => {
       <IonHeader>
         <IonToolbar>
             <IonSegment value={segmentFilter} scrollable={true}>
-              <IonSegmentButton value="ALL" onClick={() => handleSegmentChange("ALL", false)} id='ALL'>
-                <IonLabel>All</IonLabel>
-              </IonSegmentButton>
-              <IonSegmentButton value="DM" onClick={() => handleSegmentChange("DM", false)} id='DM'>
-                <IonLabel>DM</IonLabel>
-              </IonSegmentButton>
-              {nodeInfo_s.GCB0 !== 0 &&
-              <IonSegmentButton value={nodeInfo_s.GCB0.toString()} onClick={() => handleSegmentChange(nodeInfo_s.GCB0.toString(), true)} id={nodeInfo_s.GCB0.toString()}>
-                <IonLabel>{nodeInfo_s.GCB0.toString()}</IonLabel>
-              </IonSegmentButton>
-              }
-              {nodeInfo_s.GCB1 !== 0 &&
-              <IonSegmentButton value={nodeInfo_s.GCB1.toString()} onClick={() => handleSegmentChange(nodeInfo_s.GCB1.toString(), true)} id={nodeInfo_s.GCB1.toString()}>
-                <IonLabel>{nodeInfo_s.GCB1.toString()}</IonLabel>
-              </IonSegmentButton>
-              }
-              {nodeInfo_s.GCB2 !== 0 &&
-              <IonSegmentButton value={nodeInfo_s.GCB2.toString()} onClick={() => handleSegmentChange(nodeInfo_s.GCB2.toString(), true)} id={nodeInfo_s.GCB2.toString()}>
-                <IonLabel>{nodeInfo_s.GCB2.toString()}</IonLabel>
-              </IonSegmentButton>
-              }
-              {nodeInfo_s.GCB3 !== 0 &&
-              <IonSegmentButton value={nodeInfo_s.GCB3.toString()} onClick={() => handleSegmentChange(nodeInfo_s.GCB3.toString(), true)} id={nodeInfo_s.GCB3.toString()}>
-                <IonLabel>{nodeInfo_s.GCB3.toString()}</IonLabel>
-              </IonSegmentButton>
-              }
-              {nodeInfo_s.GCB4 !== 0 &&
-              <IonSegmentButton value={nodeInfo_s.GCB4.toString()} onClick={() => handleSegmentChange(nodeInfo_s.GCB4.toString(), true)} id={nodeInfo_s.GCB4.toString()}>
-                <IonLabel>{nodeInfo_s.GCB4.toString()}</IonLabel>
-              </IonSegmentButton>
-              }
-              {nodeInfo_s.GCB5 !== 0 &&
-              <IonSegmentButton value={nodeInfo_s.GCB5.toString()} onClick={() => handleSegmentChange(nodeInfo_s.GCB5.toString(), true)} id={nodeInfo_s.GCB5.toString()}>
-                <IonLabel>{nodeInfo_s.GCB5.toString()}</IonLabel>
-              </IonSegmentButton>
-              }
+              {renderTab("ALL", "All", false)}
+              {renderTab("DM", "DM", false)}
+              {[nodeInfo_s.GCB0, nodeInfo_s.GCB1, nodeInfo_s.GCB2, nodeInfo_s.GCB3, nodeInfo_s.GCB4, nodeInfo_s.GCB5]
+                .filter(g => g !== 0)
+                .map(g => renderTab(g.toString(), g.toString(), true))}
             </IonSegment>
         </IonToolbar>
       </IonHeader>
@@ -982,6 +1051,29 @@ const Tab3: React.FC = () => {
           ]}
           onDidDismiss={({ detail }) => handleActionSheet(detail)}
         ></IonActionSheet>
+
+        {/* per-tab notification menu (long-press a channel tab) */}
+        <IonActionSheet
+          isOpen={tabMenuOpen}
+          header={tabMenuHeader(tabMenuFor)}
+          buttons={[
+            {
+              text: tabBellOn(tabMenuFor) ? 'Mute notifications' : 'Enable notifications',
+              handler: () => { toggleTabMute(tabMenuFor); }
+            },
+            { text: 'Cancel', role: 'cancel' }
+          ]}
+          onDidDismiss={() => setTabMenuOpen(false)}
+        ></IonActionSheet>
+
+        {/* one-time hint about the long-press gesture on tabs */}
+        <IonToast
+          isOpen={shTabHint}
+          message="Tip: long-press a channel tab (All, DM, a TG) to mute or unmute its notifications."
+          duration={6000}
+          position="top"
+          onDidDismiss={() => setShTabHint(false)}
+        ></IonToast>
 
 
         <div id="spacer-top"></div>

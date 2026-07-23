@@ -908,6 +908,10 @@ class DatabaseService {
                 // only override the default when a value was actually saved
                 if ('compactHeader' in prefs) s.compactHeader = prefs['compactHeader'] === '1';
                 if ('dmShowAll' in prefs) s.dmShowAll = prefs['dmShowAll'] === '1';
+                if ('alertAll' in prefs) s.alertAll = prefs['alertAll'] === '1';
+                if ('alertTGs' in prefs) s.alertTGs = prefs['alertTGs'];
+                if ('alertDMmine' in prefs) s.alertDMmine = prefs['alertDMmine'] === '1';
+                if ('tabHintSeen' in prefs) s.tabHintSeen = prefs['tabHintSeen'] === '1';
                 if ('ownCall' in prefs) s.ownCall = prefs['ownCall'];
                 s.retAll = numPref('retAll', s.retAll);
                 s.retGroup = numPref('retGroup', s.retGroup);
