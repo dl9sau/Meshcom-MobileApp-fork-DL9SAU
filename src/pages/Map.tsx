@@ -78,6 +78,9 @@ const NodeMap = () => {
   // svg lines from own node to heard nodes
   const [shLines, setShLines] = useState<boolean>(false);
   const line_datas = useRef<any []>([]);
+  // node whose full hop path is drawn (locked at FAB press, so the line stays
+  // when the info overlay is closed to reveal the hops it covered). "" = neighbours
+  const [pathCall, setPathCall] = useState<string>("");
 
   // app active state
   const app_active_s:boolean = AppActiveState.useState(s => s.active);
@@ -567,13 +570,21 @@ const NodeMap = () => {
     setZoom(boundsZoom(minLat, maxLat, minLon, maxLon));
   }
 
-  // FAB line toggle: with a node selected, show that node's full path and
-  // auto-fit; otherwise the neighbour overview (existing behaviour)
+  // FAB line toggle. Turning on with a node selected locks its path (so it stays
+  // when the overlay is closed) and auto-fits; otherwise the neighbour overview.
+  // Turning off clears everything.
   const toggleLines = () => {
     const turningOn = !shLines;
     setShLines(turningOn);
-    if (turningOn && showCurrentPointInfo && markerInfo.call_) {
-      fitPathBounds(markerInfo.call_);
+    if (turningOn) {
+      if (showCurrentPointInfo && markerInfo.call_) {
+        setPathCall(markerInfo.call_);
+        fitPathBounds(markerInfo.call_);
+      } else {
+        setPathCall("");
+      }
+    } else {
+      setPathCall("");
     }
   }
   
@@ -663,10 +674,10 @@ const NodeMap = () => {
             
 
             {shLines ? (
-              (showCurrentPointInfo && markerInfo.call_) ?
-              /* selected node: its full hop path (green; grey dashed = bridged over an unknown hop) */
+              pathCall ?
+              /* locked node's full hop path (green; grey dashed = bridged over an unknown hop) */
               <GeoJson
-                data={genPathLineData(markerInfo.call_)}
+                data={genPathLineData(pathCall)}
                 styleCallback={(feature:any) => {
                   if (feature.geometry.type === "LineString") {
                     return feature.properties?.bridged
