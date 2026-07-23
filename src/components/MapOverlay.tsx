@@ -183,7 +183,9 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
                                 {!lineMode ? <>
                                     <IonText>HW: {hw}</IonText><br />
                                 </> : <></>}
-                                {!lineMode && mheard ? <>
+                                {/* SNR/RSSI shown whenever available (direct nodes) - also in
+                                    the compact line view, where it's relevant for a direct link */}
+                                {mheard ? <>
                                     <IonText>SNR {mheard.mh_snr}dB / RSSI {mheard.mh_rssi}dBm</IonText><br />
                                 </> : <></>}
                                 {nodeInfo && nodeInfo.hops >= 0 ? <>

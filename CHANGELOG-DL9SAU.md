@@ -83,7 +83,8 @@ changes of this fork relative to upstream. The in-app version shows
   neighbour overview. Clicking a node re-targets the line to it (updates live as
   new packets change the route), and closing the info card keeps the line so it
   no longer hides the hops. While a path is shown the info card is **compact**
-  (Age, Dist, Lat/Lon, Alt, Hops, Path, Close only) to free up the map.
+  (Age, Dist, Lat/Lon, Alt, Hops, Path, Close — plus **SNR/RSSI for a direct
+  link**) to free up the map.
 - Tab renamed to **"Heard Direct Nodes"**.
 
 **Settings**
