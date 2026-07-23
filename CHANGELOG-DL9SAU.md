@@ -87,11 +87,13 @@ changes of this fork relative to upstream. The in-app version shows
 - **Group Subscription labels (memory aid).** Each slot now accepts an optional
   text label after the number, e.g. `262 DL` or `9 local (rf-only)` — a reminder
   of what a talk group is. **Only the number is ever sent to the node**; the label
-  is stored app-locally (per TG number, not per slot) and rebuilt from the fields
-  on every save, so there are no orphan or mis-assigned labels. `9 -` clears a
-  label back to just `9`. Empty slots show example placeholders (MeshCom TG
-  numbers): `9 local (rf-only)`, `20 DACH`, `262 DL`, `232 OE`. (Labels are
-  device-local — the firmware has no label field.)
+  is stored app-locally **keyed by TG number** (not per slot), so it never attaches
+  to the wrong group when a slot changes. A label **sticks to its number**: it
+  survives slot changes and is restored when you re-enter that number. Typing just
+  the number (e.g. `9`) **keeps** its label; `9 -` **clears** it; Reset wipes all.
+  Empty slots show example placeholders (MeshCom TG numbers): `9 local (rf-only)`,
+  `20 DACH`, `262 DL`, `232 OE`. (Labels are device-local — the firmware has no
+  label field.)
 
 **App / Build**
 - App version shows the fork id + short git hash: `4.27-DL9SAU-g<hash>`.

@@ -1761,14 +1761,14 @@ const Tab2: React.FC = () => {
   }
 
   // parse a group field "262 DL" -> {num, label}. The number is the FIRST run of
-  // digits (validated for the firmware - never send the label!); a whole-label of
-  // "-" clears the label (e.g. "9 -" -> just "9").
+  // digits (validated for the firmware - never send the label!). The label after
+  // the number is interpreted at save time: "" = keep the existing label for this
+  // number, "-" = clear it (e.g. "9 -"), any other text = set it.
   const parseGrpField = (text: string): {num: number; label: string} => {
     const t = (text || "");
     const m = t.match(/\d+/);
     const num = m ? checkGrpInput(m[0]) : 0;
-    let label = m ? t.slice(t.indexOf(m[0]) + m[0].length).trim() : "";
-    if (label === "-") label = "";
+    const label = m ? t.slice(t.indexOf(m[0]) + m[0].length).trim() : "";
     return { num, label };
   }
 
@@ -1806,13 +1806,20 @@ const Tab2: React.FC = () => {
       console.log("Group CMD: " + cmd_str);
       setGrpCmd.current = cmd_str;
 
-      // rebuild the app-local TG->label map from the six fields (only currently
-      // subscribed numbers with a non-empty label) -> no orphans, no mis-assign
-      const newLabels: {[k: string]: string} = {};
+      // update the app-local TG->label map (keyed by TG number). Keep existing
+      // labels so a number keeps its label across slot changes and is restored on
+      // re-add; per field: "" = keep, "-" = clear, text = set. (Labels are never
+      // auto-pruned; clear one with "9 -" or wipe all via Reset.)
+      let newLabels: {[k: string]: string} = {};
+      try { newLabels = JSON.parse(AppPrefsStore.getRawState().tgLabels || "{}"); } catch { newLabels = {}; }
       gcbRefs.forEach((r, i) => {
         const num = r.current;
+        if (num <= 0) return;
+        const key = num.toString();
         const label = (labelRefs[i].current || "").trim();
-        if (num > 0 && label !== "") newLabels[num.toString()] = label;
+        if (label === "-") delete newLabels[key];
+        else if (label !== "") newLabels[key] = label;
+        // label === "" -> keep the existing label for this number
       });
       const labelsJson = JSON.stringify(newLabels);
       AppPrefsStore.update(s => { s.tgLabels = labelsJson; });
