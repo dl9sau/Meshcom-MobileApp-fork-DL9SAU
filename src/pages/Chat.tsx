@@ -567,9 +567,13 @@ const Tab3: React.FC = () => {
 
       //create a channel for notify on adroid
       if (thisPlatform === "android") {
+        // single delivery channel for all app notifications (per-channel muting is
+        // done in-app, so this stays one general channel). id must stay '1' so the
+        // rename updates the existing channel instead of creating a new one.
         await LocalNotifications.createChannel({
           id: '1',
-          name: 'channel1',
+          name: 'General notifications',
+          description: 'All MeshCom notifications. Mute individual channels (All, DM, talk groups) inside the app by long-pressing their tab.',
           importance: 4,
           visibility: 1,
           vibration: true,
