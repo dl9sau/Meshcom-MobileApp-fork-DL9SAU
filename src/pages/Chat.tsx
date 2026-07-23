@@ -266,13 +266,14 @@ const Tab3: React.FC = () => {
   };
 
   // render one segment tab: tap selects it, long-press opens the tab menu. Markers
-  // (bell = beeps, eye = DM monitoring) sit in reserved padding inside the label
-  // and are absolutely centered via inline styles, so they can't shift the label
-  // height (class-based positioning didn't apply reliably through the shadow DOM).
-  const markStyle = (side: "left" | "right"): any => ({
-    position: "absolute", [side]: 0, top: "50%", transform: "translateY(-50%)",
-    fontSize: "0.7em", opacity: 0.85
+  // (bell = beeps, eye = DM monitoring) sit in reserved padding inside the label.
+  // The <ion-icon> ignored position:absolute (stayed in flow and pushed the label
+  // up a line), so we wrap it in a plain <span> that is absolutely positioned - a
+  // plain span reliably honours absolute -> out of flow -> label height unchanged.
+  const markWrap = (side: "left" | "right"): any => ({
+    position: "absolute", [side]: 0, top: "50%", transform: "translateY(-50%)", lineHeight: 0
   });
+  const markIcon = { fontSize: "0.7em", opacity: 0.85, display: "block" } as any;
   const renderTab = (val: string, label: string, isGroup: boolean) => {
     const bell = tabBellOn(val);
     const eye = val === "DM" && dmShowAll;
@@ -288,8 +289,8 @@ const Tab3: React.FC = () => {
                          paddingRight: bell ? "0.95em" : undefined,
                          paddingLeft: eye ? "0.95em" : undefined }}>
             {label}
-            {bell && <IonIcon icon={notificationsOutline} style={markStyle("right")} />}
-            {eye && <IonIcon icon={eyeOutline} style={markStyle("left")} />}
+            {bell && <span style={markWrap("right")}><IonIcon icon={notificationsOutline} style={markIcon} /></span>}
+            {eye && <span style={markWrap("left")}><IonIcon icon={eyeOutline} style={markIcon} /></span>}
           </span>
         </IonLabel>
       </IonSegmentButton>
