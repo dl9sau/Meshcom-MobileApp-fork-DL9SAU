@@ -36,9 +36,11 @@ changes of this fork relative to upstream. The in-app version shows
   Settings — a blocked message is hidden and can't be long-pressed.) Blocked
   messages also raise no notification.
 - **Reply** prefills a compact reference into the input:
-  - channel, others' message → an **`@call1, @call2: ` mention list** (press
-    Reply on several messages to reference multiple people; deduped, so replying
-    twice to the same call never repeats it);
+  - channel, one other person → **`@call: [HH:MM] `** (mention + that message's
+    time); referencing **more people** turns it into an **`@call1, @call2: `
+    mention list** and drops the time (a shared timestamp across time-distinct
+    messages is meaningless). Deduped — replying twice to the same call never
+    repeats it;
   - channel, your own message → **`[HH:MM] `** (time only, no self-mention);
   - DM (your own or the partner's) → **`[HH:MM] `** (recipient is already clear).
   The same timestamp is never stacked twice — tapping Reply on one message again

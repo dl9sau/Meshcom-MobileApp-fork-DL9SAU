@@ -678,15 +678,20 @@ const Tab3: React.FC = () => {
               textAreaInputRef.current.value = ref + existing;
             }
           } else {
-            // others' message: build/extend an "@call1, @call2: " mention list (dedup)
+            // others' message: build/extend an "@call1, @call2: " mention list (dedup).
+            // A SINGLE reference keeps the message's time ("@call: [HH:MM] "); as
+            // soon as 2+ people are referenced the time is dropped (one shared
+            // timestamp across time-distinct messages is meaningless).
             const mention = "@" + m.fromCall;
             const mm = existing.match(/^((?:@[^\s,:]+)(?:, @[^\s,:]+)*): (.*)$/s);
             if (mm) {
               const mentions = mm[1].split(", ");
               if (!mentions.includes(mention)) mentions.push(mention);
-              textAreaInputRef.current.value = mentions.join(", ") + ": " + mm[2];
+              let body = mm[2];
+              if (mentions.length >= 2) body = body.replace(/^\[\d{1,2}:\d{2}\] /, ""); // drop the single-ref time
+              textAreaInputRef.current.value = mentions.join(", ") + ": " + body;
             } else {
-              textAreaInputRef.current.value = mention + ": " + existing;
+              textAreaInputRef.current.value = mention + ": " + timeRef(m.msgTime) + existing;
             }
           }
           textAreaInputRef.current.setFocus();
