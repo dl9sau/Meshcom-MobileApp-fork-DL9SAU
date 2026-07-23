@@ -341,6 +341,11 @@ const NodeMap = () => {
     
     setMarkerInfo(info);
 
+    // clicking a node re-targets the hop-path line to it (updates live); if lines
+    // are already shown, frame the new path
+    setPathCall(call);
+    if (shLines) fitPathBounds(call);
+
     setCurrentPoint({latitude:lat, longitude:lon});
 
     // logic to keep show pointer info if jumped there via searchbar
@@ -577,14 +582,12 @@ const NodeMap = () => {
     const turningOn = !shLines;
     setShLines(turningOn);
     if (turningOn) {
-      if (showCurrentPointInfo && markerInfo.call_) {
-        setPathCall(markerInfo.call_);
-        fitPathBounds(markerInfo.call_);
-      } else {
-        setPathCall("");
-      }
+      // draw the last-clicked node's path (or the open overlay's node as fallback);
+      // with none, fall back to the neighbour overview
+      const target = pathCall || ((showCurrentPointInfo && markerInfo.call_) ? markerInfo.call_ : "");
+      if (target) { setPathCall(target); fitPathBounds(target); }
     } else {
-      setPathCall("");
+      setPathCall(""); // off -> reset (next on with no node shows the neighbour overview)
     }
   }
   
