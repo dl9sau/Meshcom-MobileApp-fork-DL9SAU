@@ -8,7 +8,7 @@ import { DevIDStore } from '../store';
 import { getConfigStore, getDevID, getMsgStore, getPlatformStore } from '../store/Selectors';
 import MsgStore from '../store/MsgStore';
 import ConfigStore from '../store/ConfStore';
-import { checkmark, cloudDoneOutline, cloudOutline, caretForwardCircle, settings, notificationsOutline} from 'ionicons/icons';
+import { checkmark, cloudDoneOutline, cloudOutline, caretForwardCircle, settings, notificationsOutline, eyeOutline} from 'ionicons/icons';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import PlatformStore from '../store/PlatformStore';
 import { Keyboard } from '@capacitor/keyboard';
@@ -23,7 +23,7 @@ import DMfrmMapStore from '../store/DMfrmMap';
 import NotifyMsgState from '../store/NotifyMsg';
 import MsgFilterStore from '../store/MsgFilterStore';
 import AppPrefsStore from '../store/AppPrefsStore';
-import { parseTGset } from '../utils/NotifyPrefs';
+import { parseTGset, alertsForMsg, msgDiscarded } from '../utils/NotifyPrefs';
 import { useHistory } from "react-router";
 import LogS from '../utils/LogService';
 import DatabaseService from '../DBservices/DataBaseService';
@@ -126,16 +126,27 @@ const Tab3: React.FC = () => {
   // compact one-line message header vs legacy multi-line
   const compactHeader = useStoreState(AppPrefsStore, s => s.compactHeader);
 
-  // per-scope notification ("alert = beeps") state, for the tab bell icon + menu
+  // per-scope notification ("alert = beeps") + discard (hide) state, for the tab
+  // bell/eye icons, dimming and the menu
   const alertAll = useStoreState(AppPrefsStore, s => s.alertAll);
-  const alertDMmine = useStoreState(AppPrefsStore, s => s.alertDMmine);
   const alertTGs = useStoreState(AppPrefsStore, s => s.alertTGs);
+  const dmAlert = useStoreState(AppPrefsStore, s => s.dmAlert);
+  const discardAll = useStoreState(AppPrefsStore, s => s.discardAll);
+  const discardTGs = useStoreState(AppPrefsStore, s => s.discardTGs);
+  const dmShowAll = useStoreState(AppPrefsStore, s => s.dmShowAll);
   // is the bell (notifications) on for a given tab value ("ALL" | "DM" | "<TG>")
   const tabBellOn = (val: string): boolean => {
     if (val === "ALL") return alertAll;
-    if (val === "DM") return alertDMmine;
+    if (val === "DM") return dmAlert !== "none";
     const tg = parseInt(val);
     return !isNaN(tg) && parseTGset(alertTGs).has(tg);
+  };
+  // is the tab discarded (hidden)? DM is never fully discarded (only "not-for-me")
+  const tabDiscarded = (val: string): boolean => {
+    if (val === "ALL") return discardAll;
+    if (val === "DM") return false;
+    const tg = parseInt(val);
+    return !isNaN(tg) && parseTGset(discardTGs).has(tg);
   };
 
   // Segment chat filter state
@@ -174,17 +185,13 @@ const Tab3: React.FC = () => {
     if (tabPressTimer.current) { clearTimeout(tabPressTimer.current); tabPressTimer.current = null; }
   };
 
-  // toggle notifications for the tab (persist to AppPrefs)
+  // toggle notifications (mute) for the ALL / a TG tab. DM uses setDmAlertPref.
   const toggleTabMute = async (val: string) => {
     const s = AppPrefsStore.getRawState();
     if (val === "ALL") {
       const nv = !s.alertAll;
       AppPrefsStore.update(x => { x.alertAll = nv; });
       await DatabaseService.setPref('alertAll', nv ? '1' : '0');
-    } else if (val === "DM") {
-      const nv = !s.alertDMmine;
-      AppPrefsStore.update(x => { x.alertDMmine = nv; });
-      await DatabaseService.setPref('alertDMmine', nv ? '1' : '0');
     } else {
       const tg = parseInt(val);
       if (isNaN(tg)) return;
@@ -196,6 +203,39 @@ const Tab3: React.FC = () => {
     }
   };
 
+  // toggle discard (hide messages) for the ALL / a TG tab, then refresh the view
+  const toggleTabDiscard = async (val: string) => {
+    const s = AppPrefsStore.getRawState();
+    if (val === "ALL") {
+      const nv = !s.discardAll;
+      AppPrefsStore.update(x => { x.discardAll = nv; });
+      await DatabaseService.setPref('discardAll', nv ? '1' : '0');
+    } else {
+      const tg = parseInt(val);
+      if (isNaN(tg)) return;
+      const set = parseTGset(s.discardTGs);
+      if (set.has(tg)) set.delete(tg); else set.add(tg);
+      const csv = Array.from(set).join(",");
+      AppPrefsStore.update(x => { x.discardTGs = csv; });
+      await DatabaseService.setPref('discardTGs', csv);
+    }
+    await DatabaseService.reapplyChatFilters();
+  };
+
+  // DM notifications tri-state: "none" | "mine" | "all"
+  const setDmAlertPref = async (level: string) => {
+    AppPrefsStore.update(x => { x.dmAlert = level; });
+    await DatabaseService.setPref('dmAlert', level);
+  };
+
+  // DM "discard not-for-me": show/hide overheard foreign DMs (monitoring)
+  const toggleDmShowAll = async () => {
+    const nv = !AppPrefsStore.getRawState().dmShowAll;
+    AppPrefsStore.update(x => { x.dmShowAll = nv; });
+    await DatabaseService.setPref('dmShowAll', nv ? '1' : '0');
+    await DatabaseService.reapplyChatFilters();
+  };
+
   // a readable header for the tab menu
   const tabMenuHeader = (val: string): string => {
     if (val === "ALL") return "All / Public";
@@ -203,17 +243,43 @@ const Tab3: React.FC = () => {
     return "TG " + val;
   };
 
+  // buttons for the tab menu, depending on the tab. DM has the notification
+  // tri-state (none / mine / all) + the "show others' DMs" monitoring toggle;
+  // ALL and talk groups have mute + discard.
+  const tabMenuButtons = (): any[] => {
+    const val = tabMenuFor;
+    if (val === "DM") {
+      const mark = (lvl: string) => (dmAlert === lvl ? "✓ " : "");
+      return [
+        { text: mark("none") + "Notify: none", handler: () => { setDmAlertPref("none"); } },
+        { text: mark("mine") + "Notify: my DMs only", handler: () => { setDmAlertPref("mine"); } },
+        { text: mark("all") + "Notify: all DMs", handler: () => { setDmAlertPref("all"); } },
+        { text: dmShowAll ? "Hide others' DMs" : "Show others' DMs (monitor)", handler: () => { toggleDmShowAll(); } },
+        { text: "Cancel", role: "cancel" }
+      ];
+    }
+    return [
+      { text: tabBellOn(val) ? "Mute notifications" : "Enable notifications", handler: () => { toggleTabMute(val); } },
+      { text: tabDiscarded(val) ? "Show messages" : "Hide messages (discard)", handler: () => { toggleTabDiscard(val); } },
+      { text: "Cancel", role: "cancel" }
+    ];
+  };
+
   // render one segment tab: tap selects it, long-press opens the mute menu, and a
   // small bell marks tabs whose notifications are on
   const renderTab = (val: string, label: string, isGroup: boolean) => (
     <IonSegmentButton key={val} value={val} id={val}
+      className={tabDiscarded(val) ? 'tab-dimmed' : undefined}
       onClick={() => handleSegmentChange(val, isGroup)}
       onTouchStart={(e) => handleTabPress(e, val)}
       onTouchMove={handleTabMove}
       onTouchEnd={handleTabRelease}>
       <IonLabel>
-        {label}
-        {tabBellOn(val) && <IonIcon icon={notificationsOutline} className="tab-bell" />}
+        <span className="tab-label-wrap">
+          {label}
+          {tabBellOn(val) && <IonIcon icon={notificationsOutline} className="tab-bell" />}
+          {val === "DM" && dmShowAll && <IonIcon icon={eyeOutline} className="tab-eye" />}
+        </span>
       </IonLabel>
     </IonSegmentButton>
   );
@@ -245,7 +311,8 @@ const Tab3: React.FC = () => {
     const initSegs: string[] = ConfigObject.getInitChatSegmentMarkers();
     if(initSegs.length > 0){
       initSegs.forEach(seg => {
-        if(seg !== segmentFilter){
+        // discarded channels get no green indicator (mute keeps it, discard hides it)
+        if(seg !== segmentFilter && !tabDiscarded(seg)){
           const Seqgmentbutton = document.getElementById(seg) as HTMLIonSegmentButtonElement;
           if(Seqgmentbutton){
             Seqgmentbutton.classList.add('segmentbutton_green');
@@ -531,10 +598,14 @@ const Tab3: React.FC = () => {
     console.log("CHAT - New Message to Notify: ");
     console.log(notifyMsg_s);
     const notify_title = "New Message from " + notifyMsg_s.fromCall;
-    notifyMsgUser(notify_title, notifyMsg_s.msgTXT);
+    // beep only if this scope's notifications are on (mute); discarded -> never
+    if (alertsForMsg(notifyMsg_s, config_s.callSign)) {
+      notifyMsgUser(notify_title, notifyMsg_s.msgTXT);
+    }
 
     // if a message arrives in another segment than the current one set the background color class to indicate new message
-    if (notifyMsg_s.isDM !== undefined && notifyMsg_s.isGrpMsg !== undefined) {
+    // (skip when the channel is discarded: mute keeps the green marker, discard hides it)
+    if (notifyMsg_s.isDM !== undefined && notifyMsg_s.isGrpMsg !== undefined && !msgDiscarded(notifyMsg_s, config_s.callSign)) {
 
       let msgType = "ALL";
 
@@ -1056,20 +1127,14 @@ const Tab3: React.FC = () => {
         <IonActionSheet
           isOpen={tabMenuOpen}
           header={tabMenuHeader(tabMenuFor)}
-          buttons={[
-            {
-              text: tabBellOn(tabMenuFor) ? 'Mute notifications' : 'Enable notifications',
-              handler: () => { toggleTabMute(tabMenuFor); }
-            },
-            { text: 'Cancel', role: 'cancel' }
-          ]}
+          buttons={tabMenuButtons()}
           onDidDismiss={() => setTabMenuOpen(false)}
         ></IonActionSheet>
 
         {/* one-time hint about the long-press gesture on tabs */}
         <IonToast
           isOpen={shTabHint}
-          message="Tip: long-press a channel tab (All, DM, a TG) to mute or unmute its notifications."
+          message="Tip: long-press a channel tab (All, DM, a TG) to mute its notifications or hide the channel."
           duration={6000}
           position="top"
           onDidDismiss={() => setShTabHint(false)}

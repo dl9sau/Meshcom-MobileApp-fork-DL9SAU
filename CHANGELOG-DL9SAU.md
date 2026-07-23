@@ -21,8 +21,8 @@ changes of this fork relative to upstream. The in-app version shows
 ### Features
 
 **Chat**
-- **DM tab shows only your own DMs** by default (to/from you). A *Settings →
-  Chat Display* toggle reveals all overheard DM traffic (monitoring).
+- **DM tab shows only your own DMs** by default (to/from you). Long-press the DM
+  tab → *Show others' DMs* to reveal all overheard DM traffic (monitoring).
 - **Compact one-line message header** (now the **default**): `sender (via …) ·time`,
   DMs also show the recipient. Toggle back to the legacy multi-line header in
   *Settings → Chat Display*.
@@ -35,12 +35,18 @@ changes of this fork relative to upstream. The in-app version shows
   **Filter Call / Filter Message** on a message. (Removing a rule is done in
   Settings — a blocked message is hidden and can't be long-pressed.) Blocked
   messages also raise no notification.
-- **Per-channel notifications (mute).** **Long-press a channel tab** (All, DM, a
-  talk group) to mute/unmute its notifications; a small **🔔** on the tab marks
-  the ones that beep. Quiet by default — **only DMs addressed to you notify**;
-  ALL/broadcast and talk groups are silent until you switch them on. All in-app
-  (works the same on Android and iOS, nothing gets stuck in the OS). A one-time
-  hint points out the long-press gesture.
+- **Per-channel notifications & visibility — long-press a channel tab.** One
+  in-app menu per tab (All, DM, each talk group), so it works the same on Android
+  and iOS with nothing stuck in the OS. A one-time hint points out the gesture.
+  - **Mute** — silences the beep but **keeps** the green new-message indicator; a
+    small **🔔** marks the tabs that still beep. Quiet by default: **only DMs
+    addressed to you notify**, ALL and talk groups are silent until switched on.
+  - **Discard** (All / a talk group) — **hides** that channel's messages **and**
+    its green indicator + beep, without de-configuring it; the tab is dimmed.
+  - **DM notifications are a tri-state**: **none / my DMs only / all** (the last
+    also beeps for overheard DMs).
+  - **DM tab: "Show others' DMs"** (monitoring) lives here now (an **👁** marks
+    it) — moved out of *Settings → Chat Display*. Your own DMs are always shown.
 - **Reply** prefills a compact reference into the input:
   - channel, one other person → **`@call: [HH:MM] `** (mention + that message's
     time); referencing **more people** turns it into an **`@call1, @call2: `

@@ -7,11 +7,17 @@ export interface AppPrefsState {
     // DM tab: show all overheard DM traffic (monitoring) vs only my own DMs (default)
     dmShowAll: boolean;
     // per-scope notification ("alert = it beeps"). Defaults are quiet except DMs
-    // addressed to me. Foreign DMs never alert (no setting). Toggle via long-press
-    // on the channel tab. alertTGs = CSV of TG numbers whose notifications are on.
+    // addressed to me. Toggle via long-press on the channel tab. Mute only kills
+    // the beep - the green new-message indicator stays; only Discard hides both.
     alertAll: boolean;      // ALL / broadcast beeps
     alertTGs: string;       // CSV of talk-group numbers that beep, e.g. "20,262"
-    alertDMmine: boolean;   // DMs addressed to me beep
+    dmAlert: string;        // DM notifications: "none" | "mine" | "all" (default "mine")
+    // Discard = hide a channel's messages AND suppress its green indicator/beep,
+    // without de-configuring it. discardAll/discardTGs for ALL and talk groups;
+    // for DMs the "discard not-for-me" is the existing dmShowAll (false = foreign
+    // DMs hidden). Own DMs are always shown.
+    discardAll: boolean;    // hide the ALL / broadcast channel
+    discardTGs: string;     // CSV of talk-group numbers that are hidden
     // one-time onboarding hint ("long-press a tab") already shown?
     tabHintSeen: boolean;
     // own callsign, persisted so housekeeping can tell my DMs from overheard ones
@@ -31,7 +37,9 @@ const AppPrefsStore = new Store<AppPrefsState>({
     dmShowAll: false,
     alertAll: false,
     alertTGs: "",
-    alertDMmine: true,
+    dmAlert: "mine",
+    discardAll: false,
+    discardTGs: "",
     tabHintSeen: false,
     ownCall: "",
     retAll: 2,

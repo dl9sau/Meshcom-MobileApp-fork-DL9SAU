@@ -1,37 +1,41 @@
 import AppPrefsStore from "../store/AppPrefsStore";
 
-// Per-scope notification ("mute") logic. "alert = it beeps". Defaults (in
-// AppPrefsStore) are quiet everywhere except DMs addressed to me; the user
-// toggles a scope on/off via long-press on the channel tab. All in-app, so it
-// works identically on Android and iOS (no OS notification channels involved).
+// Per-scope notification ("mute") and visibility ("discard") logic. All in-app,
+// so it works identically on Android and iOS (no OS notification channels).
+//   - Mute only silences the beep; the green new-message indicator stays.
+//   - Discard hides a channel's messages AND suppresses its beep + green marker.
 
-// parse the CSV of talk-group numbers that beep, e.g. "20,262"
+// parse a CSV of talk-group numbers, e.g. "20,262"
 export const parseTGset = (csv: string): Set<number> =>
     new Set((csv || "").split(",").map(s => parseInt(s.trim())).filter(n => !isNaN(n)));
 
-type ScopeMsg = { isDM?: number; isGrpMsg?: number; grpNum?: number; toCall?: string };
+type ScopeMsg = { isDM?: number; isGrpMsg?: number; grpNum?: number; toCall?: string; fromCall?: string };
 
-// should an incoming message raise a notification, given the mute settings?
-export const alertsForMsg = (msg: ScopeMsg, own: string): boolean => {
-    const s = AppPrefsStore.getRawState();
-    if (msg.isGrpMsg === 1) {
-        // talk group: only if this TG is enabled
-        return parseTGset(s.alertTGs).has(msg.grpNum ?? -1);
-    }
-    if (msg.isDM === 1) {
-        // DM addressed to me -> alertDMmine; overheard foreign DM -> never
-        const ownUp = (own || "").toUpperCase();
-        return (msg.toCall || "").toUpperCase() === ownUp ? s.alertDMmine : false;
-    }
-    // ALL / broadcast
-    return s.alertAll;
+const isToMe = (msg: ScopeMsg, own: string): boolean =>
+    (msg.toCall || "").toUpperCase() === (own || "").toUpperCase();
+
+// a DM "of mine" (never discarded) = addressed to me OR sent by me
+const isMyDM = (msg: ScopeMsg, own: string): boolean => {
+    const o = (own || "").toUpperCase();
+    return (msg.toCall || "").toUpperCase() === o || (msg.fromCall || "").toUpperCase() === o;
 };
 
-// is the bell (alert) on for a chat tab? tabValue is "ALL", "DM" or a TG number.
-export const tabAlertsOn = (tabValue: string): boolean => {
+// is this message's channel discarded (hidden)?
+export const msgDiscarded = (msg: ScopeMsg, own: string): boolean => {
     const s = AppPrefsStore.getRawState();
-    if (tabValue === "ALL") return s.alertAll;
-    if (tabValue === "DM") return s.alertDMmine;
-    const tg = parseInt(tabValue);
-    return !isNaN(tg) && parseTGset(s.alertTGs).has(tg);
+    if (msg.isGrpMsg === 1) return parseTGset(s.discardTGs).has(msg.grpNum ?? -1);
+    if (msg.isDM === 1) return !isMyDM(msg, own) && !s.dmShowAll; // foreign DM hidden unless monitoring
+    return s.discardAll; // ALL / broadcast
+};
+
+// should an incoming message raise a notification (beep)? Discarded -> never.
+export const alertsForMsg = (msg: ScopeMsg, own: string): boolean => {
+    const s = AppPrefsStore.getRawState();
+    if (msgDiscarded(msg, own)) return false;
+    if (msg.isGrpMsg === 1) return parseTGset(s.alertTGs).has(msg.grpNum ?? -1);
+    if (msg.isDM === 1) {
+        // DM to me -> beeps unless "none"; foreign DM -> only when "all"
+        return isToMe(msg, own) ? s.dmAlert !== "none" : s.dmAlert === "all";
+    }
+    return s.alertAll; // ALL / broadcast
 };

@@ -8,6 +8,7 @@ import { MsgType, PosType, MheardType } from "../utils/AppInterfaces";
 import MheardStaticStore from "../utils/MheardStaticStore";
 import NodeRuntimeService from "../utils/NodeRuntimeService";
 import RelayCountService from "../utils/RelayCountService";
+import { msgDiscarded } from "../utils/NotifyPrefs";
 import PosiStore from "../store/PosiStore";
 import MsgStore from "../store/MsgStore";
 import { format, sub } from "date-fns";
@@ -823,6 +824,10 @@ class DatabaseService {
         // own messages are never blocked - see MsgFilterService)
         filtered_msgs = filtered_msgs.filter(msg => !MsgFilterService.isChannelMsgBlocked(msg));
 
+        // hide discarded channels (ALL / a TG hidden via the tab menu; foreign DMs
+        // when not monitoring). Own DMs are never discarded.
+        filtered_msgs = filtered_msgs.filter(msg => !msgDiscarded(msg, currentCallsign));
+
         // update the store
         MsgStore.update(s => {
             s.msgArr = filtered_msgs;
@@ -910,7 +915,11 @@ class DatabaseService {
                 if ('dmShowAll' in prefs) s.dmShowAll = prefs['dmShowAll'] === '1';
                 if ('alertAll' in prefs) s.alertAll = prefs['alertAll'] === '1';
                 if ('alertTGs' in prefs) s.alertTGs = prefs['alertTGs'];
-                if ('alertDMmine' in prefs) s.alertDMmine = prefs['alertDMmine'] === '1';
+                // dmAlert tri-state; migrate from the old alertDMmine boolean
+                if ('dmAlert' in prefs) s.dmAlert = prefs['dmAlert'];
+                else if ('alertDMmine' in prefs) s.dmAlert = prefs['alertDMmine'] === '1' ? 'mine' : 'none';
+                if ('discardAll' in prefs) s.discardAll = prefs['discardAll'] === '1';
+                if ('discardTGs' in prefs) s.discardTGs = prefs['discardTGs'];
                 if ('tabHintSeen' in prefs) s.tabHintSeen = prefs['tabHintSeen'] === '1';
                 if ('ownCall' in prefs) s.ownCall = prefs['ownCall'];
                 s.retAll = numPref('retAll', s.retAll);
