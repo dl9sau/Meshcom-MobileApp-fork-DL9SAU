@@ -671,7 +671,7 @@ const NodeMap = () => {
                 <MapOverlay callSign={markerInfo.call_} lat={markerInfo.lat_} lon={markerInfo.lon_} alt={markerInfo.alt_} bat={markerInfo.bat_}
                   hw={markerInfo.hw_} pressure={markerInfo.press_} humidity={markerInfo.hum_} temperature={markerInfo.temp_} qnh={markerInfo.qnh_} timestamp={markerInfo.timestamp_} 
                   comment={markerInfo.comment_} temp_2={markerInfo.temp_2_} co2={markerInfo.co2_} gas_res={markerInfo.gas_res_} alt_press={markerInfo.alt_press_}
-                  onCloseOverlay={onCloseOverlay}/>
+                  onCloseOverlay={onCloseOverlay} lineMode={shLines && pathCall !== ""}/>
               </Overlay>
             }
             

@@ -80,7 +80,10 @@ changes of this fork relative to upstream. The in-app version shows
   an unknown position are **bridged with a grey dashed segment**. The map
   **auto-fits** to the path (nodes at `0.00/0.00` are treated as unknown, so they
   never distort the zoom). With no node selected the toggle still shows the
-  neighbour overview.
+  neighbour overview. Clicking a node re-targets the line to it (updates live as
+  new packets change the route), and closing the info card keeps the line so it
+  no longer hides the hops. While a path is shown the info card is **compact**
+  (Age, Dist, Lat/Lon, Alt, Hops, Path, Close only) to free up the map.
 - Tab renamed to **"Heard Direct Nodes"**.
 
 **Settings**

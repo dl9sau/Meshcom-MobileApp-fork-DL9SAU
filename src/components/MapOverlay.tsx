@@ -56,6 +56,7 @@ const formatPathLines = (path: string, ownCall: string): string[] => {
 
 interface MapOverlayProps extends PosType {
     onCloseOverlay: () => void;
+    lineMode?: boolean;   // compact card while a path line is shown (more map visible)
   }
 
   /*
@@ -65,7 +66,7 @@ interface MapOverlayProps extends PosType {
                   onCloseOverlay={onCloseOverlay}
    */
 
-export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign, lat, lon, alt, bat, hw, pressure, humidity, temperature, qnh, timestamp, comment, temp_2, co2, gas_res, onCloseOverlay }) => {
+export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign, lat, lon, alt, bat, hw, pressure, humidity, temperature, qnh, timestamp, comment, temp_2, co2, gas_res, onCloseOverlay, lineMode }) => {
 
     const history = useHistory();
 
@@ -145,6 +146,16 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
         fn();
     };
 
+    // Path row(s) - "direct" or the wrapped relay list. Reused in the normal More
+    // view and in the compact line-mode view (where it's always shown).
+    const pathBlock = (nodeInfo && nodeInfo.hops === 0) ? (
+        <><IonText>Path: direct</IonText><br /></>
+    ) : pathLines.length > 0 ? (
+        <><IonText>Path: {pathLines.map((ln, i) => (
+            <span key={i}>{i > 0 ? <br /> : null}{i > 0 ? "  " : ""}{ln}</span>
+        ))}</IonText><br /></>
+    ) : null;
+
 
 
     return (
@@ -166,26 +177,24 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
                                 <IonText>Latitude: {lat}</IonText><br />
                                 <IonText>Longitude: {lon}</IonText><br />
                                 <IonText>Altitude: {alt}m</IonText><br />
-                                {bat !== "N.A." ? <>
+                                {!lineMode && bat !== "N.A." ? <>
                                     <IonText>Battery: {bat}%</IonText><br />
-                                </> : <></>}    
-                                <IonText>HW: {hw}</IonText><br />
-                                {mheard ? <>
+                                </> : <></>}
+                                {!lineMode ? <>
+                                    <IonText>HW: {hw}</IonText><br />
+                                </> : <></>}
+                                {!lineMode && mheard ? <>
                                     <IonText>SNR {mheard.mh_snr}dB / RSSI {mheard.mh_rssi}dBm</IonText><br />
                                 </> : <></>}
                                 {nodeInfo && nodeInfo.hops >= 0 ? <>
                                     <IonText>Hops: {nodeInfo.hops}</IonText><br />
                                 </> : <></>}
+                                {/* compact line-mode: Path right here, always visible */}
+                                {lineMode ? pathBlock : null}
                             </div>
-                            {shExtInfo && (
+                            {!lineMode && shExtInfo && (
                                 <div className="info">
-                                    {nodeInfo && nodeInfo.hops === 0 ? <>
-                                        <IonText>Path: direct</IonText><br />
-                                    </> : pathLines.length > 0 ? <>
-                                        <IonText>Path: {pathLines.map((ln, i) => (
-                                            <span key={i}>{i > 0 ? <br /> : null}{i > 0 ? "  " : ""}{ln}</span>
-                                        ))}</IonText><br />
-                                    </> : <></>}
+                                    {pathBlock}
                                     <IonText>#pos: {nodeInfo?.posCount ?? 0}&nbsp;&nbsp;#msg: {nodeInfo?.msgCount ?? 0}</IonText><br />
                                     {/* Neighbours: only for directly heard nodes (in the Mheard list) */}
                                     {neighboursText !== null ? <><IonText>Neighbours: {neighboursText}</IonText><br /></> : <></>}
@@ -201,12 +210,12 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
                             )}
                         </div>
                         <div className="button-container">
-                            <IonButton size="small" onClick={() => handleDM(callSign)}
-                                onTouchStart={onTapStart} onTouchMove={onTapMove} onTouchEnd={tap(() => handleDM(callSign))}>DM</IonButton>
-                            <IonButton size="small" onClick={() => setShExtInfo(!shExtInfo)}
+                            {!lineMode && <IonButton size="small" onClick={() => handleDM(callSign)}
+                                onTouchStart={onTapStart} onTouchMove={onTapMove} onTouchEnd={tap(() => handleDM(callSign))}>DM</IonButton>}
+                            {!lineMode && <IonButton size="small" onClick={() => setShExtInfo(!shExtInfo)}
                                 onTouchStart={onTapStart} onTouchMove={onTapMove} onTouchEnd={tap(() => setShExtInfo(!shExtInfo))}>
                                 {shExtInfo ? "Less" : "More"}
-                            </IonButton>
+                            </IonButton>}
                             <IonButton size="small" onClick={onCloseOverlay}
                                 onTouchStart={onTapStart} onTouchMove={onTapMove} onTouchEnd={tap(onCloseOverlay)}>Close</IonButton>
                         </div>
