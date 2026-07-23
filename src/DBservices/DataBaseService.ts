@@ -885,6 +885,19 @@ class DatabaseService {
         await DatabaseService.reapplyChatFilters();
     }
 
+    // delete all stored group messages of a given TG number (used when a group
+    // slot is repurposed to a different number or cleared - the old TG's messages
+    // are stale for that slot)
+    static async deleteGroupMessages(grpNum: number) {
+        try {
+            if (!DatabaseService.db || !(grpNum > 0)) return;
+            await DatabaseService.db.execute(`DELETE FROM TextMessages WHERE isGrpMsg = 1 AND grpNum = ${grpNum};`);
+            LogS.log(0, 'Deleted messages of TG ' + grpNum);
+        } catch (err) {
+            LogS.log(1, 'Error deleting group messages:' + err);
+        }
+    }
+
     // re-apply the current segment + block filters to the stored messages
     static async reapplyChatFilters() {
         try {

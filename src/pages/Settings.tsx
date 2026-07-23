@@ -1783,7 +1783,7 @@ const Tab2: React.FC = () => {
   }
   
   // set the group settings when the group settings are changed
-  const setGroupSettings = () => {
+  const setGroupSettings = async () => {
 
     // check if any group setting changed
     if (groupSettingChanged.current) {
@@ -1824,6 +1824,16 @@ const Tab2: React.FC = () => {
       const labelsJson = JSON.stringify(newLabels);
       AppPrefsStore.update(s => { s.tgLabels = labelsJson; });
       DataBaseService.setPref('tgLabels', labelsJson);
+
+      // a slot repurposed to a DIFFERENT number (or cleared) makes the old TG's
+      // stored messages stale -> delete them. Only for numbers gone from ALL slots
+      // (a pure slot swap keeps both); a label-only change keeps the number, so its
+      // messages stay.
+      const oldNums = [grp0, grp1, grp2, grp3, grp4, grp5];
+      const newNums = gcbRefs.map(r => r.current);
+      const removed = oldNums.filter(n => n > 0 && !newNums.includes(n));
+      for (const n of removed) { await DataBaseService.deleteGroupMessages(n); }
+      if (removed.length > 0) await DataBaseService.reapplyChatFilters();
 
       console.log("Time in ms: " + Date.now());
       sendTxtCmd("setGroup");

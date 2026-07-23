@@ -94,6 +94,11 @@ changes of this fork relative to upstream. The in-app version shows
   Empty slots show example placeholders (MeshCom TG numbers): `9 local (rf-only)`,
   `20 DACH`, `262 DL`, `232 OE`. (Labels are device-local — the firmware has no
   label field.)
+- **Repurposing a group slot clears its old messages.** Changing a slot to a
+  *different* number (e.g. `20` → `21`) or setting it to `0` deletes the previous
+  TG's stored messages — they were received under the old number and are stale for
+  that slot. A pure **label change** (same number) keeps the messages; a slot swap
+  (a number that just moves to another slot) keeps them too.
 
 **App / Build**
 - App version shows the fork id + short git hash: `4.27-DL9SAU-g<hash>`.
