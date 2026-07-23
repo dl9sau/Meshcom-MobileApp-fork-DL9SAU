@@ -234,18 +234,37 @@ const Tab2: React.FC = () => {
   const gcb3Ref = useRef<number>(0);
   const gcb4Ref = useRef<number>(0);
   const gcb5Ref = useRef<number>(0);
+  const gcbRefs = [gcb0Ref, gcb1Ref, gcb2Ref, gcb3Ref, gcb4Ref, gcb5Ref];
+  // app-local TG-number -> label memory aid (the firmware only stores the number)
+  const labelRefs = [useRef<string>(""), useRef<string>(""), useRef<string>(""),
+                     useRef<string>(""), useRef<string>(""), useRef<string>("")];
+  const tgLabels_s = useStoreState(AppPrefsStore, s => s.tgLabels);
+  let tgLabelMap: {[k: string]: string} = {};
+  try { tgLabelMap = JSON.parse(tgLabels_s || "{}"); } catch { tgLabelMap = {}; }
+  const labelForTG = (num: number): string => (num > 0 ? (tgLabelMap[num.toString()] || "") : "");
+  // "262 DL" from a number + its label ("262" if no label, "" if slot empty)
+  const grpDisplay = (num: number, label: string): string =>
+    num > 0 ? (label ? num + " " + label : num.toString()) : "";
+
   const grp0 = gcb0Ref.current = NodeInfoStore.useState(s => s.infoData.GCB0);
   const grp1 = gcb1Ref.current = NodeInfoStore.useState(s => s.infoData.GCB1);
   const grp2 = gcb2Ref.current = NodeInfoStore.useState(s => s.infoData.GCB2);
   const grp3 = gcb3Ref.current = NodeInfoStore.useState(s => s.infoData.GCB3);
   const grp4 = gcb4Ref.current = NodeInfoStore.useState(s => s.infoData.GCB4);
   const grp5 = gcb5Ref.current = NodeInfoStore.useState(s => s.infoData.GCB5);
+  // seed the label refs from the stored labels for the currently subscribed
+  // numbers, so untouched fields keep their label when saved
+  const grpNums = [grp0, grp1, grp2, grp3, grp4, grp5];
+  labelRefs.forEach((r, i) => { r.current = labelForTG(grpNums[i]); });
   
   // reset the group call settings
   const resetGrpCall = () => {
     console.log("Reset Group Call Settings");
     // send to node
     sendTxtCmdNode("--setgrc");
+    // clear the app-local labels too (all slots gone -> no orphan labels)
+    AppPrefsStore.update(s => { s.tgLabels = "{}"; });
+    DataBaseService.setPref('tgLabels', "{}");
   }
 
   // fixed ip settings
@@ -1741,70 +1760,26 @@ const Tab2: React.FC = () => {
     return 0;
   }
 
-  const grp0Changed = (event: any) => {
-    const grp0 = event.target.value;
-    if(grp0 !== null && grp0 !== undefined){
-      const val0 = (grp0.trim() === "") ? "0" : grp0;
-      console.log("Group 0 changed: " + val0);
-      gcb0Ref.current = checkGrpInput(val0);
-      console.log("Group 0 nr: " + gcb0Ref.current);
-      groupSettingChanged.current = true;
-    }
+  // parse a group field "262 DL" -> {num, label}. The number is the FIRST run of
+  // digits (validated for the firmware - never send the label!); a whole-label of
+  // "-" clears the label (e.g. "9 -" -> just "9").
+  const parseGrpField = (text: string): {num: number; label: string} => {
+    const t = (text || "");
+    const m = t.match(/\d+/);
+    const num = m ? checkGrpInput(m[0]) : 0;
+    let label = m ? t.slice(t.indexOf(m[0]) + m[0].length).trim() : "";
+    if (label === "-") label = "";
+    return { num, label };
   }
 
-  const grp1Changed = (event: any) => {
-    const grp1 = event.target.value;
-    if(grp1 !== null && grp1 !== undefined){
-      const val1 = (grp1.trim() === "") ? "0" : grp1;
-      console.log("Group 1 changed: " + val1);
-      gcb1Ref.current = checkGrpInput(val1);
-      console.log("Group 1 nr: " + gcb1Ref.current);
-      groupSettingChanged.current = true;
-    }
-  }
-
-  const grp2Changed = (event: any) => {
-    const grp2 = event.target.value;
-    if(grp2 !== null && grp2 !== undefined){
-      const val2 = (grp2.trim() === "") ? "0" : grp2;
-      console.log("Group 2 changed: " + val2);
-      gcb2Ref.current = checkGrpInput(val2);
-      console.log("Group 2 nr: " + gcb2Ref.current);
-      groupSettingChanged.current = true;
-    }
-  }
-
-  const grp3Changed = (event: any) => {
-    const grp3 = event.target.value;
-    if(grp3 !== null && grp3 !== undefined){
-      const val3 = (grp3.trim() === "") ? "0" : grp3;
-      console.log("Group 3 changed: " + val3);
-      gcb3Ref.current = checkGrpInput(val3);
-      console.log("Group 3 nr: " + gcb3Ref.current);
-      groupSettingChanged.current = true;
-    }
-  }
-
-  const grp4Changed = (event: any) => {
-    const grp4 = event.target.value;
-    if(grp4 !== null && grp4 !== undefined){
-      const val4 = (grp4.trim() === "") ? "0" : grp4;
-      console.log("Group 4 changed: " + val4);
-      gcb4Ref.current = checkGrpInput(val4);
-      console.log("Group 4 nr: " + gcb4Ref.current);
-      groupSettingChanged.current = true;
-    }
-  }
-
-  const grp5Changed = (event: any) => {
-    const grp5 = event.target.value;
-    if(grp5 !== null && grp5 !== undefined){
-      const val5 = (grp5.trim() === "") ? "0" : grp5;
-      console.log("Group 5 changed: " + val5);
-      gcb5Ref.current = checkGrpInput(val5);
-      console.log("Group 5 nr: " + gcb5Ref.current);
-      groupSettingChanged.current = true;
-    }
+  // one input handler for all six group slots (index 0..5)
+  const grpChanged = (i: number, event: any) => {
+    const raw = event?.target?.value;
+    if (raw === null || raw === undefined) return;
+    const { num, label } = parseGrpField(raw.toString());
+    gcbRefs[i].current = num;
+    labelRefs[i].current = label;
+    groupSettingChanged.current = true;
   }
   
   // set the group settings when the group settings are changed
@@ -1824,11 +1799,24 @@ const Tab2: React.FC = () => {
       console.log("Group 4: " + gcb4Ref.current);
       console.log("Group 5: " + gcb5Ref.current);
 
+      // firmware command: ONLY the numbers, never the labels
       let cmd_str = "--setgrc ";
       cmd_str = cmd_str + gcb0Ref.current.toString() + ";" + gcb1Ref.current.toString() + ";" + gcb2Ref.current.toString() + ";" + gcb3Ref.current.toString() + ";" + gcb4Ref.current.toString() + ";" + gcb5Ref.current.toString() + ";";
 
       console.log("Group CMD: " + cmd_str);
       setGrpCmd.current = cmd_str;
+
+      // rebuild the app-local TG->label map from the six fields (only currently
+      // subscribed numbers with a non-empty label) -> no orphans, no mis-assign
+      const newLabels: {[k: string]: string} = {};
+      gcbRefs.forEach((r, i) => {
+        const num = r.current;
+        const label = (labelRefs[i].current || "").trim();
+        if (num > 0 && label !== "") newLabels[num.toString()] = label;
+      });
+      const labelsJson = JSON.stringify(newLabels);
+      AppPrefsStore.update(s => { s.tgLabels = labelsJson; });
+      DataBaseService.setPref('tgLabels', labelsJson);
 
       console.log("Time in ms: " + Date.now());
       sendTxtCmd("setGroup");
@@ -2420,29 +2408,31 @@ const Tab2: React.FC = () => {
             </div>
             {shGroupCallSet &&
               <div className='setting_wrapper'>
+                {/* number + optional label ("262 DL"); only the number goes to the
+                    firmware. Placeholder in Group 1 shows the format. "9 -" clears a label. */}
                 <div className='mt-3 mb-3'>Group 1</div>
                 <IonItem>
-                  <IonInput value={grp0} onIonInput={(ev) => grp0Changed(ev)} label='Set Group 1' labelPlacement="floating" type='number' maxlength={5} inputmode="numeric"></IonInput>
+                  <IonInput value={grpDisplay(grp0, labelRefs[0].current)} onIonInput={(ev) => grpChanged(0, ev)} label='Set Group 1' labelPlacement="floating" type='text' maxlength={32} placeholder='9 local (rf-only)'></IonInput>
                 </IonItem>
                 <div className='mt-3 mb-3'>Group 2</div>
                 <IonItem>
-                  <IonInput value={grp1} onIonInput={(ev) => grp1Changed(ev)} label='Set Group 2' labelPlacement="floating" type='number' maxlength={5} inputmode="numeric"></IonInput>
+                  <IonInput value={grpDisplay(grp1, labelRefs[1].current)} onIonInput={(ev) => grpChanged(1, ev)} label='Set Group 2' labelPlacement="floating" type='text' maxlength={32}></IonInput>
                 </IonItem>
                 <div className='mt-3 mb-3'>Group 3</div>
                 <IonItem>
-                  <IonInput value={grp2} onIonInput={(ev) => grp2Changed(ev)} label='Set Group 3' labelPlacement="floating" type='number' maxlength={5} inputmode="numeric"></IonInput>
+                  <IonInput value={grpDisplay(grp2, labelRefs[2].current)} onIonInput={(ev) => grpChanged(2, ev)} label='Set Group 3' labelPlacement="floating" type='text' maxlength={32}></IonInput>
                 </IonItem>
                 <div className='mt-3 mb-3'>Group 4</div>
                 <IonItem>
-                  <IonInput value={grp3} onIonInput={(ev) => grp3Changed(ev)} label='Set Group 4' labelPlacement="floating" type='number' maxlength={5} inputmode="numeric"></IonInput>
+                  <IonInput value={grpDisplay(grp3, labelRefs[3].current)} onIonInput={(ev) => grpChanged(3, ev)} label='Set Group 4' labelPlacement="floating" type='text' maxlength={32}></IonInput>
                 </IonItem>
                 <div className='mt-3 mb-3'>Group 5</div>
                 <IonItem>
-                  <IonInput value={grp4} onIonInput={(ev) => grp4Changed(ev)} label='Set Group 5' labelPlacement="floating" type='number' maxlength={5} inputmode="numeric"></IonInput>
+                  <IonInput value={grpDisplay(grp4, labelRefs[4].current)} onIonInput={(ev) => grpChanged(4, ev)} label='Set Group 5' labelPlacement="floating" type='text' maxlength={32}></IonInput>
                 </IonItem>
                 <div className='mt-3 mb-3'>Group 6</div>
                 <IonItem>
-                  <IonInput value={grp5} onIonInput={(ev) => grp5Changed(ev)} label='Set Group 6' labelPlacement="floating" type='number' maxlength={5} inputmode="numeric"></IonInput>
+                  <IonInput value={grpDisplay(grp5, labelRefs[5].current)} onIonInput={(ev) => grpChanged(5, ev)} label='Set Group 6' labelPlacement="floating" type='text' maxlength={32}></IonInput>
                 </IonItem>
                 <div className='resetGrpBtn txt-left flex-row'>
                     <IonButton fill='outline' slot='start' size="small" color='success' onClick={() => resetGrpCall()}>RST</IonButton>

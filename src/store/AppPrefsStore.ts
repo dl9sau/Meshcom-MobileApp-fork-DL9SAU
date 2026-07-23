@@ -20,6 +20,10 @@ export interface AppPrefsState {
     discardTGs: string;     // CSV of talk-group numbers that are hidden
     // one-time onboarding hint ("long-press a tab") already shown?
     tabHintSeen: boolean;
+    // app-local cross-reference TG number -> free-text label (memory aid), as a
+    // JSON map e.g. {"262":"DL"}. The firmware has no label field; rebuilt from
+    // the Group Subscription fields on every save (so no orphans / mis-assigns).
+    tgLabels: string;
     // own callsign, persisted so housekeeping can tell my DMs from overheard ones
     // (at app start, before a node connects, the live config call is not known yet)
     ownCall: string;
@@ -41,6 +45,7 @@ const AppPrefsStore = new Store<AppPrefsState>({
     discardAll: false,
     discardTGs: "",
     tabHintSeen: false,
+    tgLabels: "{}",
     ownCall: "",
     retAll: 2,
     retGroup: 7,

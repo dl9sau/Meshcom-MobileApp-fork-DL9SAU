@@ -84,6 +84,13 @@ changes of this fork relative to upstream. The in-app version shows
   every node time 1 h off), one tap fills it from the phone's own time zone, which
   already reflects the current location *and* daylight saving, then sends it to
   the node.
+- **Group Subscription labels (memory aid).** Each slot now accepts an optional
+  text label after the number, e.g. `262 DL` or `9 local (rf-only)` — a reminder
+  of what a talk group is. **Only the number is ever sent to the node**; the label
+  is stored app-locally (per TG number, not per slot) and rebuilt from the fields
+  on every save, so there are no orphan or mis-assigned labels. `9 -` clears a
+  label back to just `9`. (Labels are device-local — the firmware has no label
+  field.)
 
 **App / Build**
 - App version shows the fork id + short git hash: `4.27-DL9SAU-g<hash>`.

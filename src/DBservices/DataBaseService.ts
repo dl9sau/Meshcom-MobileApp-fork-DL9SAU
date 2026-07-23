@@ -921,6 +921,7 @@ class DatabaseService {
                 if ('discardAll' in prefs) s.discardAll = prefs['discardAll'] === '1';
                 if ('discardTGs' in prefs) s.discardTGs = prefs['discardTGs'];
                 if ('tabHintSeen' in prefs) s.tabHintSeen = prefs['tabHintSeen'] === '1';
+                if ('tgLabels' in prefs) s.tgLabels = prefs['tgLabels'];
                 if ('ownCall' in prefs) s.ownCall = prefs['ownCall'];
                 s.retAll = numPref('retAll', s.retAll);
                 s.retGroup = numPref('retGroup', s.retGroup);
