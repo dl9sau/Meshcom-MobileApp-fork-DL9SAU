@@ -967,7 +967,7 @@ const Tab3: React.FC = () => {
     <IonPage>
       <IonHeader>
         <IonToolbar>
-            <IonSegment value={segmentFilter} scrollable={true}>
+            <IonSegment value={segmentFilter} scrollable={true} swipeGesture={false}>
               {renderTab("ALL", "All", false)}
               {renderTab("DM", "DM", false)}
               {[nodeInfo_s.GCB0, nodeInfo_s.GCB1, nodeInfo_s.GCB2, nodeInfo_s.GCB3, nodeInfo_s.GCB4, nodeInfo_s.GCB5]
