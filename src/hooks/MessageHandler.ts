@@ -907,7 +907,10 @@ export function useMSG() {
                             via: node_via
                         }
 
-                        LogS.log(0, `Pos Msg from ${from_callsign_} via ${via_str}: Lat ${lat_degree_final} Lon ${lon_degree_final} Alt ${alt_nr_meter}m`);
+                        // drop the redundant origin (= from-call, already shown) from
+                        // the via path, so the log lists only the relaying hops
+                        const posViaHops = via_str.split(" > ").slice(1).join(" > ").trim();
+                        LogS.log(0, `Pos Msg from ${from_callsign_}${posViaHops ? " via " + posViaHops : " (direct)"}: Lat ${lat_degree_final} Lon ${lon_degree_final} Alt ${alt_nr_meter}m`);
                         // count position reports per node (runtime)
                         NodeRuntimeService.incPos(from_callsign_);
                         return (newPosDB);

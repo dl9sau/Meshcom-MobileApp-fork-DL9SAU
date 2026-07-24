@@ -617,8 +617,12 @@ const Tab1: React.FC = () => {
         (value) => {
           parseMsg(value).then(async (res) => {
             if (res !== undefined && 'msgTXT' in res) {
-              // escape all quotation marks
-              LogS.log(0,"Connect - Txt Msg: " + res.msgTXT);
+              // log with a proper header (sender -> destination [via hops]) so the
+              // in-app Log is actually useful for debugging, not just the bare text.
+              // destination: group -> "TGn", DM -> the to-call, broadcast -> "*".
+              const logDst = res.isGrpMsg ? ("TG" + res.grpNum) : (res.isDM ? res.toCall : "*");
+              const logVia = (res.via || "").split(" > ").slice(1).join(" > ").trim();
+              LogS.log(0, "Connect - Txt Msg: " + res.fromCall + " -> " + logDst + (logVia ? " via " + logVia : "") + ": " + res.msgTXT);
               await DatabaseService.writeTxtMsg(res, !canNotify.current);  // we need to send a flag if this is during init load on node connection or normal msg for marking segmentbuttons in chat
               // do the notification if from another callsign
               const curr_call = ConfigObject.getConf().CALL;
