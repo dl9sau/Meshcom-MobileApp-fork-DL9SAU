@@ -133,6 +133,14 @@ changes of this fork relative to upstream. The in-app version shows
 
 ### Fixes
 
+- **Notifications were silent.** The Android channel referenced a bundled custom
+  sound (`morse_r.wav`) that never made it into the build, so the channel was
+  created without a sound — and channel settings are immutable once created. The
+  channel is now recreated (fresh id) using the **default notification sound**, so
+  notifications actually beep.
+- Message action menu: **Direct Message is greyed out on your own messages** (you
+  can't DM yourself; on a group message it used to prefill the group number).
+  **Copy Text** moved further down, below the primary actions.
 - Map overlay: the **Close** button is now shown in the collapsed ("Less")
   state too, not only when expanded.
 - Map overlay: **buttons (Close / More / DM) now react on the first tap.** The map

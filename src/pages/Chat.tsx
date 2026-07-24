@@ -570,19 +570,21 @@ const Tab3: React.FC = () => {
 
       //create a channel for notify on adroid
       if (thisPlatform === "android") {
-        // single delivery channel for all app notifications (per-channel muting is
-        // done in-app, so this stays one general channel). id must stay '1' so the
-        // rename updates the existing channel instead of creating a new one.
+        // The old channel '1' referenced a custom sound (morse_r.wav) that is NOT
+        // bundled in the build -> it was created SILENT, and channel settings are
+        // immutable once created. So delete it and use a FRESH channel (id '2')
+        // with the DEFAULT notification sound (omit `sound`) so it actually beeps.
+        // Single delivery channel - per-channel muting is done in-app.
+        try { await LocalNotifications.deleteChannel({ id: '1' } as any); } catch (e) { console.log("deleteChannel 1:", e); }
         await LocalNotifications.createChannel({
-          id: '1',
+          id: '2',
           name: 'General notifications',
           description: 'All MeshCom notifications. Mute individual channels (All, DM, talk groups) inside the app by long-pressing their tab.',
           importance: 4,
           visibility: 1,
-          vibration: true,
-          sound: 'morse_r.wav'
+          vibration: true
+          // no custom sound -> default notification sound (reliable beep)
         });
-        // sound: "android.resource://io.ionic.meshcom/raw/morse_r.wav"
         const channels = await LocalNotifications.listChannels();
         console.log("Channels:");
         for (let ch of channels.channels) {
@@ -682,10 +684,11 @@ const Tab3: React.FC = () => {
                 at: new Date(Date.now() + 1000 * 1), // in 1 secs
                 repeats: false
               },
-              channelId: '1',
+              channelId: '2',
               smallIcon: 'res://drawable/meshcom_logo_32x32_transp_gray',
-              largeIcon: 'res://drawable/meshcom_logo_64x64',
-              sound: 'morse_r.wav'
+              largeIcon: 'res://drawable/meshcom_logo_64x64'
+              // no sound here -> the channel's default sound is used (Android O+
+              // takes the sound from the channel anyway, not per-notification)
             }]
         });
       }
@@ -1097,12 +1100,6 @@ const Tab3: React.FC = () => {
                 action: 'reply',
               },
             }] : []),
-            {
-              text: 'Copy Text',
-              data: {
-                action: 'copy',
-              },
-            },
             ...(msgArr_s.some(m => m.msgNr === msgNrAS && m.fromCall === nodeInfo_s.CALL && m.ack === 0) ? [{
               text: 'Resend Message',
               data: {
@@ -1111,6 +1108,9 @@ const Tab3: React.FC = () => {
             }] : []),
             ...(segmentFilter !== "DM" ? [{
               text: 'Direct Message',
+              // DMing yourself makes no sense (and on a group message it would
+              // prefill the group number) -> greyed out on your own messages
+              disabled: msgArr_s.some(m => m.msgNr === msgNrAS && m.fromCall === nodeInfo_s.CALL),
               data: {
                 action: 'sendDM',
               },
@@ -1121,6 +1121,12 @@ const Tab3: React.FC = () => {
                 action: 'replyTo',
               },
             }] : []),
+            {
+              text: 'Copy Text',
+              data: {
+                action: 'copy',
+              },
+            },
             ...(segmentFilter !== "DM" && msgArr_s.some(m => m.msgNr === msgNrAS && m.fromCall !== nodeInfo_s.CALL) ? [{
               text: 'Filter Call',
               data: {
