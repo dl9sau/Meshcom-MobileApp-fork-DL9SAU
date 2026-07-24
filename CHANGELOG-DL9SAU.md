@@ -46,7 +46,8 @@ changes of this fork relative to upstream. The in-app version shows
     default: **only DMs (and @mentions) notify**, ALL and talk groups are off until
     switched on. **DMs and @mentions always use "sound and banner".**
   - **Discard** (All / a talk group) — **hides** that channel's messages **and**
-    its green indicator + beep, without de-configuring it; the tab is dimmed.
+    its green indicator + beep, without de-configuring it; the tab is dimmed and
+    the 🔔 is hidden (discard overrides notify).
   - **DM notifications are a tri-state**: **none / my DMs (and mentions) only /
     all DMs and mentions** (the last also beeps for overheard DMs).
   - **@mention notifications.** When someone mentions your callsign in a channel

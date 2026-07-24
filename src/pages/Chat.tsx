@@ -144,8 +144,9 @@ const Tab3: React.FC = () => {
     if (isNaN(tg)) return 0;
     return parseTGset(bannerTGs).has(tg) ? 2 : parseTGset(alertTGs).has(tg) ? 1 : 0;
   };
-  // is the bell (any notification) on for a tab?
-  const tabBellOn = (val: string): boolean => tabNotifyLevel(val) > 0;
+  // is the bell (any notification) shown for a tab? Not on a discarded tab -
+  // discard overrides notify (no beep), so a 🔔 there would be misleading.
+  const tabBellOn = (val: string): boolean => !tabDiscarded(val) && tabNotifyLevel(val) > 0;
   // is the tab discarded (hidden)? DM is never fully discarded (only "not-for-me")
   const tabDiscarded = (val: string): boolean => {
     if (val === "ALL") return discardAll;
