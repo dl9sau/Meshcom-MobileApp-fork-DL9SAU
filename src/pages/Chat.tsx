@@ -647,31 +647,28 @@ const Tab3: React.FC = () => {
     console.log("CHAT - New Message to Notify: ");
     console.log(notifyMsg_s);
     const notify_title = "New Message from " + notifyMsg_s.fromCall;
+
+    // which channel/segment this message belongs to
+    let msgType = "ALL";
+    if (notifyMsg_s.isDM === 1 && notifyMsg_s.isGrpMsg === 0) msgType = "DM";
+    else if (notifyMsg_s.isGrpMsg === 1 && notifyMsg_s.isDM === 1) msgType = notifyMsg_s.grpNum.toString();
+
     // notification level for this message (0 none / 1 sound / 2 sound+banner);
     // mentions come through mute/discard at banner level, discarded scope -> 0
-    const notifyLevel = notifyLevelFor(notifyMsg_s, config_s.callSign);
+    let notifyLevel = notifyLevelFor(notifyMsg_s, config_s.callSign);
+    // if you're actively viewing THIS channel (app foreground, chat page, same
+    // segment) you already see the message -> no need for a pop-up banner, drop to
+    // sound only
+    if (notifyLevel > 1 && isAppActive && thisPageActive.current && msgType === segmentFilter) {
+      notifyLevel = 1;
+    }
     if (notifyLevel > 0) {
       notifyMsgUser(notify_title, notifyMsg_s.msgTXT, notifyLevel);
     }
 
-    // if a message arrives in another segment than the current one set the background color class to indicate new message
-    // (skip when the channel is discarded: mute keeps the green marker, discard hides it)
+    // green indicator on another segment's tab (skip when the channel is discarded:
+    // mute keeps the green marker, discard hides it)
     if (notifyMsg_s.isDM !== undefined && notifyMsg_s.isGrpMsg !== undefined && !msgDiscarded(notifyMsg_s, config_s.callSign)) {
-
-      let msgType = "ALL";
-
-      if (notifyMsg_s.isDM === 0 && notifyMsg_s.isGrpMsg === 0) {
-        msgType = "ALL";
-      }
-      else if (notifyMsg_s.isDM === 1 && notifyMsg_s.isGrpMsg === 0) {
-        msgType = "DM";
-      }
-      else if (notifyMsg_s.isGrpMsg === 1 && notifyMsg_s.isDM === 1) {
-        msgType = notifyMsg_s.grpNum.toString();
-      }
-
-      console.log("Message Type: " + msgType);
-
       if (msgType !== segmentFilter) {
         const Seqgmentbutton = document.getElementById(msgType) as HTMLIonSegmentButtonElement;
         if (Seqgmentbutton) {

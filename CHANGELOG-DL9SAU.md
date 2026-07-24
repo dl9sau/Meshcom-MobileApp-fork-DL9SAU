@@ -60,6 +60,9 @@ changes of this fork relative to upstream. The in-app version shows
   - DMs and mentions match your **base callsign with any SSID** (`DL9SAU`,
     `DL9SAU-12`, `DL9SAU-13` all count as you) — senders may not know which device
     you're on, and you may run several.
+  - If you're **already viewing that channel** (app in front, chat open, same
+    tab), a would-be *banner* notification is **downgraded to sound only** — you
+    see the message anyway, no need for a pop-up.
 - **Reply** prefills a compact reference into the input:
   - channel, one other person → **`@call: [HH:MM] `** (mention + that message's
     time); referencing **more people** turns it into an **`@call1, @call2: `
