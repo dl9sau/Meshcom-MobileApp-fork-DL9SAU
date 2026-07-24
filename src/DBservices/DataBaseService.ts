@@ -8,7 +8,7 @@ import { MsgType, PosType, MheardType } from "../utils/AppInterfaces";
 import MheardStaticStore from "../utils/MheardStaticStore";
 import NodeRuntimeService from "../utils/NodeRuntimeService";
 import RelayCountService from "../utils/RelayCountService";
-import { msgDiscarded } from "../utils/NotifyPrefs";
+import { msgDiscarded, baseCall } from "../utils/NotifyPrefs";
 import PosiStore from "../store/PosiStore";
 import MsgStore from "../store/MsgStore";
 import { format, sub } from "date-fns";
@@ -756,12 +756,15 @@ class DatabaseService {
             // group channels (isGrpMsg=1)
             if (p.retGroup > 0)
                 await DatabaseService.db.execute(`DELETE FROM TextMessages WHERE isGrpMsg = 1 AND timestamp < ${cutoff(p.retGroup)};`);
-            // DMs need the own call to split mine vs overheard; skip if unknown (first run before any connect)
+            // DMs need the own call to split mine vs overheard; skip if unknown (first run before any connect).
+            // Match on the base call (any SSID counts as mine): "= base" (no SSID) OR "LIKE base-%".
             if (own) {
+                const ownBase = baseCall(own);
+                const mine = `(fromCall = '${ownBase}' OR fromCall LIKE '${ownBase}-%' OR toCall = '${ownBase}' OR toCall LIKE '${ownBase}-%')`;
                 if (p.retMyDM > 0)
-                    await DatabaseService.db.execute(`DELETE FROM TextMessages WHERE isDM = 1 AND isGrpMsg = 0 AND (fromCall = '${own}' OR toCall = '${own}') AND timestamp < ${cutoff(p.retMyDM)};`);
+                    await DatabaseService.db.execute(`DELETE FROM TextMessages WHERE isDM = 1 AND isGrpMsg = 0 AND ${mine} AND timestamp < ${cutoff(p.retMyDM)};`);
                 if (p.retForeignDM > 0)
-                    await DatabaseService.db.execute(`DELETE FROM TextMessages WHERE isDM = 1 AND isGrpMsg = 0 AND fromCall != '${own}' AND toCall != '${own}' AND timestamp < ${cutoff(p.retForeignDM)};`);
+                    await DatabaseService.db.execute(`DELETE FROM TextMessages WHERE isDM = 1 AND isGrpMsg = 0 AND NOT ${mine} AND timestamp < ${cutoff(p.retForeignDM)};`);
             }
             // positions
             if (p.retPos > 0)
@@ -804,11 +807,12 @@ class DatabaseService {
             });
         } else if (this.chatFilterSetting === 'DM') {
             const showAll = AppPrefsStore.getRawState().dmShowAll;
+            const ownBase = baseCall(currentCallsign);
             filtered_msgs = msgs.filter((msg) => {
                 if (!(msg.isDM === 1 && msg.isGrpMsg !== 1)) return false;
-                // default: only my own DMs (to or from me); the toggle reveals all
-                // overheard DM traffic (monitoring)
-                return showAll || msg.fromCall === currentCallsign || msg.toCall === currentCallsign;
+                // default: only my own DMs (to or from me - matched on the base call,
+                // so any of my SSIDs count); the toggle reveals all overheard traffic
+                return showAll || baseCall(msg.fromCall) === ownBase || baseCall(msg.toCall) === ownBase;
             });
         } else {
             // check if it is a group number

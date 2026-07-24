@@ -43,10 +43,18 @@ changes of this fork relative to upstream. The in-app version shows
     addressed to you notify**, ALL and talk groups are silent until switched on.
   - **Discard** (All / a talk group) — **hides** that channel's messages **and**
     its green indicator + beep, without de-configuring it; the tab is dimmed.
-  - **DM notifications are a tri-state**: **none / my DMs only / all** (the last
-    also beeps for overheard DMs).
+  - **DM notifications are a tri-state**: **none / my DMs (and mentions) only /
+    all DMs and mentions** (the last also beeps for overheard DMs).
+  - **@mention notifications.** When someone mentions your callsign in a channel
+    (`@DL9SAU`, `@DL9SAU:`, `@dl9sau-12`, case-insensitive, anywhere in the text),
+    it **beeps through the channel's mute/discard** — a mention has priority. It's
+    governed by the DM setting above (silent only when that's *none*), so there's
+    no extra channel menu item to fiddle with.
   - **DM tab: "Show others' DMs"** (monitoring) lives here now (an **👁** marks
     it) — moved out of *Settings → Chat Display*. Your own DMs are always shown.
+  - DMs and mentions match your **base callsign with any SSID** (`DL9SAU`,
+    `DL9SAU-12`, `DL9SAU-13` all count as you) — senders may not know which device
+    you're on, and you may run several.
 - **Reply** prefills a compact reference into the input:
   - channel, one other person → **`@call: [HH:MM] `** (mention + that message's
     time); referencing **more people** turns it into an **`@call1, @call2: `

@@ -23,7 +23,7 @@ import DMfrmMapStore from '../store/DMfrmMap';
 import NotifyMsgState from '../store/NotifyMsg';
 import MsgFilterStore from '../store/MsgFilterStore';
 import AppPrefsStore from '../store/AppPrefsStore';
-import { parseTGset, alertsForMsg, msgDiscarded } from '../utils/NotifyPrefs';
+import { parseTGset, shouldNotify, msgDiscarded } from '../utils/NotifyPrefs';
 import { useHistory } from "react-router";
 import LogS from '../utils/LogService';
 import DatabaseService from '../DBservices/DataBaseService';
@@ -252,8 +252,8 @@ const Tab3: React.FC = () => {
       const mark = (lvl: string) => (dmAlert === lvl ? "✓ " : "");
       return [
         { text: mark("none") + "Notify: none", handler: () => { setDmAlertPref("none"); } },
-        { text: mark("mine") + "Notify: my DMs only", handler: () => { setDmAlertPref("mine"); } },
-        { text: mark("all") + "Notify: all DMs", handler: () => { setDmAlertPref("all"); } },
+        { text: mark("mine") + "Notify: my DMs (and mentions) only", handler: () => { setDmAlertPref("mine"); } },
+        { text: mark("all") + "Notify: all DMs and mentions", handler: () => { setDmAlertPref("all"); } },
         { text: dmShowAll ? "Hide others' DMs" : "Show others' DMs (monitor)", handler: () => { toggleDmShowAll(); } },
         { text: "Cancel", role: "cancel" }
       ];
@@ -617,8 +617,9 @@ const Tab3: React.FC = () => {
     console.log("CHAT - New Message to Notify: ");
     console.log(notifyMsg_s);
     const notify_title = "New Message from " + notifyMsg_s.fromCall;
-    // beep only if this scope's notifications are on (mute); discarded -> never
-    if (alertsForMsg(notifyMsg_s, config_s.callSign)) {
+    // beep if this scope's notifications are on (mute), or a channel @mention of
+    // me arrives (which beeps through mute/discard); discarded scope -> never
+    if (shouldNotify(notifyMsg_s, config_s.callSign)) {
       notifyMsgUser(notify_title, notifyMsg_s.msgTXT);
     }
 
