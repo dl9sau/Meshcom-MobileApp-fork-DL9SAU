@@ -23,7 +23,7 @@ import DMfrmMapStore from '../store/DMfrmMap';
 import NotifyMsgState from '../store/NotifyMsg';
 import MsgFilterStore from '../store/MsgFilterStore';
 import AppPrefsStore from '../store/AppPrefsStore';
-import { parseTGset, shouldNotify, msgDiscarded } from '../utils/NotifyPrefs';
+import { parseTGset, notifyLevelFor, msgDiscarded } from '../utils/NotifyPrefs';
 import { useHistory } from "react-router";
 import LogS from '../utils/LogService';
 import DatabaseService from '../DBservices/DataBaseService';
@@ -126,21 +126,26 @@ const Tab3: React.FC = () => {
   // compact one-line message header vs legacy multi-line
   const compactHeader = useStoreState(AppPrefsStore, s => s.compactHeader);
 
-  // per-scope notification ("alert = beeps") + discard (hide) state, for the tab
-  // bell/eye icons, dimming and the menu
+  // per-channel notification level (0 off / 1 sound / 2 sound+banner) + discard
+  // (hide) state, for the tab bell/eye icons, dimming and the menu
   const alertAll = useStoreState(AppPrefsStore, s => s.alertAll);
   const alertTGs = useStoreState(AppPrefsStore, s => s.alertTGs);
+  const bannerAll = useStoreState(AppPrefsStore, s => s.bannerAll);
+  const bannerTGs = useStoreState(AppPrefsStore, s => s.bannerTGs);
   const dmAlert = useStoreState(AppPrefsStore, s => s.dmAlert);
   const discardAll = useStoreState(AppPrefsStore, s => s.discardAll);
   const discardTGs = useStoreState(AppPrefsStore, s => s.discardTGs);
   const dmShowAll = useStoreState(AppPrefsStore, s => s.dmShowAll);
-  // is the bell (notifications) on for a given tab value ("ALL" | "DM" | "<TG>")
-  const tabBellOn = (val: string): boolean => {
-    if (val === "ALL") return alertAll;
-    if (val === "DM") return dmAlert !== "none";
+  // notification level of a tab ("ALL" | "DM" | "<TG>"): 0 off, 1 sound, 2 banner
+  const tabNotifyLevel = (val: string): number => {
+    if (val === "ALL") return bannerAll ? 2 : alertAll ? 1 : 0;
+    if (val === "DM") return dmAlert !== "none" ? 2 : 0; // DM is always banner when on
     const tg = parseInt(val);
-    return !isNaN(tg) && parseTGset(alertTGs).has(tg);
+    if (isNaN(tg)) return 0;
+    return parseTGset(bannerTGs).has(tg) ? 2 : parseTGset(alertTGs).has(tg) ? 1 : 0;
   };
+  // is the bell (any notification) on for a tab?
+  const tabBellOn = (val: string): boolean => tabNotifyLevel(val) > 0;
   // is the tab discarded (hidden)? DM is never fully discarded (only "not-for-me")
   const tabDiscarded = (val: string): boolean => {
     if (val === "ALL") return discardAll;
@@ -185,22 +190,30 @@ const Tab3: React.FC = () => {
     if (tabPressTimer.current) { clearTimeout(tabPressTimer.current); tabPressTimer.current = null; }
   };
 
-  // toggle notifications (mute) for the ALL / a TG tab. DM uses setDmAlertPref.
-  const toggleTabMute = async (val: string) => {
+  // set a channel's notification level (0 off / 1 sound / 2 sound+banner) and
+  // persist. ALL uses alertAll+bannerAll, a TG uses the alertTGs/bannerTGs CSVs.
+  // DM uses setDmAlertPref instead.
+  const setChannelNotifyLevel = async (val: string, level: number) => {
     const s = AppPrefsStore.getRawState();
     if (val === "ALL") {
-      const nv = !s.alertAll;
-      AppPrefsStore.update(x => { x.alertAll = nv; });
-      await DatabaseService.setPref('alertAll', nv ? '1' : '0');
-    } else {
-      const tg = parseInt(val);
-      if (isNaN(tg)) return;
-      const set = parseTGset(s.alertTGs);
-      if (set.has(tg)) set.delete(tg); else set.add(tg);
-      const csv = Array.from(set).join(",");
-      AppPrefsStore.update(x => { x.alertTGs = csv; });
-      await DatabaseService.setPref('alertTGs', csv);
+      const alert = level >= 1, banner = level === 2;
+      AppPrefsStore.update(x => { x.alertAll = alert; x.bannerAll = banner; });
+      await DatabaseService.setPref('alertAll', alert ? '1' : '0');
+      await DatabaseService.setPref('bannerAll', banner ? '1' : '0');
+      return;
     }
+    const tg = parseInt(val);
+    if (isNaN(tg)) return;
+    const soundSet = parseTGset(s.alertTGs);
+    const bannerSet = parseTGset(s.bannerTGs);
+    soundSet.delete(tg); bannerSet.delete(tg);
+    if (level === 1) soundSet.add(tg);
+    else if (level === 2) bannerSet.add(tg);
+    const soundCsv = Array.from(soundSet).join(",");
+    const bannerCsv = Array.from(bannerSet).join(",");
+    AppPrefsStore.update(x => { x.alertTGs = soundCsv; x.bannerTGs = bannerCsv; });
+    await DatabaseService.setPref('alertTGs', soundCsv);
+    await DatabaseService.setPref('bannerTGs', bannerCsv);
   };
 
   // toggle discard (hide messages) for the ALL / a TG tab, then refresh the view
@@ -243,23 +256,28 @@ const Tab3: React.FC = () => {
     return "TG " + val;
   };
 
-  // buttons for the tab menu, depending on the tab. DM has the notification
-  // tri-state (none / mine / all) + the "show others' DMs" monitoring toggle;
-  // ALL and talk groups have mute + discard.
+  // buttons for the tab menu, depending on the tab. DM keeps its which-DMs
+  // tri-state (all DMs -> banner); ALL and talk groups pick a notification level
+  // (disabled / sound / sound+banner). "sound+banner" is Android-only (iOS has no
+  // channels). ✓ marks the current choice.
   const tabMenuButtons = (): any[] => {
     const val = tabMenuFor;
     if (val === "DM") {
       const mark = (lvl: string) => (dmAlert === lvl ? "✓ " : "");
       return [
-        { text: mark("none") + "Notify: none", handler: () => { setDmAlertPref("none"); } },
+        { text: mark("none") + "Notify: disabled", handler: () => { setDmAlertPref("none"); } },
         { text: mark("mine") + "Notify: my DMs (and mentions) only", handler: () => { setDmAlertPref("mine"); } },
         { text: mark("all") + "Notify: all DMs and mentions", handler: () => { setDmAlertPref("all"); } },
         { text: dmShowAll ? "Hide others' DMs" : "Show others' DMs (monitor)", handler: () => { toggleDmShowAll(); } },
         { text: "Cancel", role: "cancel" }
       ];
     }
+    const level = tabNotifyLevel(val);
+    const cmark = (l: number) => (level === l ? "✓ " : "");
     return [
-      { text: tabBellOn(val) ? "Mute notifications" : "Enable notifications", handler: () => { toggleTabMute(val); } },
+      { text: cmark(0) + "Notify: disabled", handler: () => { setChannelNotifyLevel(val, 0); } },
+      { text: cmark(1) + "Notify: sound", handler: () => { setChannelNotifyLevel(val, 1); } },
+      ...(thisPlatform === "android" ? [{ text: cmark(2) + "Notify: sound and banner", handler: () => { setChannelNotifyLevel(val, 2); } }] : []),
       { text: tabDiscarded(val) ? "Show messages" : "Hide messages (discard)", handler: () => { toggleTabDiscard(val); } },
       { text: "Cancel", role: "cancel" }
     ];
@@ -568,22 +586,31 @@ const Tab3: React.FC = () => {
       console.log("Local Notification are granted");
       canNotify.current = true;
 
-      //create a channel for notify on adroid
+      //create notify channels on android
       if (thisPlatform === "android") {
-        // The old channel '1' referenced a custom sound (morse_r.wav) that is NOT
-        // bundled in the build -> it was created SILENT, and channel settings are
-        // immutable once created. So delete it and use a FRESH channel (id '2')
-        // with the DEFAULT notification sound (omit `sound`) so it actually beeps.
-        // Single delivery channel - per-channel muting is done in-app.
-        try { await LocalNotifications.deleteChannel({ id: '1' } as any); } catch (e) { console.log("deleteChannel 1:", e); }
+        // Remove the old channels (silent morse channel '1', and the single
+        // default channel '2' from the interim fix). Use TWO channels with the
+        // DEFAULT sound: 'sound' (importance DEFAULT = sound, no pop-up) and
+        // 'banner' (importance HIGH = sound + heads-up). The in-app per-channel
+        // level routes here; DMs/@mentions/level-2 -> banner. Channel settings are
+        // immutable once created, hence fresh ids.
+        try { await LocalNotifications.deleteChannel({ id: '1' } as any); } catch (e) { console.log("del 1:", e); }
+        try { await LocalNotifications.deleteChannel({ id: '2' } as any); } catch (e) { console.log("del 2:", e); }
         await LocalNotifications.createChannel({
-          id: '2',
-          name: 'General notifications',
-          description: 'All MeshCom notifications. Mute individual channels (All, DM, talk groups) inside the app by long-pressing their tab.',
-          importance: 4,
+          id: 'sound',
+          name: 'Notifications — sound',
+          description: 'Channel messages set to "sound" (ALL / talk groups). Per-channel level is chosen in the app.',
+          importance: 3,   // DEFAULT: makes a sound, no heads-up pop-up
           visibility: 1,
           vibration: true
-          // no custom sound -> default notification sound (reliable beep)
+        });
+        await LocalNotifications.createChannel({
+          id: 'banner',
+          name: 'Notifications — sound + banner',
+          description: 'Direct messages, @mentions, and channels set to "sound and banner".',
+          importance: 4,   // HIGH: sound + heads-up pop-up
+          visibility: 1,
+          vibration: true
         });
         const channels = await LocalNotifications.listChannels();
         console.log("Channels:");
@@ -619,10 +646,11 @@ const Tab3: React.FC = () => {
     console.log("CHAT - New Message to Notify: ");
     console.log(notifyMsg_s);
     const notify_title = "New Message from " + notifyMsg_s.fromCall;
-    // beep if this scope's notifications are on (mute), or a channel @mention of
-    // me arrives (which beeps through mute/discard); discarded scope -> never
-    if (shouldNotify(notifyMsg_s, config_s.callSign)) {
-      notifyMsgUser(notify_title, notifyMsg_s.msgTXT);
+    // notification level for this message (0 none / 1 sound / 2 sound+banner);
+    // mentions come through mute/discard at banner level, discarded scope -> 0
+    const notifyLevel = notifyLevelFor(notifyMsg_s, config_s.callSign);
+    if (notifyLevel > 0) {
+      notifyMsgUser(notify_title, notifyMsg_s.msgTXT, notifyLevel);
     }
 
     // if a message arrives in another segment than the current one set the background color class to indicate new message
@@ -654,8 +682,9 @@ const Tab3: React.FC = () => {
   }, [notifyMsg_s.msgNr]);
 
 
-  // local notification method
-  const notifyMsgUser = async (title_:string, body_:string) => {
+  // local notification method. level: 1 = sound, 2 = sound + banner (Android
+  // routes to the matching OS channel; iOS has no channels -> always with sound).
+  const notifyMsgUser = async (title_:string, body_:string, level: number = 1) => {
     if(canNotify.current === true){
       if(thisPlatform === "ios"){
         LocalNotifications.schedule({
@@ -668,7 +697,7 @@ const Tab3: React.FC = () => {
                 at: new Date(Date.now() + 1000 * 1), // in 1 secs
                 repeats: false
               },
-              sound:''
+              sound: 'default' // iOS has no channels -> default notification sound
             }]
         });
       }
@@ -684,9 +713,9 @@ const Tab3: React.FC = () => {
                 at: new Date(Date.now() + 1000 * 1), // in 1 secs
                 repeats: false
               },
-              channelId: '2',
-              smallIcon: 'res://drawable/meshcom_logo_32x32_transp_gray',
-              largeIcon: 'res://drawable/meshcom_logo_64x64'
+              // level 2 -> banner channel (heads-up), else the sound channel
+              channelId: level === 2 ? 'banner' : 'sound',
+              smallIcon: 'ic_stat_notify'
               // no sound here -> the channel's default sound is used (Android O+
               // takes the sound from the channel anyway, not per-notification)
             }]

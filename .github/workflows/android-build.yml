@@ -95,6 +95,15 @@ jobs:
             fi
           done
           npx capacitor-assets generate --android
+          # notification small icon: Android renders it as a monochrome silhouette,
+          # so make a white version of the logo on transparent (white bg -> clear,
+          # logo -> white). Referenced as smallIcon 'ic_stat_notify' in the app.
+          mkdir -p android/app/src/main/res/drawable
+          convert assets/icon.png -fuzz 30% -transparent white \
+               -channel RGB -evaluate set 100% +channel -resize 96x96 \
+               android/app/src/main/res/drawable/ic_stat_notify.png \
+            && echo "notification icon generated" \
+            || echo "notification icon generation failed - falls back to default"
 
       # sign every build with the committed debug keystore so signatures are
       # identical and a new build installs over the previous one (keeps DB + BLE

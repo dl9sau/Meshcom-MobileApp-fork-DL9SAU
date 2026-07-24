@@ -6,12 +6,16 @@ export interface AppPrefsState {
     compactHeader: boolean;
     // DM tab: show all overheard DM traffic (monitoring) vs only my own DMs (default)
     dmShowAll: boolean;
-    // per-scope notification ("alert = it beeps"). Defaults are quiet except DMs
-    // addressed to me. Toggle via long-press on the channel tab. Mute only kills
-    // the beep - the green new-message indicator stays; only Discard hides both.
-    alertAll: boolean;      // ALL / broadcast beeps
-    alertTGs: string;       // CSV of talk-group numbers that beep, e.g. "20,262"
-    dmAlert: string;        // DM notifications: "none" | "mine" | "all" (default "mine")
+    // per-channel notification LEVEL: 0 = disabled, 1 = sound, 2 = sound+banner.
+    // Encoded as: level 1 -> in alertAll/alertTGs, level 2 -> in bannerAll/bannerTGs
+    // (banner implies sound). Toggle via long-press on the channel tab. Mute only
+    // kills the beep - the green new-message indicator stays; only Discard hides both.
+    // On Android, level 1 routes to a "sound" OS channel, level 2 to a "banner" one.
+    alertAll: boolean;      // ALL / broadcast: level >= sound
+    alertTGs: string;       // CSV of talk-group numbers at level >= sound, e.g. "20,262"
+    bannerAll: boolean;     // ALL / broadcast: level = banner (sound + pop-up)
+    bannerTGs: string;      // CSV of talk-group numbers at level = banner
+    dmAlert: string;        // DM notifications: "none" | "mine" | "all" (default "mine"); DM/mentions -> banner
     // Discard = hide a channel's messages AND suppress its green indicator/beep,
     // without de-configuring it. discardAll/discardTGs for ALL and talk groups;
     // for DMs the "discard not-for-me" is the existing dmShowAll (false = foreign
@@ -41,6 +45,8 @@ const AppPrefsStore = new Store<AppPrefsState>({
     dmShowAll: false,
     alertAll: false,
     alertTGs: "",
+    bannerAll: false,
+    bannerTGs: "",
     dmAlert: "mine",
     discardAll: false,
     discardTGs: "",

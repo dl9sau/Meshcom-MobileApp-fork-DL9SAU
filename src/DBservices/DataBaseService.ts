@@ -932,6 +932,8 @@ class DatabaseService {
                 if ('dmShowAll' in prefs) s.dmShowAll = prefs['dmShowAll'] === '1';
                 if ('alertAll' in prefs) s.alertAll = prefs['alertAll'] === '1';
                 if ('alertTGs' in prefs) s.alertTGs = prefs['alertTGs'];
+                if ('bannerAll' in prefs) s.bannerAll = prefs['bannerAll'] === '1';
+                if ('bannerTGs' in prefs) s.bannerTGs = prefs['bannerTGs'];
                 // dmAlert tri-state; migrate from the old alertDMmine boolean
                 if ('dmAlert' in prefs) s.dmAlert = prefs['dmAlert'];
                 else if ('alertDMmine' in prefs) s.dmAlert = prefs['alertDMmine'] === '1' ? 'mine' : 'none';

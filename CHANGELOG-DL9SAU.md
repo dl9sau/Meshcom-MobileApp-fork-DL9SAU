@@ -38,9 +38,13 @@ changes of this fork relative to upstream. The in-app version shows
 - **Per-channel notifications & visibility — long-press a channel tab.** One
   in-app menu per tab (All, DM, each talk group), so it works the same on Android
   and iOS with nothing stuck in the OS. A one-time hint points out the gesture.
-  - **Mute** — silences the beep but **keeps** the green new-message indicator; a
-    small **🔔** marks the tabs that still beep. Quiet by default: **only DMs
-    addressed to you notify**, ALL and talk groups are silent until switched on.
+  - **Notification level per channel** — `disabled` / `sound` / `sound and banner`.
+    On Android these route to two OS notification channels (a *sound* one and a
+    *sound + pop-up* one) you can further tune in Android settings; iOS has no
+    channels, so it offers only `disabled` / `sound`. Muting keeps the green
+    new-message indicator; a small **🔔** marks the tabs that notify. Quiet by
+    default: **only DMs (and @mentions) notify**, ALL and talk groups are off until
+    switched on. **DMs and @mentions always use "sound and banner".**
   - **Discard** (All / a talk group) — **hides** that channel's messages **and**
     its green indicator + beep, without de-configuring it; the tab is dimmed.
   - **DM notifications are a tri-state**: **none / my DMs (and mentions) only /
@@ -136,8 +140,9 @@ changes of this fork relative to upstream. The in-app version shows
 - **Notifications were silent.** The Android channel referenced a bundled custom
   sound (`morse_r.wav`) that never made it into the build, so the channel was
   created without a sound — and channel settings are immutable once created. The
-  channel is now recreated (fresh id) using the **default notification sound**, so
-  notifications actually beep.
+  channels are now recreated (fresh ids) using the **default notification sound**,
+  so notifications actually beep. Also: a proper **white notification icon** (the
+  logo silhouette) is generated in CI, replacing the generic "i" fallback.
 - Message action menu: **Direct Message is greyed out on your own messages** (you
   can't DM yourself; on a group message it used to prefill the group number).
   **Copy Text** moved further down, below the primary actions.
