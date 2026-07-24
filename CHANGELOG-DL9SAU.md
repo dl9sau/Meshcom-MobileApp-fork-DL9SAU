@@ -71,8 +71,8 @@ changes of this fork relative to upstream. The in-app version shows
     play a **sound** to catch your eye.
   - **Notifications no longer pile up.** Each channel keeps a **single** entry in
     the notification shade — a new message **replaces** the previous one instead of
-    stacking dozens of old ones. Opening the app **clears** the shade (the messages
-    are in the app now).
+    stacking dozens of old ones. Coming back to the app **clears** the shade, and
+    **viewing a channel clears that channel's** entry (you've just read it).
 - **Reply** prefills a compact reference into the input (mention style follows the
   widespread **MeshcomWebDesk** web interface — `@call text`, **no colon**):
   - channel, one other person → **`@call [HH:MM] `** (mention + that message's

@@ -1072,8 +1072,21 @@ const Tab3: React.FC = () => {
 
   // CHAT FIlterING with Segment Buttons
   // handle the Seqgmentbutton for chat filtering and set filtering in the database-service
+  // once you VIEW a channel you've seen its messages -> clear its lingering entry
+  // from the notification shade (the green tab marker is cleared below too). Best
+  // effort; matches on the channel's stable notification id.
+  const clearChannelShade = async (val: string) => {
+    try {
+      const id = notifyChannelId(val);
+      const delivered = await LocalNotifications.getDeliveredNotifications();
+      const match = (delivered.notifications || []).filter(n => String(n.id) === String(id));
+      if (match.length) await LocalNotifications.removeDeliveredNotifications({ notifications: match } as any);
+    } catch (e) { /* shade cleanup is best effort */ }
+  };
+
   const handleSegmentChange = (val: string, isGrp: boolean) => {
     console.log("Chat Filter Change to: " + val);
+    stampActivity(); // switching tabs is an interaction
     setSegmentFilter(val);
 
     DatabaseService.setChatFilters(val);
@@ -1106,6 +1119,9 @@ const Tab3: React.FC = () => {
     if(Seqgmentbutton){
       Seqgmentbutton.classList.remove('segmentbutton_green');
     }
+
+    // clear this channel's lingering notification from the shade (you're reading it now)
+    clearChannelShade(val);
   }
   
 
