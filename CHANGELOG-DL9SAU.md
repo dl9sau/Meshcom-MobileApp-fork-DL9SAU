@@ -60,9 +60,19 @@ changes of this fork relative to upstream. The in-app version shows
   - DMs and mentions match your **base callsign with any SSID** (`DL9SAU`,
     `DL9SAU-12`, `DL9SAU-13` all count as you) — senders may not know which device
     you're on, and you may run several.
+  - **Mention in a discarded channel is surfaced.** A message that @mentions you
+    stays **visible** (and gives the green new-message marker) even in a channel
+    you've discarded — it already beeps, so instead of a ping with nothing to show,
+    you can see who mentioned you. The channel's other messages stay hidden.
   - If you're **already viewing that channel** (app in front, chat open, same
-    tab), a would-be *banner* notification is **downgraded to sound only** — you
-    see the message anyway, no need for a pop-up.
+    tab), a would-be *banner* notification never pops up — and if you've **touched
+    the app within the last 30 s** you're clearly watching, so it stays **fully
+    silent**; only if the app has just been sitting open (idle ≥ 30 s) does it
+    play a **sound** to catch your eye.
+  - **Notifications no longer pile up.** Each channel keeps a **single** entry in
+    the notification shade — a new message **replaces** the previous one instead of
+    stacking dozens of old ones. Opening the app **clears** the shade (the messages
+    are in the app now).
 - **Reply** prefills a compact reference into the input:
   - channel, one other person → **`@call: [HH:MM] `** (mention + that message's
     time); referencing **more people** turns it into an **`@call1, @call2: `

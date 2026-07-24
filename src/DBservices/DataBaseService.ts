@@ -8,7 +8,7 @@ import { MsgType, PosType, MheardType } from "../utils/AppInterfaces";
 import MheardStaticStore from "../utils/MheardStaticStore";
 import NodeRuntimeService from "../utils/NodeRuntimeService";
 import RelayCountService from "../utils/RelayCountService";
-import { msgDiscarded, baseCall } from "../utils/NotifyPrefs";
+import { msgDiscarded, baseCall, isChannelMention } from "../utils/NotifyPrefs";
 import PosiStore from "../store/PosiStore";
 import MsgStore from "../store/MsgStore";
 import { format, sub } from "date-fns";
@@ -829,8 +829,14 @@ class DatabaseService {
         filtered_msgs = filtered_msgs.filter(msg => !MsgFilterService.isChannelMsgBlocked(msg));
 
         // hide discarded channels (ALL / a TG hidden via the tab menu; foreign DMs
-        // when not monitoring). Own DMs are never discarded.
-        filtered_msgs = filtered_msgs.filter(msg => !msgDiscarded(msg, currentCallsign));
+        // when not monitoring). Own DMs are never discarded. EXCEPTION: a message
+        // that @mentions me stays visible even in a discarded channel (as long as
+        // DM/mention notifications aren't fully off) - it also beeped, so you can
+        // see who mentioned you instead of a ping with nothing to show.
+        const mentionsOn = AppPrefsStore.getRawState().dmAlert !== "none";
+        filtered_msgs = filtered_msgs.filter(msg =>
+            !msgDiscarded(msg, currentCallsign) ||
+            (mentionsOn && isChannelMention(msg, currentCallsign)));
 
         // update the store
         MsgStore.update(s => {

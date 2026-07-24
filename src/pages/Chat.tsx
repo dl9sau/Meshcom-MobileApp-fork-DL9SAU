@@ -23,7 +23,7 @@ import DMfrmMapStore from '../store/DMfrmMap';
 import NotifyMsgState from '../store/NotifyMsg';
 import MsgFilterStore from '../store/MsgFilterStore';
 import AppPrefsStore from '../store/AppPrefsStore';
-import { parseTGset, notifyLevelFor, msgDiscarded } from '../utils/NotifyPrefs';
+import { parseTGset, notifyLevelFor, msgDiscarded, isChannelMention } from '../utils/NotifyPrefs';
 import { useHistory } from "react-router";
 import LogS from '../utils/LogService';
 import DatabaseService from '../DBservices/DataBaseService';
@@ -113,6 +113,11 @@ const Tab3: React.FC = () => {
 
   // remember if this page is active
   const thisPageActive = useRef<boolean>(false);
+  // timestamp of the last user interaction with the chat (touch / tab switch /
+  // page enter / app foreground); used to decide whether a notification for the
+  // channel you're on still needs a sound (idle >= 30s) or you're clearly watching
+  const lastInteractionRef = useRef<number>(Date.now());
+  const stampActivity = () => { lastInteractionRef.current = Date.now(); };
 
   // alertcard handling
   const [shAlertCard, setShAlertCard] = useState<boolean>(false);
@@ -338,6 +343,7 @@ const Tab3: React.FC = () => {
   useIonViewDidEnter (()=>{
     LogS.log(0,"Chat window did enter");
     thisPageActive.current = true;
+    stampActivity(); // entering the chat counts as looking at it
     // set the bottom reference
     if(bottomRef.current === null) bottomRef.current = document.getElementById('bottomRefID') as HTMLDivElement;
 
@@ -386,9 +392,11 @@ const Tab3: React.FC = () => {
     console.log("Chat - BLE DevID: " + devID_s);
     // scroll down if Chat screen gets active again
     if (isAppActive) {
-
+      stampActivity(); // coming back to the app counts as looking at it
+      // you're looking at the app now -> the shade entries are stale, clear them
+      LocalNotifications.removeAllDeliveredNotifications().catch(() => {});
       scrollToBottom();
-    } 
+    }
   }, [isAppActive]);
 
 
@@ -656,19 +664,23 @@ const Tab3: React.FC = () => {
     // notification level for this message (0 none / 1 sound / 2 sound+banner);
     // mentions come through mute/discard at banner level, discarded scope -> 0
     let notifyLevel = notifyLevelFor(notifyMsg_s, config_s.callSign);
-    // if you're actively viewing THIS channel (app foreground, chat page, same
-    // segment) you already see the message -> no need for a pop-up banner, drop to
-    // sound only
-    if (notifyLevel > 1 && isAppActive && thisPageActive.current && msgType === segmentFilter) {
-      notifyLevel = 1;
+    // if you're on THIS channel (app foreground, chat page, same segment) you
+    // already see the message -> never a banner. And if you interacted within the
+    // last 30 s you're clearly watching -> stay silent; only if the app has just
+    // been sitting open (idle >= 30 s) play a sound to catch your eye.
+    if (notifyLevel > 0 && isAppActive && thisPageActive.current && msgType === segmentFilter) {
+      const idleMs = Date.now() - lastInteractionRef.current;
+      notifyLevel = idleMs >= 30000 ? 1 : 0;
     }
     if (notifyLevel > 0) {
-      notifyMsgUser(notify_title, notifyMsg_s.msgTXT, notifyLevel);
+      notifyMsgUser(notify_title, notifyMsg_s.msgTXT, notifyLevel, msgType);
     }
 
     // green indicator on another segment's tab (skip when the channel is discarded:
-    // mute keeps the green marker, discard hides it)
-    if (notifyMsg_s.isDM !== undefined && notifyMsg_s.isGrpMsg !== undefined && !msgDiscarded(notifyMsg_s, config_s.callSign)) {
+    // mute keeps the green marker, discard hides it) - EXCEPT a mention of me,
+    // which stays visible + green even in a discarded channel (see applyFilters)
+    const mentionShown = dmAlert !== "none" && isChannelMention(notifyMsg_s, config_s.callSign);
+    if (notifyMsg_s.isDM !== undefined && notifyMsg_s.isGrpMsg !== undefined && (!msgDiscarded(notifyMsg_s, config_s.callSign) || mentionShown)) {
       if (msgType !== segmentFilter) {
         const Seqgmentbutton = document.getElementById(msgType) as HTMLIonSegmentButtonElement;
         if (Seqgmentbutton) {
@@ -680,17 +692,28 @@ const Tab3: React.FC = () => {
   }, [notifyMsg_s.msgNr]);
 
 
+  // stable notification id per channel so a new message REPLACES the previous
+  // one in the shade instead of piling up (100 stacked notifications is annoying).
+  // ALL -> 1, DM -> 2, each talk group -> its own slot (10000 + TG number).
+  const notifyChannelId = (msgType: string): number => {
+    if (msgType === "ALL") return 1;
+    if (msgType === "DM") return 2;
+    const n = parseInt(msgType);
+    return isNaN(n) ? 3 : 10000 + n;
+  };
+
   // local notification method. level: 1 = sound, 2 = sound + banner (Android
   // routes to the matching OS channel; iOS has no channels -> always with sound).
-  const notifyMsgUser = async (title_:string, body_:string, level: number = 1) => {
+  const notifyMsgUser = async (title_:string, body_:string, level: number = 1, msgType: string = "ALL") => {
     if(canNotify.current === true){
+      const notifId = notifyChannelId(msgType);
       if(thisPlatform === "ios"){
         LocalNotifications.schedule({
           notifications: [
             {
               title:title_,
               body: body_,
-              id: Math.floor(Math.random() * 600000),
+              id: notifId,
               schedule: {
                 at: new Date(Date.now() + 1000 * 1), // in 1 secs
                 repeats: false
@@ -706,7 +729,7 @@ const Tab3: React.FC = () => {
             {
               title: title_,
               body: body_,
-              id: Math.floor(Math.random() * 600000),
+              id: notifId,
               schedule: {
                 at: new Date(Date.now() + 1000 * 1), // in 1 secs
                 repeats: false
@@ -1097,7 +1120,7 @@ const Tab3: React.FC = () => {
             </IonSegment>
         </IonToolbar>
       </IonHeader>
-      <IonContent className="ion-padding">
+      <IonContent className="ion-padding" onTouchStart={stampActivity}>
 
         <IonAlert
           isOpen={shDiscoCard}
