@@ -73,9 +73,10 @@ changes of this fork relative to upstream. The in-app version shows
     the notification shade — a new message **replaces** the previous one instead of
     stacking dozens of old ones. Opening the app **clears** the shade (the messages
     are in the app now).
-- **Reply** prefills a compact reference into the input:
-  - channel, one other person → **`@call: [HH:MM] `** (mention + that message's
-    time); referencing **more people** turns it into an **`@call1, @call2: `
+- **Reply** prefills a compact reference into the input (mention style follows the
+  widespread **MeshcomWebDesk** web interface — `@call text`, **no colon**):
+  - channel, one other person → **`@call [HH:MM] `** (mention + that message's
+    time); referencing **more people** turns it into an **`@call1, @call2 `
     mention list** and drops the time (a shared timestamp across time-distinct
     messages is meaningless). Deduped — replying twice to the same call never
     repeats it;

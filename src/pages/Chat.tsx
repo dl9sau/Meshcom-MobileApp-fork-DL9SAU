@@ -922,20 +922,23 @@ const Tab3: React.FC = () => {
               textAreaInputRef.current.value = ref + existing;
             }
           } else {
-            // others' message: build/extend an "@call1, @call2: " mention list (dedup).
-            // A SINGLE reference keeps the message's time ("@call: [HH:MM] "); as
-            // soon as 2+ people are referenced the time is dropped (one shared
-            // timestamp across time-distinct messages is meaningless).
+            // others' message: build/extend an "@call1, @call2 " mention list (dedup).
+            // No colon after the mentions - we follow the widespread web interface
+            // (MeshcomWebDesk) style "@call text". A SINGLE reference keeps the
+            // message's time ("@call [HH:MM] "); as soon as 2+ people are referenced
+            // the time is dropped (one shared timestamp across time-distinct
+            // messages is meaningless). The mention list ends at the first space
+            // after the run of "@token"s - so we parse on that, never on a colon.
             const mention = "@" + m.fromCall;
-            const mm = existing.match(/^((?:@[^\s,:]+)(?:, @[^\s,:]+)*): (.*)$/s);
+            const mm = existing.match(/^((?:@[^\s,]+)(?:, @[^\s,]+)*) (.*)$/s);
             if (mm) {
               const mentions = mm[1].split(", ");
               if (!mentions.includes(mention)) mentions.push(mention);
               let body = mm[2];
               if (mentions.length >= 2) body = body.replace(/^\[\d{1,2}:\d{2}\] /, ""); // drop the single-ref time
-              textAreaInputRef.current.value = mentions.join(", ") + ": " + body;
+              textAreaInputRef.current.value = mentions.join(", ") + " " + body;
             } else {
-              textAreaInputRef.current.value = mention + ": " + timeRef(m.msgTime) + existing;
+              textAreaInputRef.current.value = mention + " " + timeRef(m.msgTime) + existing;
             }
           }
           textAreaInputRef.current.setFocus();
