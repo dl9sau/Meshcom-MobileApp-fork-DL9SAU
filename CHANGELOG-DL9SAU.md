@@ -25,7 +25,8 @@ changes of this fork relative to upstream. The in-app version shows
   misfiled: a **broadcast** landed in **DMs**, and a **DM addressed to you** wasn't
   recognised as yours — so it disappeared under *Hide others' DMs*. We don't know
   what upstream produces this odd addressing, but the packets do occur and are now
-  handled correctly.
+  handled correctly. The routing prefix is kept visible in the *via* line
+  (e.g. `🌐 via DD0NM-99 → DB0FRI-12`) so these packets stay recognisable.
 
 ### Features
 

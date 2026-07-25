@@ -286,6 +286,19 @@ export function useMSG() {
                             console.log("Group Message Nr: " + grpNum_);
                         }
                     }
+
+                    // if the destination carried a routing prefix ("ROUTING,X"), surface
+                    // it in the via path as upstream hop(s) so these odd packets stay
+                    // recognisable, e.g. "🌐 via DD0NM-99 > DB0FRI-12". The origin
+                    // (== fromCall) is dropped in the via display (viaRelays), so keep it
+                    // first and insert the routing right after it.
+                    const dm_dest_routing = dest_parts.slice(0, -1).map(s => s.trim()).filter(s => s !== "");
+                    if (dm_dest_routing.length > 0) {
+                        const vparts = via_str.split(" > ").map(p => p.trim()).filter(p => p !== "");
+                        via_str = (vparts.length >= 1
+                            ? [vparts[0], ...dm_dest_routing, ...vparts.slice(1)]
+                            : [from_callsign_, ...dm_dest_routing]).join(" > ");
+                    }
                 }
 
 
