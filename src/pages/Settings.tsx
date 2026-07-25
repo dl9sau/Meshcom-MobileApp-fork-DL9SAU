@@ -2788,18 +2788,9 @@ const Tab2: React.FC = () => {
             </>}
           </div>
 
-          <div id="spacer-buttons" />
-          {/* Chat display preferences */}
-          <IonText color="primary" class='txt-center'>
-            <h3>Chat Display</h3>
-          </IonText>
-          <div className='setting_wrapper'>
-            <IonItem>
-              <IonToggle enableOnOffLabels={true} checked={compactHeader} onIonChange={(ev) => setCompactHeader(ev.detail.checked)}>Compact message header</IonToggle>
-            </IonItem>
-            {/* "DM tab: show all traffic" moved to the DM tab's long-press menu
-                ("Show others' DMs") together with the other channel controls */}
-          </div>
+          {/* Chat display pref (compact vs legacy message header) lives in the
+              Advanced Settings section below now. "DM tab: show all traffic" moved
+              to the DM tab's long-press menu ("Show others' DMs"). */}
 
           <div id="spacer-buttons" />
           {/* Data retention per category (days; 0 = unlimited) */}
@@ -2874,6 +2865,9 @@ const Tab2: React.FC = () => {
               <IonText >Advanced Settings</IonText>
             </div>
             {shAdvSetting ? <>
+              <div id="spacer-advTop" />
+              {/* compact (default, blue/solid) vs legacy multi-line message header */}
+              <IonButton id="settings_button" fill={compactHeader ? 'solid' : 'outline'} slot='start' onClick={() => setCompactHeader(!compactHeader)}>{compactHeader ? "Message header: compact" : "Message header: legacy"}</IonButton>
               <div id="spacer-advTop" />
               <IonButton id="settings_button" fill='outline' slot='start' onClick={()=>deletePositions()}>Clear received nodes</IonButton>
               <div id="spacer-advTop" />

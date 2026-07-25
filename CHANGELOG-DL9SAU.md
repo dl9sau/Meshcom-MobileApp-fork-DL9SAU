@@ -35,7 +35,8 @@ changes of this fork relative to upstream. The in-app version shows
   tab → *Show others' DMs* to reveal all overheard DM traffic (monitoring).
 - **Compact one-line message header** (now the **default**): `sender (via …) ·time`,
   DMs also show the recipient. Toggle back to the legacy multi-line header in
-  *Settings → Chat Display*.
+  *Settings → Advanced Settings* (a **Message header: compact/legacy** button —
+  compact is the blue default).
 - Configurable **block filter** for channel messages — block by **callsign** or
   **text pattern**: `Wort` (whole word), `^start`, `end$`, `*wild*card`
   (case-insensitive, UTF-8/emoji/multi-line aware). Works in the **ALL/broadcast
