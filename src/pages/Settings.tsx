@@ -8,6 +8,7 @@ import { useStoreState } from 'pullstate';
 import { DevIDStore } from '../store';
 import { getDevID, getBLEconnStore, getConfigStore, getScanResult } from '../store/Selectors';
 import ConfigStore from '../store/ConfStore';
+import NodeCmdStore from '../store/NodeCmdStore';
 import { ConfType, InfoData, SensorSettings,WifiSettings, NodeSettings, SensorSettingsS1, WifiSettings2 } from '../utils/AppInterfaces';
 import { iosTransitionAnimation, RangeValue } from '@ionic/core';
 import { chevronDown, chevronForward, eyeOutline, eyeOffOutline, checkmarkCircle } from 'ionicons/icons';
@@ -322,6 +323,40 @@ const Tab2: React.FC = () => {
   };
 
   // (DM "show all traffic" toggle moved to the DM tab's long-press menu)
+
+  // Advanced Settings: raw node command console. Send a "--xxx" like the web /
+  // serial CLI; the node's "--…" answer is captured in NodeCmdStore and shown.
+  const cmdInputRef = useRef<HTMLIonInputElement>(null);
+  const cmdSeq = useStoreState(NodeCmdStore, s => s.seq);
+  const [cmdStatus, setCmdStatus] = useState<'idle' | 'waiting' | 'ok' | 'timeout'>('idle');
+  const [cmdRespShown, setCmdRespShown] = useState<string>("");
+  const cmdBaseSeqRef = useRef<number>(0);
+  const cmdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const sendNodeCmd = () => {
+    const raw = (cmdInputRef.current?.value?.toString() ?? "").trim();
+    if (raw === "") return;
+    const full = raw.startsWith("--") ? raw : "--" + raw;
+    cmdBaseSeqRef.current = NodeCmdStore.getRawState().seq;
+    setCmdRespShown("");
+    setCmdStatus('waiting');
+    sendTxtCmdNode(full);
+    if (cmdTimerRef.current) clearTimeout(cmdTimerRef.current);
+    // no "--…" answer within 5 s -> treat as no response
+    cmdTimerRef.current = setTimeout(() => {
+      if (NodeCmdStore.getRawState().seq === cmdBaseSeqRef.current) setCmdStatus('timeout');
+    }, 5000);
+  };
+
+  // a fresh node response arrived after we sent -> show it + green check
+  useEffect(() => {
+    if (cmdStatus === 'waiting' && cmdSeq > cmdBaseSeqRef.current) {
+      setCmdRespShown(NodeCmdStore.getRawState().resp);
+      setCmdStatus('ok');
+      if (cmdTimerRef.current) clearTimeout(cmdTimerRef.current);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cmdSeq]);
 
   // per-category retention in days (0 = unlimited)
   const [shRetention, setShRetention] = useState<boolean>(false);
@@ -2876,6 +2911,27 @@ const Tab2: React.FC = () => {
               <IonButton id="settings_button" fill='outline' slot='start' onClick={()=>{MheardStaticStore.clearMheards(); DataBaseService.clearMheardsDB();}}>Clear Mheards</IonButton>
               <div id="spacer-advTop" />
               <IonButton id="settings_button" fill='outline' slot='start' onClick={()=>clearAllBLEPins_()}>Clear All BLE PINs</IonButton>
+
+              <div id="spacer-advTop" />
+              {/* raw node command console: send a "--xxx" like the web / serial CLI */}
+              <IonItem>
+                <IonInput ref={cmdInputRef} label='Node command (--…)' labelPlacement="floating" placeholder="--pos 1"></IonInput>
+              </IonItem>
+              <div className="flex-row mb-3">
+                <div>
+                  <IonButton size="small" fill="solid" color='success' onClick={() => sendNodeCmd()}>Send</IonButton>
+                </div>
+                <div>
+                  {cmdStatus === 'ok' && <IonIcon icon={checkmarkCircle} color="success" />}
+                  {cmdStatus === 'waiting' && <IonText color="medium">…</IonText>}
+                  {cmdStatus === 'timeout' && <IonText color="medium">no response</IonText>}
+                </div>
+              </div>
+              {cmdRespShown !== "" &&
+                <IonItem>
+                  <IonText id="wifi-text" style={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>{cmdRespShown}</IonText>
+                </IonItem>
+              }
 
             </> : <></>}
             

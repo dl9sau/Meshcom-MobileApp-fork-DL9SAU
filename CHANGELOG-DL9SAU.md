@@ -126,6 +126,12 @@ changes of this fork relative to upstream. The in-app version shows
 - Tab renamed to **"Heard Direct Nodes"**.
 
 **Settings**
+- **Node command console** (*Advanced Settings*): send a raw **`--command`** to the
+  node like the web/serial CLI — one free field (`--` is prepended if you omit it).
+  The node's `--…` reply is shown below with a green ✓, or *no response* on timeout.
+- **Message header chooser moved** to *Advanced Settings* as a button
+  (**compact** = blue default / **legacy** = outline), out of the old *Chat Display*
+  section.
 - Clearer *GPS-Position* button labels: **GPS-Chip**, **SmartBeaconing (track
   on) / Fixed Pos Interval (track off)**, **Send POS LoRa-APRS**, **GPS-Status**.
 - **Node UTC-Time-Offset: "From phone" button.** Instead of typing the offset by

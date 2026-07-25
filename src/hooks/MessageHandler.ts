@@ -44,6 +44,7 @@ import { PosType, MsgType, ConfType, MheardType, SensorSettings, WxData, GpsData
 import ConfigObject from '../utils/ConfigObject';
 import DatabaseService from '../DBservices/DataBaseService';
 import NodeInfoStore from '../store/NodeInfoStore';
+import NodeCmdStore from '../store/NodeCmdStore';
 import BleConfigFinish from '../store/BLEConfFin';
 import UpdateFW from '../store/UpdtFW';
 import WifiSettingsStore from '../store/WifiSettings';
@@ -360,6 +361,10 @@ export function useMSG() {
                     if(msg_text_.startsWith("--")){
 
                         console.log("CMD Ack received: " + msg_text_);
+
+                        // surface the raw response to the Advanced-Settings command
+                        // console (seq bumps so the UI recognises each fresh answer)
+                        NodeCmdStore.update(s => { s.resp = msg_text_; s.seq = s.seq + 1; });
 
                         // split up to cmd and value
                         const cmd_str_arr:string [] = msg_text_.split(" "); 
