@@ -242,51 +242,49 @@ export function useMSG() {
                         NodeRuntimeService.setPath(from_callsign_, node_hops, node_via);
                     }
 
-                    // get the destination callsign if we have a direct message. After destCallsign we have a : stop there
-                    // check if it is broadcast or DM
+                    // Destination field = everything between '>' and ':'. In MeshCom it
+                    // can carry "routing,message-to": the ACTUAL destination is the LAST
+                    // comma-separated segment (this mirrors the node firmware parser in
+                    // aprs_functions.cpp). Some relayed/gatewayed packets arrive as
+                    // "...>CALL,X" where X is the real target ('*' = broadcast, a number =
+                    // talk group, or a recipient callsign) and CALL is routing info. So we
+                    // read the WHOLE field and classify on the last segment - otherwise a
+                    // broadcast wrongly lands in DMs, or a DM addressed to us isn't
+                    // recognised as ours (and gets hidden under "hide others' DMs").
+                    dm_callsign_start = text_offset - 2;
 
-                    if(msg.getUint8(text_offset - 2) === 42){
+                    let dm_arr_index = 0;
+                    for (let i = dm_callsign_start; i < msg_len; i++){
 
-                        isDM_ = 0;
-                        console.log("Broadcast Message received");
-                        
-                    } else {
+                        if(msg.getUint8(i) === 0x3a){
+                            // set start of message text accordingly
+                            text_offset = i + 1;
+                            break;
+                        }
 
-                        isDM_ = 1;
-                        dm_callsign_start = text_offset - 2;
-                        console.log("Direct Message received");
-
+                        dm_call_arr[dm_arr_index] = msg.getUint8(i);
+                        dm_arr_index++;
                     }
 
-                    if(isDM_ === 1){
+                    // whole destination field, then the effective target = last segment
+                    dm_callsign = convBARRtoStr(dm_call_arr);
+                    const dest_parts = dm_callsign.split(",");
+                    const dest_to = dest_parts[dest_parts.length - 1].trim();
+                    console.log("Dest field: '" + dm_callsign + "' -> effective target: '" + dest_to + "'");
 
-                        let dm_arr_index = 0;
-                        for (let i = dm_callsign_start; i < msg_len; i++){
-
-                            if(msg.getUint8(i) === 0x3a){
-                                // set start of message text accordingly
-                                text_offset = i + 1;
-                                break;
-                            }
-
-                            dm_call_arr[dm_arr_index] = msg.getUint8(i);
-                            dm_arr_index++;
-                        }
-
-                        dm_callsign = convBARRtoStr(dm_call_arr);
-
-                        // save it as tocall in the message obj to show to call info in chat bubble
-                        to_callsign_ = dm_callsign;
-
-                        console.log("DM Dest. Callsign: " + dm_callsign);
-
-                        // check if the dm call is a group message aka a number
-                        if(!isNaN(+dm_callsign)){
+                    if(dest_to === "*"){
+                        // broadcast -> ALL / broadcast channel
+                        isDM_ = 0;
+                    } else {
+                        isDM_ = 1;
+                        // the actual recipient/group is the last segment, not the raw field
+                        to_callsign_ = dest_to;
+                        // a numeric destination is a talk group
+                        if(dest_to !== "" && !isNaN(+dest_to)){
                             isGrpMsg_ = 1;
-                            grpNum_ = +dm_callsign;
+                            grpNum_ = +dest_to;
                             console.log("Group Message Nr: " + grpNum_);
                         }
-
                     }
                 }
 
