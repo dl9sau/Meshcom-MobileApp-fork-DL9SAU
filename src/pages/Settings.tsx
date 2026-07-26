@@ -2926,8 +2926,9 @@ const Tab2: React.FC = () => {
               <IonButton id="settings_button" fill='outline' slot='start' onClick={()=>clearAllBLEPins_()}>Clear All BLE PINs</IonButton>
 
               <div id="spacer-advTop" />
-              {/* raw node command console: send a "--xxx" like the web / serial CLI */}
-              <IonItem>
+              {/* raw node command console: send a "--xxx" like the web / serial CLI.
+                  input + output get a light-grey background so they read as fields */}
+              <IonItem style={{ '--background': '#f2f2f2' } as any}>
                 <IonInput ref={cmdInputRef} label='Node command (--…)' labelPlacement="floating" placeholder="--pos 1"></IonInput>
               </IonItem>
               <div className="flex-row mb-3">
@@ -2941,8 +2942,9 @@ const Tab2: React.FC = () => {
                 </div>
               </div>
               {cmdRespShown !== "" &&
-                <IonItem>
-                  <IonText id="wifi-text" style={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>{cmdRespShown}</IonText>
+                <IonItem style={{ '--background': '#f2f2f2' } as any}>
+                  {/* same font as the input field (no monospace), wrap long answers */}
+                  <IonText id="wifi-text" style={{ whiteSpace: 'pre-wrap' }}>{cmdRespShown}</IonText>
                 </IonItem>
               }
 
