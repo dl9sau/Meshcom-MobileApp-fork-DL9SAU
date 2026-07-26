@@ -25,6 +25,7 @@ import { ConfType, MheardType } from '../utils/AppInterfaces';
 import { AlertCard } from '../components/AlertCard';
 import AppActiveState  from '../store/AppActive';
 import BLEconnStore from '../store/BLEconnected';
+import { startForeground, stopForeground } from '../utils/ForegroundServiceHelper';
 import DatabaseService from '../DBservices/DataBaseService';
 import ConfigObject from '../utils/ConfigObject';
 import MheardStaticStore from '../utils/MheardStaticStore';
@@ -135,6 +136,15 @@ const Tab1: React.FC = () => {
 
   // get current AppState
   const isAppActive = AppActiveState.useState(s => s.active);
+
+  // start/stop the Android foreground service with the BLE connection, so the app
+  // keeps processing messages + firing notifications while backgrounded. Driven by
+  // the connection state so it covers every connect/disconnect path uniformly.
+  const bleConn_fg = BLEconnStore.useState(s => s.ble_connected);
+  useEffect(() => {
+    if (bleConn_fg) startForeground();
+    else stopForeground();
+  }, [bleConn_fg]);
 
   // flag that we can notify on new messages. no notify when stored messages are read on ble connect 
   const canNotify = useRef<boolean>(false);

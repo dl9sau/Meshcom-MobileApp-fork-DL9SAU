@@ -179,6 +179,17 @@ changes of this fork relative to upstream. The in-app version shows
   (a number that just moves to another slot) keeps them too.
 
 **App / Build**
+- **Background notifications via an Android foreground service.** So the app keeps
+  processing messages and firing notifications while backgrounded (otherwise Android
+  freezes the WebView JS and nothing arrives until you reopen), a foreground service
+  is started while the BLE node is connected — shown by a quiet persistent
+  notification. It uses the **`location`** service type (honest: MeshCom already uses
+  GPS for position beaconing, so this also keeps beaconing alive in the background),
+  and the location permission rationale explains it's for your position **and**
+  background notifications — **not tracking**. Built on the MIT-licensed
+  `@capawesome-team/capacitor-android-foreground-service` plugin; a hand-written
+  native Kotlin service is envisioned later to be independent of external licenses.
+- **Capacitor 8** (upgraded from 7, aligned with upstream) — new SDK/plugin baseline.
 - App version shows the fork id + short git hash: `4.27-DL9SAU-g<hash>`.
 - GitHub Actions workflow builds a debug APK named
   `Meshcom-<version>-DL9SAU-g<hash>.apk`.
