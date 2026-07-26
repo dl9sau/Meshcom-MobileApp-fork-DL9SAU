@@ -204,10 +204,12 @@ jobs:
       - name: Build web app
         run: npm run build
 
-      # ios/ is not committed, so create the native project on the fly
-      # (cap sync runs `pod install`)
+      # a stale ios/ IS committed (Cap 7); drop it and regenerate a fresh Cap-8
+      # project (like the android job does). Removal is only in the runner checkout.
+      # (cap sync runs `pod install`.)
       - name: Add & sync iOS platform
         run: |
+          rm -rf ios
           npx cap add ios
           npx cap sync ios
 
