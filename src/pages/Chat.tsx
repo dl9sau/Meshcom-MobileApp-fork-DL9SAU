@@ -920,11 +920,13 @@ const Tab3: React.FC = () => {
     const st = globeState(msg);
     // TEST (2026-07-26): when we're confident the msg actually reached us via HF
     // (state 'dim' = gw bit set BUT the whole path is in our recent HF horizon),
-    // show NO globe at all instead of a dimmed one. To restore the dimmed marker,
-    // swap the two lines below (comment this one, uncomment the original).
-    if (st === 'none' || st === 'dim') return null;
+    // show NO globe at all instead of a dimmed one. TO RESTORE the dimmed marker:
+    // delete the two TEST lines and uncomment the two ORIGINAL lines below.
+    if (st === 'none' || st === 'dim') return null;   // TEST
+    return <span>🌐 </span>;                           // TEST (solid only)
+    // ORIGINAL:
     // if (st === 'none') return null;
-    return <span style={st === 'dim' ? { opacity: 0.4 } : undefined}>🌐 </span>;
+    // return <span style={st === 'dim' ? { opacity: 0.4 } : undefined}>🌐 </span>;
   };
 
   // reply time reference "[HH:MM] " from a message's msgTime ("HH:MM:SS")
