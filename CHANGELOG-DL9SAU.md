@@ -106,7 +106,13 @@ changes of this fork relative to upstream. The in-app version shows
   conversation partner (their call if they wrote it, the recipient if you did).
 - **Resend** for your own *unacknowledged* messages — sends directly, no retype.
 - **🌐 via Gateway** marker: messages that already travelled via an MQTT gateway
-  (header byte 6, bit `0x80`) are flagged in the chat bubble.
+  (header byte 6, bit `0x80`) are flagged in the chat bubble. The marker now has a
+  **nuance**: a gateway sets the bit on ~everything it relays, so it can't tell
+  "reached me via internet" from "gatewayed upstream but I heard it on HF". If the
+  whole message path (sender + via relays + VIA node) is in your **recent HF
+  horizon** (sender heard directly, or every path node seen on HF in the last 24 h),
+  the globe is shown **dimmed** — very likely local despite the bit. Solid globe =
+  bit set and path not confirmable as local; no globe = definitely local (bit unset).
 
 **Map & Heard**
 - **Booked talk groups per node** (`Grp: 232, 2321`) — the talk groups a node has

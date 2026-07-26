@@ -1,5 +1,5 @@
 import { IonButton, IonActionSheet, IonContent, IonFooter, IonGrid, IonHeader, IonIcon, IonInput, IonItem, IonPage, IonText, IonTitle, IonToolbar, useIonViewDidEnter, useIonViewWillEnter, IonAlert, useIonViewWillLeave, IonButtons, IonModal, IonCheckbox, IonSegmentButton, IonLabel, IonSegment, IonTextarea, IonToast } from '@ionic/react';
-import React,{ useEffect, useRef, useState, createRef } from 'react';
+import React,{ useEffect, useRef, useState, createRef, useMemo } from 'react';
 import {ConfType, MsgType, InfoData} from '../utils/AppInterfaces';
 import {useBLE} from '../hooks/BleHandler';
 import './Chat.css';
@@ -7,6 +7,8 @@ import { useStoreState } from 'pullstate';
 import { DevIDStore } from '../store';
 import { getConfigStore, getDevID, getMsgStore, getPlatformStore } from '../store/Selectors';
 import MsgStore from '../store/MsgStore';
+import MheardStore from '../store/MheardStore';
+import PosiStore from '../store/PosiStore';
 import ConfigStore from '../store/ConfStore';
 import { checkmark, cloudDoneOutline, cloudOutline, caretForwardCircle, settings} from 'ionicons/icons';
 import { LocalNotifications } from '@capacitor/local-notifications';
@@ -48,6 +50,17 @@ const Tab3: React.FC = () => {
   
   // msgs from store
   const msgArr_s:MsgType[] = useStoreState(MsgStore, getMsgStore);
+
+  // for the gateway-marker nuance: directly-heard nodes + when we last saw each
+  // node (position timestamp). Only consulted for messages that carry the 0x80 bit.
+  const mhArr_gw = useStoreState(MheardStore, s => s.mhArr);
+  const posArr_gw = useStoreState(PosiStore, s => s.posArr);
+  const mheardSet = useMemo(() => new Set(mhArr_gw.map(m => (m.mh_callSign || "").trim().toUpperCase())), [mhArr_gw]);
+  const posMap = useMemo(() => {
+    const m: { [k: string]: number } = {};
+    posArr_gw.forEach(p => { m[(p.callSign || "").trim().toUpperCase()] = p.timestamp; });
+    return m;
+  }, [posArr_gw]);
 
   // get config for node callsign. need to know if the message in store is ours
   const config_s:ConfType = useStoreState(ConfigStore, getConfigStore);
@@ -857,6 +870,32 @@ const Tab3: React.FC = () => {
     return parts.join(" > ");
   };
 
+  // Gateway-marker nuance. The 0x80 bit ("ran via an MQTT gateway") is set by
+  // gateways on ~everything they relay, so it can't say "reached ME via internet".
+  // If the bit is NOT set -> definitely local HF (no globe). If it IS set but the
+  // whole message path (sender + via relays + the bracketed VIA node) is in our
+  // recent HF horizon (sender heard directly, OR every path node seen on HF in the
+  // last 24h), it very likely reached us via HF -> show a DIMMED globe. Otherwise a
+  // solid globe. (Short-circuits for non-gateway messages: no parsing needed.)
+  const norm = (c: string) => (c || "").replace(/[[\]]/g, "").trim().toUpperCase();
+  const globeState = (msg: MsgType): 'none' | 'solid' | 'dim' => {
+    if (msg.gw !== 1) return 'none';
+    if (mheardSet.has(norm(msg.fromCall))) return 'dim';   // sender heard directly on HF
+    const nodes = new Set<string>();
+    const sf = norm(msg.fromCall); if (sf) nodes.add(sf);
+    (msg.via || "").split(" > ").forEach(p => { const n = norm(p); if (n) nodes.add(n); });
+    const now = Date.now();
+    const DAY = 24 * 3600 * 1000;
+    const arr = [...nodes];
+    const allLocal = arr.length > 0 && arr.every(n => posMap[n] !== undefined && (now - posMap[n]) < DAY);
+    return allLocal ? 'dim' : 'solid';
+  };
+  const globeEl = (msg: MsgType) => {
+    const st = globeState(msg);
+    if (st === 'none') return null;
+    return <span style={st === 'dim' ? { opacity: 0.4 } : undefined}>🌐 </span>;
+  };
+
   // reply time reference "[HH:MM] " from a message's msgTime ("HH:MM:SS")
   const timeRef = (msgTime: string): string => {
     const t = (msgTime || "").slice(0, 5);
@@ -1257,8 +1296,10 @@ const Tab3: React.FC = () => {
                       <IonText id="from-call">{(msg.isDM && !msg.isGrpMsg) ? (msg.fromCall === config_s.callSign ? "To " + msg.toCall : msg.fromCall + " → " + msg.toCall) : msg.fromCall}</IonText>
                       {(() => {
                         const relays = viaRelays(msg.via, msg.fromCall);
-                        const viaTxt = relays.length > 0 ? (msg.gw === 1 ? "🌐 via " : "via ") + relays : (msg.gw === 1 ? "🌐 via Gateway" : "");
-                        return viaTxt ? <IonText id="msg-via"> ({viaTxt})</IonText> : null;
+                        const gEl = globeEl(msg);
+                        if (relays.length > 0) return <IonText id="msg-via"> ({gEl}via {relays})</IonText>;
+                        if (gEl) return <IonText id="msg-via"> ({gEl}via Gateway)</IonText>;
+                        return null;
                       })()}
                       <IonText id="msg-time"> ·{msg.msgTime?.slice(0, 5)}</IonText>
                     </div>
@@ -1284,14 +1325,14 @@ const Tab3: React.FC = () => {
                     if (relays.length > 0) {
                       return (
                         <div className="ion-text-start">
-                          <IonText id="msg-via">{msg.gw === 1 ? "🌐 " : ""}via:{relays}</IonText>
+                          <IonText id="msg-via">{globeEl(msg)}via:{relays}</IonText>
                         </div>
                       );
                     }
                     if (msg.gw === 1) {
                       return (
                         <div className="ion-text-start">
-                          <IonText id="msg-via">🌐 via Gateway</IonText>
+                          <IonText id="msg-via">{globeEl(msg)}via Gateway</IonText>
                         </div>
                       );
                     }
