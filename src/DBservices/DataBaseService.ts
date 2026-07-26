@@ -120,7 +120,8 @@ class DatabaseService {
                         alt_press REAL,
                         gas_res REAL,
                         hops INTEGER DEFAULT -1,
-                        via TEXT
+                        via TEXT,
+                        groups TEXT
                     )
                 `).catch((err) => {
                     LogS.log(1, 'Error creating Positions table:' + err);
@@ -133,6 +134,15 @@ class DatabaseService {
                     LogS.log(1, 'Checking/adding hops, via in Positions table:' + err);
                     await DatabaseService.db?.execute(`ALTER TABLE Positions ADD COLUMN hops INTEGER DEFAULT -1;`);
                     await DatabaseService.db?.execute(`ALTER TABLE Positions ADD COLUMN via TEXT;`);
+                });
+            }
+
+            // guarded migration: add groups (booked talk groups, R= field) to existing
+            // Positions tables (separate check so DBs that already have hops/via migrate too)
+            if (DatabaseService.db) {
+                await DatabaseService.db.query(`SELECT groups FROM Positions;`).catch(async (err) => {
+                    LogS.log(1, 'Checking/adding groups in Positions table:' + err);
+                    await DatabaseService.db?.execute(`ALTER TABLE Positions ADD COLUMN groups TEXT;`);
                 });
             }
 
@@ -278,6 +288,8 @@ class DatabaseService {
                                 RelayCountService.seedMax(neighbour, hops.slice(0, hops.length - 1));
                             }
                         }
+                        // seed booked groups too (Mheard list / map overlay / GW-TG list)
+                        if (p.groups) NodeRuntimeService.setGroups(p.callSign, p.groups);
                     }
                 }
 
@@ -473,8 +485,8 @@ class DatabaseService {
             console.log('DB Writing position:', pos.callSign);
             try {
                 const id = Date.now();
-                const query_str = `INSERT INTO positions (id,timestamp, callSign, lat, lon, alt, bat, hw, pressure, temperature, humidity, qnh, comment, temp_2, co2, alt_press, gas_res, hops, via) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
-                const values = [id, pos.timestamp, pos.callSign, pos.lat, pos.lon, pos.alt, pos.bat, pos.hw, pos.pressure, pos.temperature, pos.humidity, pos.qnh, pos.comment, pos.temp_2, pos.co2, pos.alt_press, pos.gas_res, pos.hops ?? -1, pos.via ?? ""];
+                const query_str = `INSERT INTO positions (id,timestamp, callSign, lat, lon, alt, bat, hw, pressure, temperature, humidity, qnh, comment, temp_2, co2, alt_press, gas_res, hops, via, groups) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
+                const values = [id, pos.timestamp, pos.callSign, pos.lat, pos.lon, pos.alt, pos.bat, pos.hw, pos.pressure, pos.temperature, pos.humidity, pos.qnh, pos.comment, pos.temp_2, pos.co2, pos.alt_press, pos.gas_res, pos.hops ?? -1, pos.via ?? "", pos.groups ?? ""];
                 const ret = await DatabaseService.db.run(query_str, values);
                 console.log('DB writePos ret:', ret.changes?.values);
                 // update the store
@@ -495,8 +507,8 @@ class DatabaseService {
         if (DatabaseService.db) {
             console.log('DB Updating position:', pos.callSign);
             try {
-                const query_str = `UPDATE positions SET timestamp = ?, lat = ?, lon = ?, alt = ?, bat = ?, hw = ?, pressure = ?, temperature = ?, humidity = ?, qnh = ?, comment = ?, temp_2 = ?, co2 = ?, alt_press = ?, gas_res = ?, hops = ?, via = ? WHERE callSign = ?`;
-                const values = [pos.timestamp, pos.lat, pos.lon, pos.alt, pos.bat, pos.hw, pos.pressure, pos.temperature, pos.humidity, pos.qnh, pos.comment, pos.temp_2, pos.co2, pos.alt_press, pos.gas_res, pos.hops ?? -1, pos.via ?? "", pos.callSign];
+                const query_str = `UPDATE positions SET timestamp = ?, lat = ?, lon = ?, alt = ?, bat = ?, hw = ?, pressure = ?, temperature = ?, humidity = ?, qnh = ?, comment = ?, temp_2 = ?, co2 = ?, alt_press = ?, gas_res = ?, hops = ?, via = ?, groups = ? WHERE callSign = ?`;
+                const values = [pos.timestamp, pos.lat, pos.lon, pos.alt, pos.bat, pos.hw, pos.pressure, pos.temperature, pos.humidity, pos.qnh, pos.comment, pos.temp_2, pos.co2, pos.alt_press, pos.gas_res, pos.hops ?? -1, pos.via ?? "", pos.groups ?? "", pos.callSign];
                 const ret = await DatabaseService.db.run(query_str, values);
                 console.log('DB updatePos ret:', ret.changes?.values);
                 // read back all positions

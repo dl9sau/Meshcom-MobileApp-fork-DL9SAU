@@ -36,7 +36,8 @@ export interface PosType {
     alt_press:number,
     gas_res:number,
     hops?:number,   // relays between origin and us (0 = direct); persisted for the map overlay
-    via?:string     // route path string (incl. origin), e.g. "OE1KFR-2 > OE1KFR-1"
+    via?:string,    // route path string (incl. origin), e.g. "OE1KFR-2 > OE1KFR-1"
+    groups?:string  // booked talk groups (R= field), ","-joined, e.g. "232,2321" (upstream-aligned)
 }
 
 // config interface

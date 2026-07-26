@@ -14,7 +14,7 @@ class NodeRuntimeService {
     private ensure(call: string): NodeRuntimeInfo {
         let rec = this.info.get(call);
         if (!rec) {
-            rec = { hops: -1, path: "", posCount: 0, msgCount: 0 };
+            rec = { hops: -1, path: "", posCount: 0, msgCount: 0, groups: "" };
             this.info.set(call, rec);
         }
         return rec;
@@ -34,6 +34,16 @@ class NodeRuntimeService {
         if (rec.hops === hops && rec.path === path) return; // no change
         rec.hops = hops;
         rec.path = path;
+        this.mirror(c, rec);
+    }
+
+    // record the booked talk groups for a node (last one wins)
+    setGroups(call: string, groups: string) {
+        const c = this.norm(call);
+        if (c === "") return;
+        const rec = this.ensure(c);
+        if (rec.groups === groups) return; // no change
+        rec.groups = groups;
         this.mirror(c, rec);
     }
 

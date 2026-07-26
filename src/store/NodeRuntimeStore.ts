@@ -13,6 +13,7 @@ export interface NodeRuntimeInfo {
     path: string;      // route path, e.g. "OE1KFR-2 > OE1KFR-1"; "" = unknown
     posCount: number;  // position reports received from this node this runtime
     msgCount: number;  // text messages received from this node this runtime
+    groups: string;    // booked talk groups (R= field), ","-joined, e.g. "232,2321"; "" = unknown
 }
 
 export interface NodeRuntimeState {

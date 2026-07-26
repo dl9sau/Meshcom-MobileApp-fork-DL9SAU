@@ -826,6 +826,7 @@ export function useMSG() {
                     let co2_ = 0;
                     let data_vers_ = 0;
                     let alt_press_ = 0;  // currently F indicator is altitude from pressure but should be QFE, which is not ready implemented!
+                    let groups_str = "";  // booked talk groups from the R= field (see below)
                     //let qfe_ = 0;
 
                     // NEW-POS: 099 ! xA4ED0019 05 0 1 OE1KFR-2>*!4814.35N/01619.05E#/A=000804/P=984.3/H=48.0/T=20.7/O=20.8/F=243/G=36.3/V=3 HW:10 MOD:03 FCS:146D FW:1D LH:0A
@@ -909,6 +910,18 @@ export function useMSG() {
                                     console.log("CO2: " + co2_);
                                     break;
                                 }
+                                case "R=": {
+                                    // the talk groups a node has booked, ";"-separated,
+                                    // e.g. 232;2321;2323; (trailing ";" dropped). Stored
+                                    // as a ","-joined string - kept identical to upstream.
+                                    const groups = value_str.split(";");
+                                    if (groups[groups.length - 1] === "") {
+                                        groups.pop();
+                                    }
+                                    groups_str = groups.join(",");
+                                    console.log("Groups: " + groups_str);
+                                    break;
+                                }
                                 case "F=": {
 
                                     alt_press_ = +value_str;
@@ -947,7 +960,8 @@ export function useMSG() {
                             co2: co2_,
                             alt_press: alt_press_,
                             hops: node_hops,
-                            via: node_via
+                            via: node_via,
+                            groups: groups_str
                         }
 
                         // drop the redundant origin (= from-call, already shown) from
@@ -956,6 +970,9 @@ export function useMSG() {
                         LogS.log(0, `Pos Msg from ${from_callsign_}${posViaHops ? " via " + posViaHops : " (direct)"}: Lat ${lat_degree_final} Lon ${lon_degree_final} Alt ${alt_nr_meter}m`);
                         // count position reports per node (runtime)
                         NodeRuntimeService.incPos(from_callsign_);
+                        // booked groups for the Mheard list / map overlay (runtime store,
+                        // seeded from the DB on start like hops/path)
+                        if (groups_str !== "") NodeRuntimeService.setGroups(from_callsign_, groups_str);
                         return (newPosDB);
 
                     } else {
