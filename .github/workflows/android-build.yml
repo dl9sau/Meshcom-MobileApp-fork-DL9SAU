@@ -206,18 +206,26 @@ jobs:
 
       # a stale ios/ IS committed (Cap 7); drop it and regenerate a fresh Cap-8
       # project (like the android job does). Removal is only in the runner checkout.
-      # (cap sync runs `pod install`.)
       - name: Add & sync iOS platform
         run: |
           rm -rf ios
           npx cap add ios
           npx cap sync ios
+          # CocoaPods creates the .xcworkspace; run it explicitly if there's a Podfile
+          if [ -f ios/App/Podfile ]; then (cd ios/App && pod install); fi
+          ls -la ios/App
 
-      # compile-only for the simulator, signing disabled (no Apple account needed)
+      # compile-only for the simulator, signing disabled (no Apple account needed).
+      # use the workspace if CocoaPods produced one, else the plain project (SPM).
       - name: Compile iOS (simulator, unsigned)
         run: |
-          xcodebuild \
-            -workspace ios/App/App.xcworkspace \
+          if [ -d ios/App/App.xcworkspace ]; then
+            TARGET="-workspace ios/App/App.xcworkspace"
+          else
+            TARGET="-project ios/App/App.xcodeproj"
+          fi
+          echo "Building with: $TARGET"
+          xcodebuild $TARGET \
             -scheme App \
             -configuration Debug \
             -sdk iphonesimulator \
