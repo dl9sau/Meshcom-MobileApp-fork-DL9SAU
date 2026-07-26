@@ -70,9 +70,15 @@ changes of this fork relative to upstream. The in-app version shows
   `#60 *wetter*` keeps "Wetterbericht Berlin" in TG 60 even with a global deny
   `*etterb*`. Check **sequence: callsign-deny → allow → text-deny** (callsign-deny
   runs first, so it stays the escape hatch to drop a spammer inside a whitelisted
-  channel). Doubles as a **quick filter off-switch**: put `*` in Allow to pass all
-  content (`*` = everywhere, `#60 *` = only TG 60) without deleting your deny rules.
-  Stored alongside the deny rules (`ftype='allow'` in the MsgFilters table).
+  channel). `*` in Allow also passes all **content** (`*` = everywhere, `#60 *` =
+  only TG 60) without deleting rules — but this bypasses only the text filters; the
+  callsign-deny still runs first. Stored alongside the deny rules (`ftype='allow'`
+  in the MsgFilters table).
+- **Master on/off switch for the whole filter** (*Settings → Message Filter*, top).
+  Off shows **everything** — callsign-deny, allow and text-deny all bypassed — with
+  no rule deleted; flip it back on and your rules are exactly as before. (Unlike the
+  `*`-allow trick this also turns off the callsign blocks.) Persisted as
+  `filtersEnabled`; the chat view refreshes immediately on toggle.
 - **Per-channel notifications & visibility — long-press a channel tab.** One
   in-app menu per tab (All, DM, each talk group), so it works the same on Android
   and iOS with nothing stuck in the OS. A one-time hint points out the gesture.

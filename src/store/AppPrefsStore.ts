@@ -31,6 +31,9 @@ export interface AppPrefsState {
     // own callsign, persisted so housekeeping can tell my DMs from overheard ones
     // (at app start, before a node connects, the live config call is not known yet)
     ownCall: string;
+    // master on/off for the whole chat filter (callsign-deny + allow + text-deny).
+    // OFF = nothing is filtered, without deleting any rules. Default ON.
+    filtersEnabled: boolean;
     // retention per category, in DAYS (0 = unlimited / never delete)
     retAll: number;        // ALL / broadcast
     retGroup: number;      // group channels
@@ -53,6 +56,7 @@ const AppPrefsStore = new Store<AppPrefsState>({
     tabHintSeen: false,
     tgLabels: "{}",
     ownCall: "",
+    filtersEnabled: true,
     retAll: 2,
     retGroup: 7,
     retMyDM: 90,

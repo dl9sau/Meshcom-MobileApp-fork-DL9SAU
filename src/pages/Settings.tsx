@@ -317,6 +317,8 @@ const Tab2: React.FC = () => {
   const filterCallsRef = useRef<HTMLIonTextareaElement>(null);
   const filterTextRef = useRef<HTMLIonTextareaElement>(null);
   const filterAllowRef = useRef<HTMLIonTextareaElement>(null);
+  // master on/off for the whole filter (rules stay, nothing is hidden when off)
+  const filtersEnabled = useStoreState(AppPrefsStore, s => s.filtersEnabled);
 
   // persist the block-filter rules and refresh the chat view
   const saveMsgFilters = async () => {
@@ -325,6 +327,14 @@ const Tab2: React.FC = () => {
     const allowRaw = filterAllowRef.current?.value?.toString() ?? "";
     await DataBaseService.saveMsgFilters(callRaw, textRaw, allowRaw);
     LogS.log(0, "Settings: Msg filters saved");
+  };
+
+  // flip the master filter switch and re-run the chat view immediately
+  const setFiltersEnabled = async (on: boolean) => {
+    AppPrefsStore.update(s => { s.filtersEnabled = on; });
+    await DataBaseService.setPref('filtersEnabled', on ? '1' : '0');
+    await DataBaseService.reapplyChatFilters();
+    LogS.log(0, "Settings: Msg filter master " + (on ? "ON" : "OFF"));
   };
 
   // compact vs legacy chat message header (app preference)
@@ -2892,6 +2902,10 @@ const Tab2: React.FC = () => {
                     </IonButton>
                   </div>
                 </div>
+                <IonItem>
+                  <IonToggle enableOnOffLabels={true} checked={filtersEnabled} onIonChange={(ev) => setFiltersEnabled(ev.detail.checked)}>Filter enabled</IonToggle>
+                </IonItem>
+                <div className='mt-3 mb-3'>Master switch — off shows everything (rules are kept, nothing is deleted).</div>
                 <div className='mt-3 mb-3'><b>Sequence: Call → Allow → Deny</b></div>
                 <div className='mt-3 mb-3'>Blocked callsigns (one per line, incl. SSID)</div>
                 <IonItem>

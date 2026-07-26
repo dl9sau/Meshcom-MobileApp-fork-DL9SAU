@@ -1,6 +1,7 @@
 import { MsgType } from "./AppInterfaces";
 import ConfigObject from "./ConfigObject";
 import MsgFilterStore from "../store/MsgFilterStore";
+import AppPrefsStore from "../store/AppPrefsStore";
 
 // Configurable filter for chat messages. Three kinds of rules:
 //   - callsign block (DENY): exact match on fromCall (full, incl. SSID)
@@ -155,6 +156,9 @@ class MsgFilterService {
     // number, not a broadcast '*'), so a real DM is isDM=1 AND isGrpMsg!=1 -
     // otherwise the filter would never touch any group-channel message.
     isChannelMsgBlocked(msg: MsgType): boolean {
+        // master off-switch: whole filter disabled -> nothing is hidden (rules kept)
+        if (!AppPrefsStore.getRawState().filtersEnabled) return false;
+
         if (msg.isDM === 1 && msg.isGrpMsg !== 1) return false;
 
         const own = ConfigObject.getConf().CALL;
