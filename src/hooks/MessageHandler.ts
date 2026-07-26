@@ -116,9 +116,7 @@ export function useMSG() {
                 console.log("MSGID: " + msgID);
                 let route_calls = false;
                 let isDM_ = 0;    // flag broadcast or DM message
-                let dm_callsign_start = 0;  // start position of DM call in message
                 let dm_callsign = "";
-                let dm_call_arr: number[] = [];     // buffer for DM callsign
                 let timestamp_node = 0;
                 let isGrpMsg_ = 0;
                 let grpNum_ = 0;
@@ -243,67 +241,89 @@ export function useMSG() {
                         NodeRuntimeService.setPath(from_callsign_, node_hops, node_via);
                     }
 
-                    // Destination field = everything between '>' and ':'. In MeshCom it
-                    // can carry "routing,message-to": the ACTUAL destination is the LAST
-                    // comma-separated segment (this mirrors the node firmware parser in
-                    // aprs_functions.cpp). Some relayed/gatewayed packets arrive as
-                    // "...>CALL,X" where X is the real target ('*' = broadcast, a number =
-                    // talk group, or a recipient callsign) and CALL is routing info. So we
-                    // read the WHOLE field and classify on the last segment - otherwise a
-                    // broadcast wrongly lands in DMs, or a DM addressed to us isn't
-                    // recognised as ours (and gets hidden under "hide others' DMs").
-                    dm_callsign_start = text_offset - 2;
+                    /**
+                     * Since 4.35p July 11 there is a new VIA function which routes messages over a specific node.
+                     * A Group message is also a DM but to a number instead of a callsign.
+                     * New format: OE1KFR-7>OE1KFR-1,9:test       (group via OE1KFR-1)
+                     *             OE1KFR-7>OE1KFR-1,OE1KFR-2:hello (DM via OE1KFR-1)
+                     *             OE1KFR-7>OE1KFR-1,*:hello       (broadcast via OE1KFR-1)
+                     * Old format: OE1KFR>*:Test                   (broadcast, no via)
+                     *             OE1KFR-4>OE1KFR-2:Test          (DM, no via)
+                     * The last routing element before ':' / '!' determines the message type.
+                     * Intermediate via nodes are ignored.
+                     */
 
-                    let dm_arr_index = 0;
-                    for (let i = dm_callsign_start; i < msg_len; i++){
+                    // Absolute byte position of '>' (right after from-callsign)
+                    const gt_abs_pos = call_offset + call_len + 1;
 
-                        // stop at ':' (0x3a, text) OR '!' (0x21, position) - the
-                        // separator right after the destination field. BOTH must be
-                        // handled: we now always read the dest field (for the last-
-                        // segment rule), and position messages terminate the dest with
-                        // '!', not ':' - matching upstream ("before ':' / '!'").
-                        if(msg.getUint8(i) === 0x3a || msg.getUint8(i) === 0x21){
-                            // set start of message text accordingly
-                            text_offset = i + 1;
+                    // Search for the message separator after '>':
+                    // msg_type 58 (':') for text, 33 ('!') for pos
+                    let sep_pos = -1;
+                    for (let i = gt_abs_pos + 1; i < msg_len; i++) {
+                        if (msg.getUint8(i) === msg_type) {
+                            sep_pos = i;
                             break;
                         }
-
-                        dm_call_arr[dm_arr_index] = msg.getUint8(i);
-                        dm_arr_index++;
                     }
 
-                    // whole destination field, then the effective target = last segment
-                    dm_callsign = convBARRtoStr(dm_call_arr);
-                    const dest_parts = dm_callsign.split(",");
-                    const dest_to = dest_parts[dest_parts.length - 1].trim();
-                    console.log("Dest field: '" + dm_callsign + "' -> effective target: '" + dest_to + "'");
+                    if (sep_pos !== -1) {
+                        // Text/pos data starts right after the separator
+                        text_offset = sep_pos + 1;
 
-                    if(dest_to === "*"){
-                        // broadcast -> ALL / broadcast channel
-                        isDM_ = 0;
-                    } else {
-                        isDM_ = 1;
-                        // the actual recipient/group is the last segment, not the raw field
-                        to_callsign_ = dest_to;
-                        // a numeric destination is a talk group
-                        if(dest_to !== "" && !isNaN(+dest_to)){
-                            isGrpMsg_ = 1;
-                            grpNum_ = +dest_to;
-                            console.log("Group Message Nr: " + grpNum_);
+                        // Find the last ',' between '>' and the separator.
+                        // The element after it is the final routing target.
+                        let last_sep_pos = gt_abs_pos;
+                        for (let i = gt_abs_pos + 1; i < sep_pos; i++) {
+                            if (msg.getUint8(i) === 44) { // ','
+                                last_sep_pos = i;
+                            }
                         }
-                    }
 
-                    // if the destination carried a routing prefix ("ROUTING,X"), surface
-                    // it in the via path as upstream hop(s) so these odd packets stay
-                    // recognisable, e.g. "🌐 via DD0NM-99 > DB0FRI-12". The origin
-                    // (== fromCall) is dropped in the via display (viaRelays), so keep it
-                    // first and insert the routing right after it.
-                    const dm_dest_routing = dest_parts.slice(0, -1).map(s => s.trim()).filter(s => s !== "");
-                    if (dm_dest_routing.length > 0) {
-                        const vparts = via_str.split(" > ").map(p => p.trim()).filter(p => p !== "");
-                        via_str = (vparts.length >= 1
-                            ? [vparts[0], ...dm_dest_routing, ...vparts.slice(1)]
-                            : [from_callsign_, ...dm_dest_routing]).join(" > ");
+                        // Extract the final routing element
+                        let last_elem_arr: number[] = [];
+                        let elem_idx = 0;
+                        for (let i = last_sep_pos + 1; i < sep_pos; i++) {
+                            last_elem_arr[elem_idx++] = msg.getUint8(i);
+                        }
+                        const last_elem_str = convBARRtoStr(last_elem_arr);
+                        console.log("Last routing element: " + last_elem_str);
+
+                        if (last_elem_str === "*") {
+                            isDM_ = 0;
+                            console.log("Broadcast Message received");
+                        } else {
+                            isDM_ = 1;
+                            dm_callsign = last_elem_str;
+                            to_callsign_ = dm_callsign;
+                            console.log("DM Dest. Callsign: " + dm_callsign);
+
+                            // A pure number means group message
+                            if (!isNaN(+dm_callsign) && dm_callsign.trim() !== "") {
+                                isGrpMsg_ = 1;
+                                grpNum_ = +dm_callsign;
+                                console.log("Group Message Nr: " + grpNum_);
+                            }
+                        }
+
+                        // --- DL9SAU deviation from upstream (only this): upstream IGNORES
+                        // the intermediate VIA node(s); we keep them for display. Extract
+                        // everything between '>' and the last ',' (the routing prefix) and
+                        // insert it into the via line after the origin (viaRelays drops the
+                        // origin == fromCall), e.g. "🌐 via OE1KFR-1 > DB0FRI-12".
+                        if (last_sep_pos > gt_abs_pos) {
+                            let via_prefix_arr: number[] = [];
+                            let vp_idx = 0;
+                            for (let i = gt_abs_pos + 1; i < last_sep_pos; i++) {
+                                via_prefix_arr[vp_idx++] = msg.getUint8(i);
+                            }
+                            const via_prefix = convBARRtoStr(via_prefix_arr).split(",").map(s => s.trim()).filter(s => s !== "");
+                            if (via_prefix.length > 0) {
+                                const vparts = via_str.split(" > ").map(p => p.trim()).filter(p => p !== "");
+                                via_str = (vparts.length >= 1
+                                    ? [vparts[0], ...via_prefix, ...vparts.slice(1)]
+                                    : [from_callsign_, ...via_prefix]).join(" > ");
+                            }
+                        }
                     }
                 }
 
