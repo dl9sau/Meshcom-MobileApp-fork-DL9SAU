@@ -453,6 +453,27 @@ class DatabaseService {
         return [];
     }
 
+    // aggregated booked talk groups seen across ALL nodes whose last position is
+    // newer than sinceMs (e.g. last 24 h): a merged, de-duplicated, numeric-only,
+    // ascending list. Used as a "GW TGs" discovery hint above the group slots.
+    static async getRecentGroups(sinceMs: number): Promise<number[]> {
+        const set = new Set<number>();
+        if (DatabaseService.db) {
+            try {
+                const res = await DatabaseService.db.query(`SELECT groups FROM Positions WHERE timestamp >= ${sinceMs};`);
+                for (const row of (res.values ?? [])) {
+                    for (const part of ((row.groups ?? "") as string).split(",")) {
+                        const n = parseInt(part.trim());
+                        if (!isNaN(n)) set.add(n);   // numeric TGs only (drops '*'/ALL etc.)
+                    }
+                }
+            } catch (error) {
+                LogS.log(1, 'Error getting recent groups:' + error);
+            }
+        }
+        return Array.from(set).sort((a, b) => a - b);
+    }
+
     // get a single position
     static async getPos(callSign: string) {
         if (DatabaseService.db) {

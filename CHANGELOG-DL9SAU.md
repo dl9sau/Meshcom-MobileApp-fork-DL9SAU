@@ -105,6 +105,10 @@ changes of this fork relative to upstream. The in-app version shows
   (header byte 6, bit `0x80`) are flagged in the chat bubble.
 
 **Map & Heard**
+- **Booked talk groups per node** (`Grp: 232, 2321`) — the talk groups a node has
+  subscribed to (from the firmware `R=` field) are shown in the **map node overlay**
+  and the **Mheard list**, and persist across restarts (ported from upstream: a
+  `groups` column on Positions, mirrored into the runtime store like hops/path).
 - Node detail overlay reworked: **Age**, **Dist** (km to you), **SNR/RSSI** (for
   directly heard nodes), **Hops**, **Path** (origin dropped, wrapped after 2
   calls, `direct` for direct nodes), **#pos / #msg** counters and — for directly
@@ -129,6 +133,10 @@ changes of this fork relative to upstream. The in-app version shows
 - Tab renamed to **"Heard Direct Nodes"**.
 
 **Settings**
+- **GW TGs (last 24h) hint** above the group slots: a merged, numeric, ascending
+  list of the talk groups other nodes have broadcast in the last 24 h — a discovery
+  aid (esp. for newcomers) to pick which TGs to subscribe to. Read-only; never
+  touches your slots.
 - **Node command console** (*Advanced Settings*): send a raw **`--command`** to the
   node like the web/serial CLI — one free field (`--` is prepended if you omit it).
   The node's `--…` reply is shown below with a green ✓, or *no response* on timeout.

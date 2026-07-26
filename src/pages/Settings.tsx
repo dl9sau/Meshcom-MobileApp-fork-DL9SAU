@@ -226,6 +226,16 @@ const Tab2: React.FC = () => {
 
   // Group Call Settings
   const [shGroupCallSet, setShGroupCallSet] = useState<boolean>(false);
+
+  // "GW TGs (last 24h)" discovery hint: the merged talk groups broadcast by nodes
+  // in the last 24 h (numeric, ascending). Helps esp. newcomers pick slots. Refreshed
+  // whenever the group section is opened. (Read-only; never touches the user's slots.)
+  const [gwGroups, setGwGroups] = useState<number[]>([]);
+  useEffect(() => {
+    if (shGroupCallSet) {
+      DataBaseService.getRecentGroups(Date.now() - 24 * 3600 * 1000).then(setGwGroups);
+    }
+  }, [shGroupCallSet]);
   const setGrpCmd = useRef<string>("");
   const groupSettingChanged = useRef<boolean>(false);
   // references for the inputs
@@ -2460,6 +2470,9 @@ const Tab2: React.FC = () => {
             </div>
             {shGroupCallSet &&
               <div className='setting_wrapper'>
+                {/* discovery hint: talk groups other nodes broadcast (last 24h) */}
+                {gwGroups.length > 0 &&
+                  <div className='mb-3'><IonText color="medium">GW TGs (last 24h): {gwGroups.join(", ")}</IonText></div>}
                 {/* number + optional label ("262 DL"); only the number goes to the
                     firmware. Placeholder in Group 1 shows the format. "9 -" clears a label. */}
                 <div className='mt-3 mb-3'>Group 1</div>
