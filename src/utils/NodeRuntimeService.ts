@@ -14,7 +14,7 @@ class NodeRuntimeService {
     private ensure(call: string): NodeRuntimeInfo {
         let rec = this.info.get(call);
         if (!rec) {
-            rec = { hops: -1, path: "", posCount: 0, msgCount: 0, groups: "" };
+            rec = { hops: -1, path: "", posCount: 0, msgCount: 0, groups: "", ncnt: 0 };
             this.info.set(call, rec);
         }
         return rec;
@@ -34,6 +34,16 @@ class NodeRuntimeService {
         if (rec.hops === hops && rec.path === path) return; // no change
         rec.hops = hops;
         rec.path = path;
+        this.mirror(c, rec);
+    }
+
+    // record the firmware neighbour count (from the position "N" field) for a node
+    setNcnt(call: string, ncnt: number) {
+        const c = this.norm(call);
+        if (c === "") return;
+        const rec = this.ensure(c);
+        if (rec.ncnt === ncnt) return; // no change
+        rec.ncnt = ncnt;
         this.mirror(c, rec);
     }
 

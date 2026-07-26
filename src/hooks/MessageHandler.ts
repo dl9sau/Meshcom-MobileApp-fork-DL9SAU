@@ -827,6 +827,7 @@ export function useMSG() {
                     let data_vers_ = 0;
                     let alt_press_ = 0;  // currently F indicator is altitude from pressure but should be QFE, which is not ready implemented!
                     let groups_str = "";  // booked talk groups from the R= field (see below)
+                    let ncnt_ = 0;        // neighbour count from the "N<number>" field (2nd source; max wins vs. mheard)
                     //let qfe_ = 0;
 
                     // NEW-POS: 099 ! xA4ED0019 05 0 1 OE1KFR-2>*!4814.35N/01619.05E#/A=000804/P=984.3/H=48.0/T=20.7/O=20.8/F=243/G=36.3/V=3 HW:10 MOD:03 FCS:146D FW:1D LH:0A
@@ -842,6 +843,15 @@ export function useMSG() {
                             console.log("Field Info: " + fieldinfo);
                             const value_str = str_split[i].slice(2);
                             console.log("Value: " + value_str);
+
+                            // neighbour count "N<number>" (no '=', upstream format e.g. "N5").
+                            // 2nd source next to the mheard NCNT; the larger value wins at
+                            // display time. Handled before the "X=" switch (different shape).
+                            if (str_split[i].startsWith("N") && str_split[i].length >= 2 && !isNaN(+str_split[i].slice(1))) {
+                                ncnt_ = +str_split[i].slice(1);
+                                console.log("Neighbour Count: " + ncnt_);
+                                continue;
+                            }
 
                             switch (fieldinfo){
 
@@ -973,6 +983,9 @@ export function useMSG() {
                         // booked groups for the Mheard list / map overlay (runtime store,
                         // seeded from the DB on start like hops/path)
                         if (groups_str !== "") NodeRuntimeService.setGroups(from_callsign_, groups_str);
+                        // neighbour count from the position N field (2nd source; the display
+                        // takes the max of this and the mheard NCNT)
+                        if (ncnt_ > 0) NodeRuntimeService.setNcnt(from_callsign_, ncnt_);
                         return (newPosDB);
 
                     } else {

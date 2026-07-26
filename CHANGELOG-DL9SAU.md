@@ -118,7 +118,9 @@ changes of this fork relative to upstream. The in-app version shows
   the nodes relayed via that neighbour as **`current (max N)`** — the live count
   for this session plus the all-time total, which is reconstructed on startup from
   the stored positions so a restart no longer drops it to a low value (`≈N` when
-  the two are equal).
+  the two are equal). The firmware neighbour count now has **two sources** — the
+  Mheard `NCNT` and the position `N` field — and the **larger value wins** (before
+  the relay fallback kicks in).
 - **Full hop path on the map.** The map's line toggle (FAB) now draws, when a
   node is selected, that node's **whole route** as a line — `you → neighbour → …
   → origin` (green), instead of only the line to your direct neighbour. Hops with

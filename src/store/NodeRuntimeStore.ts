@@ -14,6 +14,7 @@ export interface NodeRuntimeInfo {
     posCount: number;  // position reports received from this node this runtime
     msgCount: number;  // text messages received from this node this runtime
     groups: string;    // booked talk groups (R= field), ","-joined, e.g. "232,2321"; "" = unknown
+    ncnt: number;      // firmware neighbour count from the position "N" field; 0 = none/unknown
 }
 
 export interface NodeRuntimeState {

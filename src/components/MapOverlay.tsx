@@ -87,18 +87,21 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
     // the Mheard list); current session + all-time "(max N)", same as Mheard
     const relayCounts = useStoreState(RelayCountStore, s => s.counts);
     const relayMax = useStoreState(RelayCountStore, s => s.max);
+    // runtime per-node info (hops/path/#pos/#msg/groups/ncnt)
+    const nodeInfoMap = useStoreState(NodeRuntimeStore, s => s.info);
+    const nodeInfo = callUp ? nodeInfoMap[callUp] : undefined;
     const neighboursText = (() => {
         if (!mheard) return null;                       // not directly heard -> no line
-        if (mheard.mh_ncnt > 0) return "" + mheard.mh_ncnt; // firmware value
+        // firmware neighbour count: the larger of the mheard NCNT and the position "N" field
+        const fwNcnt = Math.max(mheard.mh_ncnt ?? 0, nodeInfo?.ncnt ?? 0);
+        if (fwNcnt > 0) return "" + fwNcnt;
         const session = (callUp ? relayCounts[callUp] : 0) ?? 0;
         const overall = (callUp ? relayMax[callUp] : 0) ?? 0;
         if (overall <= 0) return null;                  // no data -> no line
         return overall > session ? session + " (max " + overall + ")" : "≈" + session;
     })();
 
-    // runtime hops / path / #pos / #msg for this node
-    const nodeInfoMap = useStoreState(NodeRuntimeStore, s => s.info);
-    const nodeInfo = callUp ? nodeInfoMap[callUp] : undefined;
+    // (nodeInfoMap / nodeInfo are defined above, before neighboursText)
     // route path for display: origin dropped, wrapped after every 2 calls
     const pathLines = nodeInfo ? formatPathLines(nodeInfo.path, callSign) : [];
 

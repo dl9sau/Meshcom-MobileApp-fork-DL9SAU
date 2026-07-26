@@ -74,16 +74,18 @@ const Mheard = () => {
                                                     <div className='rowcont'>
                                                         <div>Neighbours:</div>
                                                         <div className='value'>{(() => {
-                                                            // firmware reported a value -> use it
-                                                            if (mhs.mh_ncnt > 0) return mhs.mh_ncnt;
+                                                            const key = mhs.mh_callSign?.toUpperCase();
+                                                            // firmware neighbour count: the larger of the mheard NCNT
+                                                            // and the position "N" field (2nd source)
+                                                            const fwNcnt = Math.max(mhs.mh_ncnt ?? 0, nodeInfoMap[key]?.ncnt ?? 0);
+                                                            if (fwNcnt > 0) return fwNcnt;
                                                             // older firmware reports 0 -> fall back to our count of
                                                             // nodes relayed via this neighbour: current session,
                                                             // plus the all-time "(max N)" reconstructed from stored
                                                             // positions (so a restart doesn't drop it to a low value).
-                                                            const key = mhs.mh_callSign?.toUpperCase();
                                                             const session = relayCounts[key] ?? 0;
                                                             const overall = relayMax[key] ?? 0;
-                                                            if (overall <= 0) return mhs.mh_ncnt;           // no data -> 0
+                                                            if (overall <= 0) return fwNcnt;                // no data -> 0
                                                             if (overall > session) return session + " (max " + overall + ")";
                                                             return "≈" + session;                          // all-time == session
                                                         })()}</div>
