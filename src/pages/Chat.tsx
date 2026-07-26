@@ -26,6 +26,7 @@ import NotifyMsgState from '../store/NotifyMsg';
 import MsgFilterStore from '../store/MsgFilterStore';
 import AppPrefsStore from '../store/AppPrefsStore';
 import { parseTGset, notifyLevelFor, msgDiscarded, isChannelMention } from '../utils/NotifyPrefs';
+import { markSegmentUnread, clearSegmentUnread } from '../store/ChatUnread';
 import { useHistory } from "react-router";
 import LogS from '../utils/LogService';
 import DatabaseService from '../DBservices/DataBaseService';
@@ -370,6 +371,7 @@ const Tab3: React.FC = () => {
           if(Seqgmentbutton){
             Seqgmentbutton.classList.add('segmentbutton_green');
           }
+          markSegmentUnread(seg); // keep the Chat tab dot in sync
         }
       });
       ConfigObject.clearInitChatSegmentMarkers();
@@ -699,6 +701,7 @@ const Tab3: React.FC = () => {
         if (Seqgmentbutton) {
           Seqgmentbutton.classList.add('segmentbutton_green');
         }
+        markSegmentUnread(msgType); // keep the Chat tab dot in sync
       }
     }
 
@@ -1158,6 +1161,7 @@ const Tab3: React.FC = () => {
     if(Seqgmentbutton){
       Seqgmentbutton.classList.remove('segmentbutton_green');
     }
+    clearSegmentUnread(val); // this channel is read now -> update the Chat tab dot
 
     // clear this channel's lingering notification from the shade (you're reading it now)
     clearChannelShade(val);

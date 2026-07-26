@@ -1,6 +1,7 @@
 import { Redirect, Route } from 'react-router-dom';
 import {
   IonApp,
+  IonBadge,
   IonIcon,
   IonLabel,
   IonRouterOutlet,
@@ -10,6 +11,8 @@ import {
   setupIonicReact,
   isPlatform
 } from '@ionic/react';
+import { useStoreState } from 'pullstate';
+import ChatUnreadStore from './store/ChatUnread';
 import { IonReactRouter } from '@ionic/react-router';
 import { chatboxEllipses, bluetooth, settings, globe, move, informationCircleOutline } from 'ionicons/icons';
 import Tab1 from './pages/Connect';
@@ -62,7 +65,11 @@ import { EdgeToEdge } from '@capawesome/capacitor-android-edge-to-edge-support';
 setupIonicReact();
 
 const Appl: React.FC = () => {
-  
+
+  // green "unread" dot on the Chat tab icon: on while any channel still has an
+  // unread (green) segment marker, off once all channels are read.
+  const chatHasUnread = useStoreState(ChatUnreadStore, s => Object.keys(s.segments).length > 0);
+
 
     // set background for the edge to edge support header
   const setBackgroundColor = async () => {
@@ -150,6 +157,17 @@ const Appl: React.FC = () => {
           </IonTabButton>
           <IonTabButton tab="tab3" href="/chat">
             <IonIcon aria-hidden="true" icon={chatboxEllipses} />
+            {chatHasUnread && (
+              <IonBadge
+                color="success"
+                style={{
+                  minWidth: '12px',
+                  height: '12px',
+                  padding: '0',
+                  borderRadius: '50%',
+                }}
+              />
+            )}
           </IonTabButton>
           <IonTabButton tab="map" href="/map">
             <IonIcon aria-hidden="true" icon={globe} />

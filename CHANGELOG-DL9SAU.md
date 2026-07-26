@@ -34,6 +34,15 @@ changes of this fork relative to upstream. The in-app version shows
 ### Features
 
 **Chat**
+- **Green "unread" dot on the Chat tab icon.** When a genuinely new message
+  arrives while you're on another tab (Settings, Map, Mheard …), the bottom Chat
+  icon gets a small green dot so you notice something's up — **regardless of
+  whether that channel is muted or only beeps**. It stays on as long as **any**
+  channel is still unread (has a green segment marker) and only turns off once
+  **all** channels are read; it mirrors the in-chat green segment markers exactly.
+  **Not** shown for discarded channels or filter-blocked messages (an @mention of
+  you still counts), and **never** triggered by the startup DB-fill — only real
+  new live messages.
 - **DM tab shows only your own DMs** by default (to/from you). Long-press the DM
   tab → *Show others' DMs* to reveal all overheard DM traffic (monitoring).
 - **Compact one-line message header** (now the **default**): `sender (via …) ·time`,
