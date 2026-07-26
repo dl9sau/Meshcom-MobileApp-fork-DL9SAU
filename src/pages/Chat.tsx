@@ -176,6 +176,11 @@ const Tab3: React.FC = () => {
 
   // Segment chat filter state
   const [segmentFilter, setSegmentFilter] = useState<string>("ALL");
+  // stale-free mirror of the selected segment, for the lifecycle handlers below
+  // (useIonViewDidEnter / app-active effect capture their closures, so read the
+  // current segment via this ref instead)
+  const segmentFilterRef = useRef<string>("ALL");
+  useEffect(() => { segmentFilterRef.current = segmentFilter; }, [segmentFilter]);
 
   // long-press on a channel tab -> mute/unmute menu (Etappe 1). Refs like the
   // message long-press; a finger move cancels it (the segment bar is scrollable).
@@ -377,6 +382,11 @@ const Tab3: React.FC = () => {
       ConfigObject.clearInitChatSegmentMarkers();
     }
 
+    // entering the chat means you're now looking at the currently-selected segment
+    // -> it counts as read (clears a Chat-tab dot that a message to this very
+    // segment set while the chat was in the background / another tab was shown)
+    clearSegmentUnread(segmentFilterRef.current);
+
     //const devid = devID_s;
     //updateDevID(devid);
     scrollToBottom();
@@ -410,6 +420,9 @@ const Tab3: React.FC = () => {
       stampActivity(); // coming back to the app counts as looking at it
       // you're looking at the app now -> the shade entries are stale, clear them
       LocalNotifications.removeAllDeliveredNotifications().catch(() => {});
+      // if the chat is the visible page, the segment you're on counts as read now
+      // (a message to it while backgrounded set the tab dot -> clear it)
+      if (thisPageActive.current) clearSegmentUnread(segmentFilterRef.current);
       scrollToBottom();
     }
   }, [isAppActive]);
@@ -696,12 +709,22 @@ const Tab3: React.FC = () => {
     // which stays visible + green even in a discarded channel (see applyFilters)
     const mentionShown = dmAlert !== "none" && isChannelMention(notifyMsg_s, config_s.callSign);
     if (notifyMsg_s.isDM !== undefined && notifyMsg_s.isGrpMsg !== undefined && (!msgDiscarded(notifyMsg_s, config_s.callSign) || mentionShown)) {
+      // are you actually looking at the chat right now? (chat tab on screen + app
+      // in the foreground). Only THEN does "it's the selected segment" mean you've
+      // seen it.
+      const chatVisible = isAppActive && thisPageActive.current;
       if (msgType !== segmentFilter) {
         const Seqgmentbutton = document.getElementById(msgType) as HTMLIonSegmentButtonElement;
         if (Seqgmentbutton) {
           Seqgmentbutton.classList.add('segmentbutton_green');
         }
         markSegmentUnread(msgType); // keep the Chat tab dot in sync
+      } else if (!chatVisible) {
+        // message for the currently-selected segment, but the chat isn't on screen
+        // (you're on another tab / app backgrounded) -> you're NOT seeing it, so
+        // still light the Chat tab dot. No segment-green here: the moment you open
+        // chat you're viewing this very segment, and entering chat clears its marker.
+        markSegmentUnread(msgType);
       }
     }
 

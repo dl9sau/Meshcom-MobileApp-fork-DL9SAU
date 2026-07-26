@@ -37,9 +37,11 @@ changes of this fork relative to upstream. The in-app version shows
 - **Green "unread" dot on the Chat tab icon.** When a genuinely new message
   arrives while you're on another tab (Settings, Map, Mheard …), the bottom Chat
   icon gets a small green dot so you notice something's up — **regardless of
-  whether that channel is muted or only beeps**. It stays on as long as **any**
-  channel is still unread (has a green segment marker) and only turns off once
-  **all** channels are read; it mirrors the in-chat green segment markers exactly.
+  whether that channel is muted or only beeps**, and **including the channel that
+  happens to be the selected segment** (you're not actually looking at it while on
+  another tab). It stays on as long as **any** channel is still unread (has a green
+  segment marker) and only turns off once **all** channels are read; it mirrors the
+  in-chat green segment markers exactly.
   **Not** shown for discarded channels or filter-blocked messages (an @mention of
   you still counts), and **never** triggered by the startup DB-fill — only real
   new live messages.
