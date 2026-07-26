@@ -14,7 +14,8 @@ export interface MsgType {
     isGrpMsg:number,
     grpNum:number,
     notify:number,
-    gw?:number    // 1 if the message already travelled via an MQTT gateway (byte6 bit 0x80)
+    gw?:number,   // 1 if the message already travelled via an MQTT gateway (byte6 bit 0x80)
+    gwState?:string  // frozen globe verdict at receive time: "none" | "solid" | "dim"
 }
 
 // position interface

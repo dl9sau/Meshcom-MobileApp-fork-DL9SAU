@@ -9,6 +9,7 @@ import MheardStaticStore from "../utils/MheardStaticStore";
 import NodeRuntimeService from "../utils/NodeRuntimeService";
 import RelayCountService from "../utils/RelayCountService";
 import { msgDiscarded, baseCall, isChannelMention } from "../utils/NotifyPrefs";
+import { computeGlobeState } from "../utils/GlobeState";
 import PosiStore from "../store/PosiStore";
 import MsgStore from "../store/MsgStore";
 import { format, sub } from "date-fns";
@@ -73,7 +74,8 @@ class DatabaseService {
                         isGrpMsg INTEGER,
                         grpNum INTEGER,
                         notify INTEGER,
-                        gw INTEGER DEFAULT 0
+                        gw INTEGER DEFAULT 0,
+                        gwState TEXT
                     )
                 `).catch((err) => {
                     LogS.log(1, 'Error creating TextMessages table:' + err);
@@ -95,6 +97,14 @@ class DatabaseService {
                 await DatabaseService.db.query(`SELECT gw FROM TextMessages;`).catch(async (err) => {
                     LogS.log(1, 'Checking/adding gw in TextMessages table:' + err);
                     await DatabaseService.db?.execute(`ALTER TABLE TextMessages ADD COLUMN gw INTEGER DEFAULT 0;`);
+                });
+            }
+
+            // check if we have the gwState column (frozen globe verdict at receive time)
+            if (DatabaseService.db) {
+                await DatabaseService.db.query(`SELECT gwState FROM TextMessages;`).catch(async (err) => {
+                    LogS.log(1, 'Checking/adding gwState in TextMessages table:' + err);
+                    await DatabaseService.db?.execute(`ALTER TABLE TextMessages ADD COLUMN gwState TEXT;`);
                 });
             }
 
@@ -340,8 +350,11 @@ class DatabaseService {
 
             try {
                 const id = Date.now();
-                const query_str = `INSERT INTO TextMessages (id,timestamp, msgNr, msgTime, fromCall, toCall, msgTXT, via, ack, isDM, isGrpMsg, grpNum, notify, gw) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
-                const values = [id, msg.timestamp, msg.msgNr, msg.msgTime, msg.fromCall, msg.toCall, msg.msgTXT, msg.via, msg.ack, msg.isDM, msg.isGrpMsg, msg.grpNum, msg.notify, msg.gw ?? 0];
+                // freeze the globe verdict NOW (against the current heard/positions
+                // horizon) so it doesn't drift as the 24h window ages past this message
+                const gwState = computeGlobeState(msg);
+                const query_str = `INSERT INTO TextMessages (id,timestamp, msgNr, msgTime, fromCall, toCall, msgTXT, via, ack, isDM, isGrpMsg, grpNum, notify, gw, gwState) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
+                const values = [id, msg.timestamp, msg.msgNr, msg.msgTime, msg.fromCall, msg.toCall, msg.msgTXT, msg.via, msg.ack, msg.isDM, msg.isGrpMsg, msg.grpNum, msg.notify, msg.gw ?? 0, gwState];
                 const ret = await DatabaseService.db.run(query_str, values);
                 console.log('DB writeTxtMsg ret:' + ret.changes?.values);
                 // read back all messages

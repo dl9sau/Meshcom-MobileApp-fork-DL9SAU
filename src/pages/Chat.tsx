@@ -1,5 +1,5 @@
 import { IonButton, IonActionSheet, IonContent, IonFooter, IonGrid, IonHeader, IonIcon, IonInput, IonItem, IonPage, IonText, IonTitle, IonToolbar, useIonViewDidEnter, useIonViewWillEnter, IonAlert, useIonViewWillLeave, IonButtons, IonModal, IonCheckbox, IonSegmentButton, IonLabel, IonSegment, IonTextarea, IonToast } from '@ionic/react';
-import React,{ useEffect, useRef, useState, createRef, useMemo } from 'react';
+import React,{ useEffect, useRef, useState, createRef } from 'react';
 import {ConfType, MsgType, InfoData} from '../utils/AppInterfaces';
 import {useBLE} from '../hooks/BleHandler';
 import './Chat.css';
@@ -7,8 +7,7 @@ import { useStoreState } from 'pullstate';
 import { DevIDStore } from '../store';
 import { getConfigStore, getDevID, getMsgStore, getPlatformStore } from '../store/Selectors';
 import MsgStore from '../store/MsgStore';
-import MheardStore from '../store/MheardStore';
-import PosiStore from '../store/PosiStore';
+import { computeGlobeState, GlobeState } from '../utils/GlobeState';
 import ConfigStore from '../store/ConfStore';
 import { checkmark, cloudDoneOutline, cloudOutline, caretForwardCircle, settings} from 'ionicons/icons';
 import { LocalNotifications } from '@capacitor/local-notifications';
@@ -54,14 +53,6 @@ const Tab3: React.FC = () => {
 
   // for the gateway-marker nuance: directly-heard nodes + when we last saw each
   // node (position timestamp). Only consulted for messages that carry the 0x80 bit.
-  const mhArr_gw = useStoreState(MheardStore, s => s.mhArr);
-  const posArr_gw = useStoreState(PosiStore, s => s.posArr);
-  const mheardSet = useMemo(() => new Set(mhArr_gw.map(m => (m.mh_callSign || "").trim().toUpperCase())), [mhArr_gw]);
-  const posMap = useMemo(() => {
-    const m: { [k: string]: number } = {};
-    posArr_gw.forEach(p => { m[(p.callSign || "").trim().toUpperCase()] = p.timestamp; });
-    return m;
-  }, [posArr_gw]);
 
   // get config for node callsign. need to know if the message in store is ours
   const config_s:ConfType = useStoreState(ConfigStore, getConfigStore);
@@ -896,28 +887,14 @@ const Tab3: React.FC = () => {
     return parts.join(" > ");
   };
 
-  // Gateway-marker nuance. The 0x80 bit ("ran via an MQTT gateway") is set by
-  // gateways on ~everything they relay, so it can't say "reached ME via internet".
-  // If the bit is NOT set -> definitely local HF (no globe). If it IS set but the
-  // whole message path (sender + via relays + the bracketed VIA node) is in our
-  // recent HF horizon (sender heard directly, OR every path node seen on HF in the
-  // last 24h), it very likely reached us via HF -> show a DIMMED globe. Otherwise a
-  // solid globe. (Short-circuits for non-gateway messages: no parsing needed.)
-  const norm = (c: string) => (c || "").replace(/[[\]]/g, "").trim().toUpperCase();
-  const globeState = (msg: MsgType): 'none' | 'solid' | 'dim' => {
-    if (msg.gw !== 1) return 'none';
-    if (mheardSet.has(norm(msg.fromCall))) return 'dim';   // sender heard directly on HF
-    const nodes = new Set<string>();
-    const sf = norm(msg.fromCall); if (sf) nodes.add(sf);
-    (msg.via || "").split(" > ").forEach(p => { const n = norm(p); if (n) nodes.add(n); });
-    const now = Date.now();
-    const DAY = 24 * 3600 * 1000;
-    const arr = [...nodes];
-    const allLocal = arr.length > 0 && arr.every(n => posMap[n] !== undefined && (now - posMap[n]) < DAY);
-    return allLocal ? 'dim' : 'solid';
-  };
+  // Gateway "globe" marker. The verdict (none/solid/dim) is FROZEN at receive time
+  // and stored per message (msg.gwState) — see computeGlobeState in utils/GlobeState.
+  // We render the STORED value so the marker doesn't drift as the 24h HF-horizon
+  // window slides past historical messages; for old messages that predate the column
+  // (no stored value) we fall back to a live compute.
   const globeEl = (msg: MsgType) => {
-    const st = globeState(msg);
+    const st: GlobeState = (msg.gwState === 'none' || msg.gwState === 'solid' || msg.gwState === 'dim')
+      ? msg.gwState : computeGlobeState(msg);
     // TEST (2026-07-26): when we're confident the msg actually reached us via HF
     // (state 'dim' = gw bit set BUT the whole path is in our recent HF horizon),
     // show NO globe at all instead of a dimmed one. TO RESTORE the dimmed marker:
