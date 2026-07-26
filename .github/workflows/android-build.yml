@@ -182,11 +182,12 @@ jobs:
             Branch: `${{ github.ref_name }}`
             Commit: ${{ github.sha }}
 
-  # iOS compile-check (portability only — unsigned simulator build, no IPA). Runs
-  # alongside the Android job. Once iOS is confirmed green, comment this whole job
-  # out again to save macOS runner minutes; re-enable later (e.g. after the
-  # foreground-service native changes) to catch iOS breakage / wrong #ifdefs.
+  # iOS compile-check (portability only — unsigned simulator build, no IPA).
+  # CONFIRMED GREEN 2026-07-26 on Cap 8 -> DISABLED to save macOS runner minutes.
+  # RE-ENABLE by removing the `if: false` line below (e.g. after the
+  # foreground-service native changes, to catch iOS breakage / wrong #ifdefs).
   ios-compile:
+    if: false
     runs-on: macos-latest
     steps:
       - name: Checkout
