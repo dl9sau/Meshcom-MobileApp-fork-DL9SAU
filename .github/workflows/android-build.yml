@@ -35,7 +35,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       # npm install (not ci) so a lockfile that predates the deps still resolves.
       # --legacy-peer-deps: tolerate peer-dep mismatches during the Capacitor 7->8
