@@ -295,7 +295,7 @@ const Info: React.FC = () => {
           <IonButton size='small' fill='outline' slot='start' color='primary' onClick={() => openLogWindow()}>Log</IonButton>
         </div>
         <div id="spacer-bottom"></div>
-        <IonModal isOpen={shLog}>
+        <IonModal isOpen={shLog} onDidDismiss={() => setShLog(false)}>
           <IonHeader>
             <IonToolbar>
               <IonTitle>LOG</IonTitle>

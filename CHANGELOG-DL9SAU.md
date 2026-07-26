@@ -236,6 +236,12 @@ changes of this fork relative to upstream. The in-app version shows
 
 ### Fixes
 
+- **Log button dead after sleep/tab-switch.** The Info-tab *Log* modal had no
+  `onDidDismiss`, so when it was closed by anything other than its *Close* button
+  (leaving the tab, the resume lifecycle, hardware back) the `isOpen` state stayed
+  `true`. Pressing *Log* again then set it to `true` once more — a no-op — so the
+  window never reopened (the button only flashed). It now resets the state on every
+  dismiss.
 - **Notifications were silent.** The Android channel referenced a bundled custom
   sound (`morse_r.wav`) that never made it into the build, so the channel was
   created without a sound — and channel settings are immutable once created. The
