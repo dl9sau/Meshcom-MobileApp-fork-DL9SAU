@@ -344,6 +344,13 @@ const Tab2: React.FC = () => {
     await DataBaseService.setPref('compactHeader', checked ? '1' : '0');
   };
 
+  // monitoring mode: keep the screen on (applied centrally in App.tsx)
+  const keepScreenOn = useStoreState(AppPrefsStore, s => s.keepScreenOn);
+  const setKeepScreenOn = async (checked: boolean) => {
+    AppPrefsStore.update(s => { s.keepScreenOn = checked; });
+    await DataBaseService.setPref('keepScreenOn', checked ? '1' : '0');
+  };
+
   // (DM "show all traffic" toggle moved to the DM tab's long-press menu)
 
   // Advanced Settings: raw node command console. Send a "--xxx" like the web /
@@ -2937,6 +2944,12 @@ const Tab2: React.FC = () => {
               <div id="spacer-advTop" />
               {/* compact (default, blue/solid) vs legacy multi-line message header */}
               <IonButton id="settings_button" fill={compactHeader ? 'solid' : 'outline'} slot='start' onClick={() => setCompactHeader(!compactHeader)}>{compactHeader ? "Message header: compact" : "Message header: legacy"}</IonButton>
+              <div id="spacer-advTop" />
+              {/* monitoring mode: keep the screen lit so the WebView JS never pauses */}
+              <IonItem>
+                <IonToggle enableOnOffLabels={true} checked={keepScreenOn} onIonChange={(ev) => setKeepScreenOn(ev.detail.checked)}>Keep screen on</IonToggle>
+              </IonItem>
+              <div className='mt-3 mb-3'>Follow messages without interruption, and reliable notifications, while MeshCom is open. The screen stays lit — uses more battery.</div>
               <div id="spacer-advTop" />
               <IonButton id="settings_button" fill='outline' slot='start' onClick={()=>deletePositions()}>Clear received nodes</IonButton>
               <div id="spacer-advTop" />

@@ -13,6 +13,8 @@ import {
 } from '@ionic/react';
 import { useStoreState } from 'pullstate';
 import ChatUnreadStore from './store/ChatUnread';
+import AppPrefsStore from './store/AppPrefsStore';
+import { applyKeepAwake } from './utils/KeepAwakeHelper';
 import { IonReactRouter } from '@ionic/react-router';
 import { chatboxEllipses, bluetooth, settings, globe, move, informationCircleOutline } from 'ionicons/icons';
 import Tab1 from './pages/Connect';
@@ -69,6 +71,15 @@ const Appl: React.FC = () => {
   // green "unread" dot on the Chat tab icon: on while any channel still has an
   // unread (green) segment marker, off once all channels are read.
   const chatHasUnread = useStoreState(ChatUnreadStore, s => Object.keys(s.segments).length > 0);
+
+  // "monitoring mode": keep the screen on while the app is foreground so the WebView
+  // JS is never paused (live messages + notifications, no Doze gap). Applied on the
+  // pref and on foreground/background transitions; released when off or backgrounded.
+  const keepScreenOn = useStoreState(AppPrefsStore, s => s.keepScreenOn);
+  const appActiveKA = useStoreState(AppActiveState, s => s.active);
+  useEffect(() => {
+    applyKeepAwake(keepScreenOn && appActiveKA);
+  }, [keepScreenOn, appActiveKA]);
 
 
     // set background for the edge to edge support header

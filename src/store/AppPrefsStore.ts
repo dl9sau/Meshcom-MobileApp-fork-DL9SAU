@@ -34,6 +34,10 @@ export interface AppPrefsState {
     // master on/off for the whole chat filter (callsign-deny + allow + text-deny).
     // OFF = nothing is filtered, without deleting any rules. Default ON.
     filtersEnabled: boolean;
+    // "monitoring mode": keep the screen on while the app is in the foreground so the
+    // WebView JS never gets paused -> live messages + notifications without a Doze
+    // gap. Costs battery (screen stays lit). Default OFF.
+    keepScreenOn: boolean;
     // retention per category, in DAYS (0 = unlimited / never delete)
     retAll: number;        // ALL / broadcast
     retGroup: number;      // group channels
@@ -57,6 +61,7 @@ const AppPrefsStore = new Store<AppPrefsState>({
     tgLabels: "{}",
     ownCall: "",
     filtersEnabled: true,
+    keepScreenOn: false,
     retAll: 2,
     retGroup: 7,
     retMyDM: 90,

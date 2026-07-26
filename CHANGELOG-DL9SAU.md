@@ -217,6 +217,16 @@ changes of this fork relative to upstream. The in-app version shows
   the MIT-licensed
   `@capawesome-team/capacitor-android-foreground-service` plugin; a hand-written
   native Kotlin service is envisioned later to be independent of external licenses.
+  *Known limit:* the service keeps the **BLE connection alive and loses no
+  messages** (the backlog is processed on reopen), but with the **screen off**
+  Android's Doze eventually freezes the WebView JS, so a *live* notification can be
+  delayed until you reopen the app. For guaranteed live signalling use *Keep screen
+  on* (below). A native BLE service (the real fix) is an upstream architecture topic.
+- **Keep screen on (monitoring mode)** — *Settings → Advanced Settings*. Keeps the
+  screen lit while MeshCom is open, so the WebView JS is never paused → messages and
+  notifications come through **live, without any Doze gap**. Costs battery (screen
+  stays on); off by default. Built on the MIT `@capacitor-community/keep-awake`
+  plugin (`FLAG_KEEP_SCREEN_ON`, no extra permission, no tracking).
 - **Capacitor 8** (upgraded from 7, aligned with upstream) — new SDK/plugin baseline.
 - App version shows the fork id + short git hash: `4.27-DL9SAU-g<hash>`.
 - GitHub Actions workflow builds a debug APK named
