@@ -92,6 +92,12 @@ const Mheard = () => {
                                                         <div>#pos:</div>
                                                         <div className='value'>{nodeInfoMap[mhs.mh_callSign?.toUpperCase()]?.posCount ?? 0}</div>
                                                     </div>
+                                                    {/* booked talk groups (R= field), if the node reports any */}
+                                                    {nodeInfoMap[mhs.mh_callSign?.toUpperCase()]?.groups ?
+                                                        <div className='rowcont'>
+                                                            <div>Grp:</div>
+                                                            <div className='value'>{nodeInfoMap[mhs.mh_callSign?.toUpperCase()].groups.split(",").join(", ")}</div>
+                                                        </div> : <></>}
                                                 </div>
                                                 <div>
                                                     <div className='rowcont'>

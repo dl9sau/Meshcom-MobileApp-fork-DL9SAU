@@ -200,6 +200,8 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
                                     <IonText>#pos: {nodeInfo?.posCount ?? 0}&nbsp;&nbsp;#msg: {nodeInfo?.msgCount ?? 0}</IonText><br />
                                     {/* Neighbours: only for directly heard nodes (in the Mheard list) */}
                                     {neighboursText !== null ? <><IonText>Neighbours: {neighboursText}</IonText><br /></> : <></>}
+                                    {/* booked talk groups (R= field), if the node reports any */}
+                                    {nodeInfo?.groups ? <><IonText>Grp: {nodeInfo.groups.split(",").join(", ")}</IonText><br /></> : <></>}
                                     {/* sensor values: hidden when empty (0 = no sensor; temp uses 999 as n.a.) */}
                                     {pressure !== 0 ? <><IonText>Pressure: {pressure}hPa</IonText><br /></> : <></>}
                                     {temperature !== 999 ? <><IonText>Temp: {temperature}°C</IonText><br/></> : <></>}
