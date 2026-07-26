@@ -184,9 +184,11 @@ changes of this fork relative to upstream. The in-app version shows
   freezes the WebView JS and nothing arrives until you reopen), a foreground service
   is started while the BLE node is connected — shown by a quiet persistent
   notification. It uses the **`location`** service type (honest: MeshCom already uses
-  GPS for position beaconing, so this also keeps beaconing alive in the background),
-  and the location permission rationale explains it's for your position **and**
-  background notifications — **not tracking**. Built on the MIT-licensed
+  GPS for position beaconing, so this also keeps beaconing alive in the background).
+  No separate permission prompt is needed — Android already requires the location
+  permission for **BLE scanning**, so the app can't connect without it anyway; the
+  foreground service simply reuses that existing grant (**no tracking**). Built on
+  the MIT-licensed
   `@capawesome-team/capacitor-android-foreground-service` plugin; a hand-written
   native Kotlin service is envisioned later to be independent of external licenses.
 - **Capacitor 8** (upgraded from 7, aligned with upstream) — new SDK/plugin baseline.
