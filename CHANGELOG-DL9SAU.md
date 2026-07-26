@@ -17,16 +17,17 @@ changes of this fork relative to upstream. The in-app version shows
   **while the finger is still held** (native long-press feel, ~0.5 s) instead of
   only reacting on release — the old behaviour felt laggy and confusing. A finger
   move cancels the gesture, so scrolling never accidentally opens the menu.
-- **Messages with a routing prefix in the destination are sorted correctly now.**
-  A few (relayed/gatewayed) messages arrive with a destination of the form
-  **`…>CALL,X`** — a routing callsign, then the **real target `X`** (`*` = broadcast,
-  a number = talk group, or a recipient callsign). The **last segment is the actual
-  destination** (this is how the node firmware reads it). Before, such a packet was
-  misfiled: a **broadcast** landed in **DMs**, and a **DM addressed to you** wasn't
-  recognised as yours — so it disappeared under *Hide others' DMs*. We don't know
-  what upstream produces this odd addressing, but the packets do occur and are now
-  handled correctly. The routing prefix is kept visible in the *via* line
-  (e.g. `🌐 via DD0NM-99 → DB0FRI-12`) so these packets stay recognisable.
+- **VIA-routed messages are sorted correctly now.** Firmware **4.35p** (Jul 2026)
+  added a *route-via-a-specific-node* feature: such messages carry a destination of
+  the form **`>VIA-node,target`** followed by `:` (text) or `!` (position) — e.g.
+  `OE1KFR-7>OE1KFR-1,*:hi` = a **broadcast via OE1KFR-1**. The **last segment is the
+  real target** (`*` = broadcast, a number = talk group, else a recipient callsign);
+  the VIA node(s) before it are routing. Our parser used to read the whole field, so
+  a **broadcast landed in DMs** and a **DM addressed to you wasn't recognised as
+  yours** (it vanished under *Hide others' DMs*). Now the **last segment decides**
+  (handling both the `:` and `!` separators), and the VIA node stays visible in the
+  *via* line (`🌐 via OE1KFR-1 → …`). As 4.35p spreads, these become common. (The
+  upstream app fixed the same thing independently — same approach.)
 
 ### Features
 

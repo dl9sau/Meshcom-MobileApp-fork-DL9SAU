@@ -257,7 +257,12 @@ export function useMSG() {
                     let dm_arr_index = 0;
                     for (let i = dm_callsign_start; i < msg_len; i++){
 
-                        if(msg.getUint8(i) === 0x3a){
+                        // stop at ':' (0x3a, text) OR '!' (0x21, position) - the
+                        // separator right after the destination field. BOTH must be
+                        // handled: we now always read the dest field (for the last-
+                        // segment rule), and position messages terminate the dest with
+                        // '!', not ':' - matching upstream ("before ':' / '!'").
+                        if(msg.getUint8(i) === 0x3a || msg.getUint8(i) === 0x21){
                             // set start of message text accordingly
                             text_offset = i + 1;
                             break;
