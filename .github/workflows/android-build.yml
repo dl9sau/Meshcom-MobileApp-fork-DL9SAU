@@ -30,11 +30,12 @@ jobs:
           echo "APP_VERSION=${APP_VERSION}" >> "$GITHUB_ENV"
           echo "APK_NAME=Meshcom-${APP_VERSION}-DL9SAU-g${HASH}.apk" >> "$GITHUB_ENV"
 
+      # no `cache: npm` here: we don't commit a package-lock.json (fresh Cap-8
+      # resolve each build), and setup-node's npm cache requires a lock file.
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
       # npm install (not ci) so a lockfile that predates the deps still resolves.
       # --legacy-peer-deps: tolerate peer-dep mismatches during the Capacitor 7->8
