@@ -132,6 +132,14 @@ class MsgFilterService {
 
     // (re)build the compiled rules from the raw multiline strings
     setRules(callRaw: string, textRaw: string, allowRaw: string = "") {
+        // normalise: drop blank lines and trim each line, so saved/displayed rules
+        // don't accumulate empty lines the user left in (the compiler trims patterns
+        // anyway, so this changes no matching behaviour).
+        const clean = (raw: string) => (raw || "").split(/\r?\n/).map(l => l.trim()).filter(l => l !== "").join("\n");
+        callRaw = clean(callRaw);
+        textRaw = clean(textRaw);
+        allowRaw = clean(allowRaw);
+
         this.callRules = [];
         for (const line of callRaw.split(/\r?\n/)) {
             const trimmed = line.trim();
