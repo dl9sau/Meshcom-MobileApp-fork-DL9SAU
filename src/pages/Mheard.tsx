@@ -98,7 +98,7 @@ const Mheard = () => {
                                                     {nodeInfoMap[mhs.mh_callSign?.toUpperCase()]?.groups ?
                                                         <div className='rowcont'>
                                                             <div>Grp:</div>
-                                                            <div className='value'>{nodeInfoMap[mhs.mh_callSign?.toUpperCase()].groups.split(",").join(", ")}</div>
+                                                            <div className='value'>{nodeInfoMap[mhs.mh_callSign?.toUpperCase()].groups.split(",").sort((a, b) => (parseInt(a) || 0) - (parseInt(b) || 0)).join(", ")}</div>
                                                         </div> : <></>}
                                                 </div>
                                                 <div>
