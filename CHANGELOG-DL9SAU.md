@@ -69,9 +69,11 @@ changes of this fork relative to upstream. The in-app version shows
   **only** messages matching an allow rule are kept, and an **allow match wins over
   a deny** — so `#60 *wetter*` keeps "Wetterbericht Berlin" in TG 60 even with a
   global deny `*etterb*`. A scopeless allow line is **ignored** (otherwise it would
-  flip *every* channel into whitelist mode and hide almost everything). Check
-  **sequence: callsign-deny → allow → text-deny** (callsign-deny runs first, so it
-  stays the escape hatch to drop a spammer inside a whitelisted channel). Stored
+  flip *every* channel into whitelist mode and hide almost everything). A `*` pattern
+  with a scope turns content filters **off for those channels** — e.g. `#60,ALL *`
+  = no content filtering in TG 60 and ALL (comma-separated scopes work everywhere).
+  Check **sequence: callsign-deny → allow → text-deny** (callsign-deny runs first, so
+  it stays the escape hatch to drop a spammer inside a whitelisted channel). Stored
   alongside the deny rules (`ftype='allow'` in the MsgFilters table).
 - **Master on/off switch for the whole filter** (*Settings → Message Filter*, top).
   Off shows **everything** — callsign-deny, allow and text-deny all bypassed — with

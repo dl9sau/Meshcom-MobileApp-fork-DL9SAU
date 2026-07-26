@@ -2918,11 +2918,11 @@ const Tab2: React.FC = () => {
                 <IonItem>
                   <IonTextarea value={msgFilter_s.callRaw} ref={filterCallsRef} label='Callsigns' labelPlacement="floating" autoGrow={true} rows={3} placeholder='OE1ABC-2'></IonTextarea>
                 </IonItem>
-                <div className='mt-3 mb-3'>Deny — text patterns (one per line): Wort · ^Beginn · Ende$ · *Wild*card · #262 / #!60 scope</div>
+                <div className='mt-3 mb-3'>Deny — text patterns (one per line): Wort · ^Beginn · Ende$ · *Wild*card. Optional scope as the first word: <b>#262</b> = only that channel · <b>#!60</b> = all channels except 60 · <b>#262,ALL</b> = several.</div>
                 <IonItem>
                   <IonTextarea value={msgFilter_s.textRaw} ref={filterTextRef} label='Deny text' labelPlacement="floating" autoGrow={true} rows={4} placeholder='^wetter'></IonTextarea>
                 </IonItem>
-                <div className='mt-3 mb-3'>Allow — whitelist (one per line). <b>Needs a #channel scope</b> (#ALL, #262, …): in that channel only matching messages are kept, and a match wins over Deny. e.g. <b>#60 *wetter*</b> = keep only weather in TG 60. A line without #scope is ignored. To switch filtering off entirely, use the master toggle above.</div>
+                <div className='mt-3 mb-3'>Allow — whitelist (one per line). <b>Needs a #channel scope</b>: in that channel only matching messages are kept, and a match wins over Deny. e.g. <b>#60 *wetter*</b> = only weather in TG 60. Use <b>*</b> as the pattern to switch content filters OFF on distinct channels: <b>#60,ALL *</b> = TGs 60 and ALL only. A line without #scope is ignored; to switch filtering off entirely use the master toggle above.</div>
                 <IonItem>
                   <IonTextarea value={msgFilter_s.allowRaw} ref={filterAllowRef} label='Allow text' labelPlacement="floating" autoGrow={true} rows={3} placeholder='#60 *wetter*'></IonTextarea>
                 </IonItem>
