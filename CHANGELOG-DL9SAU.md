@@ -26,8 +26,10 @@ changes of this fork relative to upstream. The in-app version shows
   a **broadcast landed in DMs** and a **DM addressed to you wasn't recognised as
   yours** (it vanished under *Hide others' DMs*). Now the **last segment decides**
   (handling both the `:` and `!` separators), and the VIA node stays visible in the
-  *via* line (`🌐 via OE1KFR-1 → …`). As 4.35p spreads, these become common. (The
-  upstream app fixed the same thing independently — same approach.)
+  *via* line in **[brackets]**, set apart from the actual RF relays
+  (`🌐 via [OE1KFR-1] → DB0FRI-12`). As 4.35p spreads, these become common. (The
+  upstream app fixed the same thing independently — same approach; it drops the VIA
+  node from the display, we keep it bracketed.)
 
 ### Features
 

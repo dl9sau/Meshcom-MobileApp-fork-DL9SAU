@@ -306,17 +306,19 @@ export function useMSG() {
                         }
 
                         // --- DL9SAU deviation from upstream (only this): upstream IGNORES
-                        // the intermediate VIA node(s); we keep them for display. Extract
-                        // everything between '>' and the last ',' (the routing prefix) and
-                        // insert it into the via line after the origin (viaRelays drops the
-                        // origin == fromCall), e.g. "🌐 via OE1KFR-1 > DB0FRI-12".
+                        // the VIA node(s) and shows nothing; we surface them. Extract
+                        // everything between '>' and the last ',' (the VIA node(s)) and
+                        // insert them into the via line after the origin (viaRelays drops
+                        // the origin == fromCall). Each VIA node is wrapped in [brackets]
+                        // to set it apart from the actual RF relay hops, e.g.
+                        // "🌐 via [DB0KH-11] > DB0FRI-12".
                         if (last_sep_pos > gt_abs_pos) {
                             let via_prefix_arr: number[] = [];
                             let vp_idx = 0;
                             for (let i = gt_abs_pos + 1; i < last_sep_pos; i++) {
                                 via_prefix_arr[vp_idx++] = msg.getUint8(i);
                             }
-                            const via_prefix = convBARRtoStr(via_prefix_arr).split(",").map(s => s.trim()).filter(s => s !== "");
+                            const via_prefix = convBARRtoStr(via_prefix_arr).split(",").map(s => s.trim()).filter(s => s !== "").map(s => "[" + s + "]");
                             if (via_prefix.length > 0) {
                                 const vparts = via_str.split(" > ").map(p => p.trim()).filter(p => p !== "");
                                 via_str = (vparts.length >= 1
