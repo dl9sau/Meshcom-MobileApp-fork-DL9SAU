@@ -918,7 +918,12 @@ const Tab3: React.FC = () => {
   };
   const globeEl = (msg: MsgType) => {
     const st = globeState(msg);
-    if (st === 'none') return null;
+    // TEST (2026-07-26): when we're confident the msg actually reached us via HF
+    // (state 'dim' = gw bit set BUT the whole path is in our recent HF horizon),
+    // show NO globe at all instead of a dimmed one. To restore the dimmed marker,
+    // swap the two lines below (comment this one, uncomment the original).
+    if (st === 'none' || st === 'dim') return null;
+    // if (st === 'none') return null;
     return <span style={st === 'dim' ? { opacity: 0.4 } : undefined}>🌐 </span>;
   };
 
