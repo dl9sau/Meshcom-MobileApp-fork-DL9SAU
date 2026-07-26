@@ -2943,8 +2943,8 @@ const Tab2: React.FC = () => {
               </div>
               {cmdRespShown !== "" &&
                 <IonItem style={{ '--background': '#f2f2f2' } as any}>
-                  {/* same font as the input field (no monospace), wrap long answers */}
-                  <IonText id="wifi-text" style={{ whiteSpace: 'pre-wrap' }}>{cmdRespShown}</IonText>
+                  {/* plain (no #wifi-text bold/large), same weight/size as the input */}
+                  <IonText style={{ whiteSpace: 'pre-wrap', fontWeight: 'normal', fontSize: '1rem' }}>{cmdRespShown}</IonText>
                 </IonItem>
               }
 
