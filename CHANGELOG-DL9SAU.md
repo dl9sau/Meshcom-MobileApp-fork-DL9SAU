@@ -200,6 +200,11 @@ changes of this fork relative to upstream. The in-app version shows
   sorts that list by tag name, not by date). The git hash stays in the APK name
   and release title.
 - Real MeshCom icon generated in CI + fork app name **"MeshCom DL9SAU"**.
+- **About / Open Source Licenses** on the Info tab: author credit
+  (*Thomas Osterried DL9SAU &lt;dl9sau@darc.de&gt;*), links to the fork, the
+  upstream app (rainerfritz), the MeshCom project and the MIT firmware, plus an
+  attribution note for the bundled free/open-source libraries (fulfilling the MIT
+  notice duty).
 
 ### Fixes
 

@@ -272,6 +272,25 @@ const Info: React.FC = () => {
           </div>
         </div>
 
+        {/* About + open-source attribution (MIT notice duty for bundled deps) */}
+        <div className="info-box">
+          <div>
+            <div><b>MeshCom DL9SAU Fork</b></div>
+            <div>Thomas Osterried DL9SAU &lt;dl9sau@darc.de&gt;</div>
+            <div>Fork: github.com/dl9sau/Meshcom-MobileApp-fork-DL9SAU</div>
+            <div>Upstream: github.com/rainerfritz/Meshcom-MobileApp</div>
+            <div>Project: icssw.org/meshcom</div>
+            <div>Firmware: github.com/icssw-org/MeshCom-Firmware (MIT)</div>
+            <div id="spacer-advTop" />
+            <div><b>Open Source Licenses</b></div>
+            <div>This app bundles free / open-source libraries, each under its own
+              license (mostly MIT): Capacitor &amp; Ionic, React, the
+              @capacitor-community and @capawesome plugins, pigeon-maps, date-fns,
+              linkifyjs, pullstate, ionicons, reselect. Their copyright &amp; MIT
+              notices are preserved as required.</div>
+          </div>
+        </div>
+
         <div id="LogBtn">
           <IonButton size='small' fill='outline' slot='start' color='primary' onClick={() => openLogWindow()}>Log</IonButton>
         </div>
