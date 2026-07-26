@@ -60,6 +60,22 @@ jobs:
           npx cap add android
           npx cap sync android
 
+      # foreground-service permissions in the app manifest. The plugin merges its
+      # own <service> + FOREGROUND_SERVICE; the location-type + wake-lock perms we
+      # add here (idempotent - only if missing). ACCESS_FINE_LOCATION comes from the
+      # geolocation plugin already.
+      - name: Add foreground-service permissions to AndroidManifest
+        run: |
+          MANIFEST=android/app/src/main/AndroidManifest.xml
+          add_perm() {
+            grep -q "$1" "$MANIFEST" || sed -i "s#</manifest>#    <uses-permission android:name=\"$1\" />\n</manifest>#" "$MANIFEST"
+          }
+          add_perm android.permission.FOREGROUND_SERVICE
+          add_perm android.permission.FOREGROUND_SERVICE_LOCATION
+          add_perm android.permission.WAKE_LOCK
+          echo "----- manifest uses-permission -----"
+          grep -n "uses-permission" "$MANIFEST" || true
+
       # replace the default Capacitor icon with the real MeshCom icon
       # (@capacitor/assets reads assets/icon.png + splash*.png)
       - name: Generate app icons & splash
