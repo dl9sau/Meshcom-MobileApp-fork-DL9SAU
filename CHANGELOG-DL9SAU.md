@@ -48,7 +48,11 @@ changes of this fork relative to upstream. The in-app version shows
   and text fields separately. Manage in *Settings → Message Filter*, or use quick
   **Filter Call / Filter Message** on a message. (Removing a rule is done in
   Settings — a blocked message is hidden and can't be long-pressed.) Blocked
-  messages also raise no notification.
+  messages also raise no notification. **Optional per-channel scope** as the first
+  field of a rule (backward compatible — no prefix = all channels): `#ALL` / `#*`
+  (only broadcast), `#262` (only TG 262), `#ALL,262` (those two), `#!60` (all but
+  TG 60). E.g. `#!60 *Wetterbericht*` blocks "Wetterbericht" everywhere except the
+  weather TG 60.
 - **Per-channel notifications & visibility — long-press a channel tab.** One
   in-app menu per tab (All, DM, each talk group), so it works the same on Android
   and iOS with nothing stuck in the OS. A one-time hint points out the gesture.
@@ -225,5 +229,6 @@ changes of this fork relative to upstream. The in-app version shows
 
 ### Known / parked
 
-- Message filter: optional **per-channel scope** (block weather in ALL but allow
-  it in a dedicated weather channel).
+- **Background notifications** need an Android foreground service (BLE + message
+  processing keep running when the app is backgrounded) — planned, not yet built.
+  Until then, notifications fire only while the app is in the foreground.
