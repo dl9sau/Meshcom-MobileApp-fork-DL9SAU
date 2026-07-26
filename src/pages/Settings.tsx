@@ -2922,7 +2922,7 @@ const Tab2: React.FC = () => {
                 <IonItem>
                   <IonTextarea value={msgFilter_s.textRaw} ref={filterTextRef} label='Deny text' labelPlacement="floating" autoGrow={true} rows={4} placeholder='^wetter'></IonTextarea>
                 </IonItem>
-                <div className='mt-3 mb-3'>Allow — whitelist (one per line). If a channel has any allow rule, only matching messages are kept; a match wins over Deny. Put <b>*</b> here to switch content filters off (e.g. <b>*</b> = all, <b>#60 *</b> = TG 60 only).</div>
+                <div className='mt-3 mb-3'>Allow — whitelist (one per line). <b>Needs a #channel scope</b> (#ALL, #262, …): in that channel only matching messages are kept, and a match wins over Deny. e.g. <b>#60 *wetter*</b> = keep only weather in TG 60. A line without #scope is ignored. To switch filtering off entirely, use the master toggle above.</div>
                 <IonItem>
                   <IonTextarea value={msgFilter_s.allowRaw} ref={filterAllowRef} label='Allow text' labelPlacement="floating" autoGrow={true} rows={3} placeholder='#60 *wetter*'></IonTextarea>
                 </IonItem>

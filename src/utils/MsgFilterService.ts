@@ -25,8 +25,10 @@ import AppPrefsStore from "../store/AppPrefsStore";
 // blocked, so the scope only ever concerns ALL + talk groups.
 //
 // CHECK ORDER (see isChannelMsgBlocked): callsign-deny -> allow-gate -> text-deny.
-//   - ALLOW rules are a per-channel whitelist: if a channel has any allow rule,
-//     only messages matching one survive (the rest are blocked). A whitelist match
+//   - ALLOW rules are a per-channel whitelist and REQUIRE a "#scope" (a scopeless
+//     allow line is ignored - otherwise it would flip EVERY channel into whitelist
+//     mode and hide almost everything). If a channel has any allow rule, only
+//     messages matching one survive (the rest are blocked). A whitelist match
 //     wins over a text-deny (short-circuit), so e.g. an allow "#60 *wetter*" keeps
 //     "Wetterbericht Berlin" in TG 60 even if a global deny "*etterb*" exists.
 //   - callsign-deny still runs first, so it's the escape hatch to drop a spammer
@@ -119,11 +121,14 @@ class MsgFilterService {
         return scope.negate ? !inSet : inSet;
     }
 
-    // compile a multiline text-pattern block (deny or allow) into TextRules
-    private compileTextRules(raw: string): TextRule[] {
+    // compile a multiline text-pattern block (deny or allow) into TextRules.
+    // requireScope (allow list): a rule with no "#channel" scope is DROPPED, so a
+    // scopeless allow can never flip every channel into whitelist mode (footgun).
+    private compileTextRules(raw: string, requireScope: boolean = false): TextRule[] {
         const rules: TextRule[] = [];
         for (const line of (raw || "").split(/\r?\n/)) {
             const { scope, rest } = this.parseScopedLine(line.trim());
+            if (requireScope && !scope) continue;  // allow rules must name a channel
             const re = this.compilePattern(rest);
             if (re) rules.push({ re, scope });
         }
@@ -150,7 +155,7 @@ class MsgFilterService {
         }
 
         this.textRules = this.compileTextRules(textRaw);
-        this.allowRules = this.compileTextRules(allowRaw);
+        this.allowRules = this.compileTextRules(allowRaw, true); // allow needs a #scope
 
         MsgFilterStore.update(s => {
             s.callRaw = callRaw;
