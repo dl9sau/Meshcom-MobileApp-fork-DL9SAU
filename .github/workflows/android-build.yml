@@ -36,9 +36,11 @@ jobs:
           node-version: 20
           cache: npm
 
-      # npm install (not ci) so a lockfile that predates date-fns still resolves
+      # npm install (not ci) so a lockfile that predates the deps still resolves.
+      # --legacy-peer-deps: tolerate peer-dep mismatches during the Capacitor 7->8
+      # migration (e.g. @capacitor/assets), so install doesn't hard-fail.
       - name: Install dependencies
-        run: npm install
+        run: npm install --legacy-peer-deps
 
       # runs "tsc && vite build" -> also type-checks the whole project
       - name: Build web app

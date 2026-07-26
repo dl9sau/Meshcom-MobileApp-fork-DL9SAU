@@ -1,4 +1,3 @@
-import legacy from '@vitejs/plugin-legacy'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { execSync } from 'child_process'
@@ -18,8 +17,7 @@ export default defineConfig({
     __GIT_HASH__: JSON.stringify(gitHash),
   },
   plugins: [
-    react(),
-    legacy()
+    react()
   ],
   test: {
     globals: true,
