@@ -5,12 +5,14 @@ import { Store } from "pullstate";
 // MsgFilterService. Persisted in the MsgFilters DB table.
 export interface MsgFilterState {
     callRaw: string;  // blocked callsigns, one per line (exact, incl. SSID)
-    textRaw: string;  // text patterns, one per line (Wort / ^start / end$ / *wild*)
+    textRaw: string;  // DENY text patterns, one per line (Wort / ^start / end$ / *wild*)
+    allowRaw: string; // ALLOW (whitelist) text patterns; same notation + #scope
 }
 
 const MsgFilterStore = new Store<MsgFilterState>({
     callRaw: "",
-    textRaw: ""
+    textRaw: "",
+    allowRaw: ""
 });
 
 export default MsgFilterStore;

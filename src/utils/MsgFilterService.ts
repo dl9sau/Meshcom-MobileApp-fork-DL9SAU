@@ -2,9 +2,11 @@ import { MsgType } from "./AppInterfaces";
 import ConfigObject from "./ConfigObject";
 import MsgFilterStore from "../store/MsgFilterStore";
 
-// Configurable block filter for chat messages. Two kinds of rules:
-//   - callsign block: exact match on fromCall (full, incl. SSID)
-//   - text block: patterns on the message text
+// Configurable filter for chat messages. Three kinds of rules:
+//   - callsign block (DENY): exact match on fromCall (full, incl. SSID)
+//   - text block (DENY): patterns on the message text
+//   - text allow (WHITELIST): patterns; if a channel has any allow rule, only
+//     messages matching one are kept (see check order below)
 // Text notation (all case-insensitive):
 //   Wort          -> whole word, anywhere        (\bWort\b)
 //   ^Beginn       -> message starts with         (^Beginn)
@@ -20,6 +22,14 @@ import MsgFilterStore from "../store/MsgFilterStore";
 // e.g. "#!60 *Wetterbericht*" blocks "Wetterbericht" everywhere but the weather
 // TG 60. Filters apply to CHANNEL messages only; DMs and our own msgs are never
 // blocked, so the scope only ever concerns ALL + talk groups.
+//
+// CHECK ORDER (see isChannelMsgBlocked): callsign-deny -> allow-gate -> text-deny.
+//   - ALLOW rules are a per-channel whitelist: if a channel has any allow rule,
+//     only messages matching one survive (the rest are blocked). A whitelist match
+//     wins over a text-deny (short-circuit), so e.g. an allow "#60 *wetter*" keeps
+//     "Wetterbericht Berlin" in TG 60 even if a global deny "*etterb*" exists.
+//   - callsign-deny still runs first, so it's the escape hatch to drop a spammer
+//     even inside a whitelisted channel.
 
 interface Scope {
     negate: boolean;      // '!' -> all channels EXCEPT the ones below
@@ -32,7 +42,8 @@ interface TextRule { re: RegExp; scope: Scope | null; }
 class MsgFilterService {
 
     private callRules: CallRule[] = [];
-    private textRules: TextRule[] = [];
+    private textRules: TextRule[] = [];   // DENY text patterns
+    private allowRules: TextRule[] = [];  // ALLOW (whitelist) text patterns
 
     // turn one user pattern into a case-insensitive RegExp (or null if empty/invalid)
     private compilePattern(raw: string): RegExp | null {
@@ -107,8 +118,19 @@ class MsgFilterService {
         return scope.negate ? !inSet : inSet;
     }
 
+    // compile a multiline text-pattern block (deny or allow) into TextRules
+    private compileTextRules(raw: string): TextRule[] {
+        const rules: TextRule[] = [];
+        for (const line of (raw || "").split(/\r?\n/)) {
+            const { scope, rest } = this.parseScopedLine(line.trim());
+            const re = this.compilePattern(rest);
+            if (re) rules.push({ re, scope });
+        }
+        return rules;
+    }
+
     // (re)build the compiled rules from the raw multiline strings
-    setRules(callRaw: string, textRaw: string) {
+    setRules(callRaw: string, textRaw: string, allowRaw: string = "") {
         this.callRules = [];
         for (const line of callRaw.split(/\r?\n/)) {
             const trimmed = line.trim();
@@ -118,16 +140,13 @@ class MsgFilterService {
             if (call !== "") this.callRules.push({ call, scope });
         }
 
-        this.textRules = [];
-        for (const line of textRaw.split(/\r?\n/)) {
-            const { scope, rest } = this.parseScopedLine(line.trim());
-            const re = this.compilePattern(rest);
-            if (re) this.textRules.push({ re, scope });
-        }
+        this.textRules = this.compileTextRules(textRaw);
+        this.allowRules = this.compileTextRules(allowRaw);
 
         MsgFilterStore.update(s => {
             s.callRaw = callRaw;
             s.textRaw = textRaw;
+            s.allowRaw = allowRaw;
         });
     }
 
@@ -141,12 +160,26 @@ class MsgFilterService {
         const own = ConfigObject.getConf().CALL;
         if (own && msg.fromCall === own) return false;
 
+        // 1) callsign DENY first (absolute + cheap). A blocked callsign is dropped
+        //    even if the message would match an allow rule - so the callsign filter
+        //    is the escape hatch for spam inside a whitelisted channel.
         const fromUp = (msg.fromCall || "").trim().toUpperCase();
         for (const r of this.callRules) {
             if (r.call === fromUp && this.scopeApplies(r.scope, msg)) return true;
         }
 
         const text = msg.msgTXT || "";
+
+        // 2) ALLOW (whitelist) gate: if this channel has ANY allow rule, the message
+        //    must match one to be kept. A match wins over deny (short-circuit ALLOW,
+        //    so a whitelisted msg is protected from a general text-deny); no match in
+        //    a whitelisted channel -> blocked.
+        const allowHere = this.allowRules.filter(r => this.scopeApplies(r.scope, msg));
+        if (allowHere.length > 0) {
+            return !allowHere.some(r => r.re.test(text)); // matches -> keep; else block
+        }
+
+        // 3) text DENY
         for (const r of this.textRules) {
             if (this.scopeApplies(r.scope, msg) && r.re.test(text)) return true;
         }

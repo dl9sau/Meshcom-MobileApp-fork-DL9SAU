@@ -889,36 +889,42 @@ class DatabaseService {
             const res = await DatabaseService.db.query('SELECT ftype, pattern FROM MsgFilters ORDER BY id;');
             const calls: string[] = [];
             const texts: string[] = [];
+            const allows: string[] = [];
             if (res.values) {
                 for (const row of res.values) {
                     if (row.ftype === 'call') calls.push(row.pattern);
                     else if (row.ftype === 'text') texts.push(row.pattern);
+                    else if (row.ftype === 'allow') allows.push(row.pattern);
                 }
             }
-            MsgFilterService.setRules(calls.join('\n'), texts.join('\n'));
-            LogS.log(0, `MsgFilters loaded: ${calls.length} calls, ${texts.length} text patterns`);
+            MsgFilterService.setRules(calls.join('\n'), texts.join('\n'), allows.join('\n'));
+            LogS.log(0, `MsgFilters loaded: ${calls.length} calls, ${texts.length} deny, ${allows.length} allow`);
         } catch (err) {
             LogS.log(1, 'Error loading MsgFilters:' + err);
         }
     }
 
     // persist the block-filter rules and refresh the chat view
-    static async saveMsgFilters(callRaw: string, textRaw: string) {
+    static async saveMsgFilters(callRaw: string, textRaw: string, allowRaw: string = "") {
         // update the in-memory rules right away
-        MsgFilterService.setRules(callRaw, textRaw);
+        MsgFilterService.setRules(callRaw, textRaw, allowRaw);
 
         try {
             if (DatabaseService.db) {
                 await DatabaseService.db.execute('DELETE FROM MsgFilters;');
                 const calls = callRaw.split(/\r?\n/).map(l => l.trim()).filter(l => l !== '');
                 const texts = textRaw.split(/\r?\n/).map(l => l.trim()).filter(l => l !== '');
+                const allows = allowRaw.split(/\r?\n/).map(l => l.trim()).filter(l => l !== '');
                 for (const c of calls) {
                     await DatabaseService.db.run('INSERT INTO MsgFilters (ftype, pattern) VALUES (?, ?);', ['call', c]);
                 }
                 for (const t of texts) {
                     await DatabaseService.db.run('INSERT INTO MsgFilters (ftype, pattern) VALUES (?, ?);', ['text', t]);
                 }
-                LogS.log(0, `MsgFilters saved: ${calls.length} calls, ${texts.length} text patterns`);
+                for (const a of allows) {
+                    await DatabaseService.db.run('INSERT INTO MsgFilters (ftype, pattern) VALUES (?, ?);', ['allow', a]);
+                }
+                LogS.log(0, `MsgFilters saved: ${calls.length} calls, ${texts.length} deny, ${allows.length} allow`);
             }
         } catch (err) {
             LogS.log(1, 'Error saving MsgFilters:' + err);

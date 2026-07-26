@@ -64,6 +64,15 @@ changes of this fork relative to upstream. The in-app version shows
   (only broadcast), `#262` (only TG 262), `#ALL,262` (those two), `#!60` (all but
   TG 60). E.g. `#!60 *Wetterbericht*` blocks "Wetterbericht" everywhere except the
   weather TG 60.
+- **Allow list (whitelist) in addition to the deny rules.** A separate *Allow*
+  field (same text notation + `#scope`). If a channel has any allow rule, **only**
+  messages matching one are kept, and an **allow match wins over a deny** — so
+  `#60 *wetter*` keeps "Wetterbericht Berlin" in TG 60 even with a global deny
+  `*etterb*`. Check **sequence: callsign-deny → allow → text-deny** (callsign-deny
+  runs first, so it stays the escape hatch to drop a spammer inside a whitelisted
+  channel). Doubles as a **quick filter off-switch**: put `*` in Allow to pass all
+  content (`*` = everywhere, `#60 *` = only TG 60) without deleting your deny rules.
+  Stored alongside the deny rules (`ftype='allow'` in the MsgFilters table).
 - **Per-channel notifications & visibility — long-press a channel tab.** One
   in-app menu per tab (All, DM, each talk group), so it works the same on Android
   and iOS with nothing stuck in the OS. A one-time hint points out the gesture.

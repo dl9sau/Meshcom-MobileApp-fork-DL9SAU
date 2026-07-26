@@ -316,12 +316,14 @@ const Tab2: React.FC = () => {
   const msgFilter_s = useStoreState(MsgFilterStore, s => s);
   const filterCallsRef = useRef<HTMLIonTextareaElement>(null);
   const filterTextRef = useRef<HTMLIonTextareaElement>(null);
+  const filterAllowRef = useRef<HTMLIonTextareaElement>(null);
 
   // persist the block-filter rules and refresh the chat view
   const saveMsgFilters = async () => {
     const callRaw = filterCallsRef.current?.value?.toString() ?? "";
     const textRaw = filterTextRef.current?.value?.toString() ?? "";
-    await DataBaseService.saveMsgFilters(callRaw, textRaw);
+    const allowRaw = filterAllowRef.current?.value?.toString() ?? "";
+    await DataBaseService.saveMsgFilters(callRaw, textRaw, allowRaw);
     LogS.log(0, "Settings: Msg filters saved");
   };
 
@@ -2882,7 +2884,7 @@ const Tab2: React.FC = () => {
               <div className='setting_wrapper'>
                 <div className="flex-row mb-3">
                   <div>
-                    <IonText id="wifi-text">Block Rules</IonText>
+                    <IonText id="wifi-text">Filter Rules</IonText>
                   </div>
                   <div>
                     <IonButton size="small" fill="outline" color='success' onClick={() => saveMsgFilters()}>
@@ -2890,13 +2892,18 @@ const Tab2: React.FC = () => {
                     </IonButton>
                   </div>
                 </div>
+                <div className='mt-3 mb-3'><b>Sequence: Call → Allow → Deny</b></div>
                 <div className='mt-3 mb-3'>Blocked callsigns (one per line, incl. SSID)</div>
                 <IonItem>
                   <IonTextarea value={msgFilter_s.callRaw} ref={filterCallsRef} label='Callsigns' labelPlacement="floating" autoGrow={true} rows={3} placeholder='OE1ABC-2'></IonTextarea>
                 </IonItem>
-                <div className='mt-3 mb-3'>Text filters (one per line): Wort · ^Beginn · Ende$ · *Wild*card</div>
+                <div className='mt-3 mb-3'>Deny — text patterns (one per line): Wort · ^Beginn · Ende$ · *Wild*card · #262 / #!60 scope</div>
                 <IonItem>
-                  <IonTextarea value={msgFilter_s.textRaw} ref={filterTextRef} label='Text patterns' labelPlacement="floating" autoGrow={true} rows={4} placeholder='^wetter'></IonTextarea>
+                  <IonTextarea value={msgFilter_s.textRaw} ref={filterTextRef} label='Deny text' labelPlacement="floating" autoGrow={true} rows={4} placeholder='^wetter'></IonTextarea>
+                </IonItem>
+                <div className='mt-3 mb-3'>Allow — whitelist (one per line). If a channel has any allow rule, only matching messages are kept; a match wins over Deny. Put <b>*</b> here to switch content filters off (e.g. <b>*</b> = all, <b>#60 *</b> = TG 60 only).</div>
+                <IonItem>
+                  <IonTextarea value={msgFilter_s.allowRaw} ref={filterAllowRef} label='Allow text' labelPlacement="floating" autoGrow={true} rows={3} placeholder='#60 *wetter*'></IonTextarea>
                 </IonItem>
                 <div className='mt-3'>Applies to channel messages only. DMs and your own messages are never blocked.</div>
               </div>
