@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import { ForegroundService } from '@capawesome-team/capacitor-android-foreground-service';
+import LogS from './LogService';
 
 // Keeps the app process (and thus the WebView JS + BLE connection + message
 // processing) alive while the app is backgrounded, so notifications fire even in
@@ -28,7 +29,7 @@ export async function startForeground(): Promise<void> {
         } as any);
     } catch (e) {
         // channel may already exist, or the method name differs across versions
-        console.log('FG channel:', e);
+        LogS.log(1, 'FG channel: ' + JSON.stringify(e) + ' / ' + (e as any)?.message);
     }
     try {
         await ForegroundService.startForegroundService({
@@ -39,9 +40,9 @@ export async function startForeground(): Promise<void> {
             notificationChannelId: FG_CHANNEL,
         } as any);
         fgRunning = true;
-        console.log('FG service started');
+        LogS.log(0, 'FG service started');
     } catch (e) {
-        console.log('FG start error:', e);
+        LogS.log(1, 'FG start error: ' + JSON.stringify(e) + ' / ' + (e as any)?.message);
     }
 }
 
