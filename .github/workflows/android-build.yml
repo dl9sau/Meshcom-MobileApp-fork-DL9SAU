@@ -181,3 +181,44 @@ jobs:
             Version: ${{ env.APP_VERSION }}-DL9SAU-g${{ env.GIT_HASH }}
             Branch: `${{ github.ref_name }}`
             Commit: ${{ github.sha }}
+
+  # iOS compile-check (portability only — unsigned simulator build, no IPA). Runs
+  # alongside the Android job. Once iOS is confirmed green, comment this whole job
+  # out again to save macOS runner minutes; re-enable later (e.g. after the
+  # foreground-service native changes) to catch iOS breakage / wrong #ifdefs.
+  ios-compile:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      # runs "tsc && vite build" -> also type-checks the whole project
+      - name: Build web app
+        run: npm run build
+
+      # ios/ is not committed, so create the native project on the fly
+      # (cap sync runs `pod install`)
+      - name: Add & sync iOS platform
+        run: |
+          npx cap add ios
+          npx cap sync ios
+
+      # compile-only for the simulator, signing disabled (no Apple account needed)
+      - name: Compile iOS (simulator, unsigned)
+        run: |
+          xcodebuild \
+            -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            build
