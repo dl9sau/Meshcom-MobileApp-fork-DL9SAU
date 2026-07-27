@@ -204,6 +204,17 @@ ion-textarea.customTextAreaInput{
     color: #bbb;
     font-size: 0.95em;
 }
+/* live compose indicator: on-air byte size + packet-split count under the textarea */
+.compose-info{
+    font-size: 0.7em;
+    color: #999;
+    text-align: right;
+    padding: 2px 8px 0;
+}
+/* highlighted once the draft would be split into more than one packet */
+.compose-split{
+    color: #f0ad4e;
+}
 /* a discarded channel's tab is dimmed (the bell/eye markers are inline-styled in
    renderTab so they never shift the label height) */
 .tab-dimmed{

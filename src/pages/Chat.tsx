@@ -17,6 +17,7 @@ import { Clipboard } from '@capacitor/clipboard';
 import type { OverlayEventDetail } from '@ionic/core';
 import AppActiveState  from '../store/AppActive';
 import {MsgTxtLink} from '../components/MsgTxtLink';
+import { splitForAir, splitCount, byteLen } from '../utils/MsgSplit';
 import ConfigObject from '../utils/ConfigObject';
 import BLEconnStore from '../store/BLEconnected';
 import {getBLEconnStore} from '../store/Selectors';
@@ -37,7 +38,9 @@ import NodeInfoStore from '../store/NodeInfoStore';
 const Tab3: React.FC = () => {
 
 
-  const MAX_CHAR_TEXTINPUT = 150;
+  // compose cap: long messages are auto-split into multiple on-air packets at send
+  // (see MsgSplit), so the input may exceed one packet - allow ~4 packets' worth.
+  const MAX_CHAR_TEXTINPUT = 500;
   const MAX_CHAR_CALLSIGN = 11;
   const MIN_CHAR_CALLSIGN = 1;
 
@@ -98,6 +101,9 @@ const Tab3: React.FC = () => {
   const [showSearch, setShowSearch] = useState<boolean>(false);
   // generic transient toast (e.g. "enter a recipient" when sending a DM with no To)
   const [toastMsg, setToastMsg] = useState<string>("");
+  // mirror of the compose textarea for the live byte / packet-split indicator (the
+  // textarea itself stays uncontrolled; this just tracks the current value)
+  const [composeText, setComposeText] = useState<string>("");
 
   // longpress event: the menu now opens WHILE the finger is held (native
   // long-press feel), so this can be shorter than the old release-based value.
@@ -656,22 +662,27 @@ const Tab3: React.FC = () => {
             .split('\n').map(l => l.replace(/\s+$/, '')).join('\n')
             .replace(/\n+$/, '');
 
-          let final_msg_str = "";
-
           if(txMsg_str.length > 0){
 
-            //console.log("DM Message state: " + shCallsign);
-            if(isDM){
-              final_msg_str = "{" + toCallsign_str_u + "}" + txMsg_str;
-            } else {
-              final_msg_str = txMsg_str;
+            // long messages are auto-split into multiple on-air packets (byte-accurate,
+            // word- and UTF-8-safe; a "(i/n Xx)" group marker is added only when it
+            // actually splits). DM routing "{CALL}" is prepended to EACH part - and it
+            // counts against the on-air budget, so shrink the per-part budget by it.
+            const routing = isDM ? "{" + toCallsign_str_u + "}" : "";
+            const parts = splitForAir(txMsg_str, { maxBytes: 150 - byteLen(routing) });
+            let allSent = true;
+            for (let i = 0; i < parts.length; i++) {
+              const body = routing + parts[i];
+              const ok = await sendFinalMessage(body);
+              if (!ok) { allSent = false; break; } // stop; unsent parts can be resent
+              // small gap so the node's TX queue keeps the parts in order
+              if (i < parts.length - 1) await new Promise(r => setTimeout(r, 300));
             }
-
-            const sent_ok = await sendFinalMessage(final_msg_str);
-            if (!sent_ok) return;
+            if (!allSent) return;
 
             // clear input
             textAreaInputRef.current!.value = "";
+            setComposeText("");
 
             // close keyboard
             Keyboard.hide();
@@ -1106,6 +1117,22 @@ const Tab3: React.FC = () => {
         setShowSearch(false);
       }
 
+      if (asActionDetail === "forward") {
+        // quote the message into a fresh DM: switch to DM, leave the To empty (you
+        // pick the recipient; our empty-To guard stops an accidental send), and drop
+        // "> CALL: <text>" into the compose box. A long quote is auto-split on send.
+        const m = selMsg[0];
+        if (m) {
+          if (segmentFilterRef.current !== "DM") handleSegmentChange("DM", false);
+          toCallsign_.current = "";   // override the DM-switch's last-callsign prefill
+          setDmFilter("");
+          const quote = "> " + m.fromCall + ": " + m.msgTXT;
+          if (textAreaInputRef.current) textAreaInputRef.current.value = quote;
+          setComposeText(quote);
+          callsignInputRef.current?.setFocus();
+        }
+      }
+
       if (asActionDetail === "resend") {
         console.log("Resend pressed");
         const m = selMsg[0];
@@ -1386,6 +1413,14 @@ const Tab3: React.FC = () => {
   // offer to finish that same search - you turned it on there, turn it off there)
   const searchIsThisSender = asSender !== "" && searchQuery.trim().toUpperCase() === asSender.toUpperCase();
 
+  // live compose indicator: clean the draft the same way send does, then show its
+  // on-air byte size and how many packets it will be split into (see MsgSplit). Lets
+  // you trim a word to stay in one packet instead of accidentally sending two.
+  const composeClean = composeText
+    .replace(/\r\n?/g, '\n').split('\n').map(l => l.replace(/\s+$/, '')).join('\n').replace(/\n+$/, '');
+  const composeBytes = byteLen(composeClean);
+  const composeParts = composeClean.length ? splitCount(composeClean) : 0;
+
   return (
     <IonPage>
       <IonHeader>
@@ -1472,6 +1507,14 @@ const Tab3: React.FC = () => {
                 action: 'replyTo',
               },
             }] : []),
+            {
+              // forward: quote into a DM (recipient left for you to fill); long
+              // quotes are auto-split into packets like any other message
+              text: 'Forward',
+              data: {
+                action: 'forward',
+              },
+            },
             {
               text: 'Copy Text',
               data: {
@@ -1701,10 +1744,14 @@ const Tab3: React.FC = () => {
                   maxlength={MAX_CHAR_TEXTINPUT}
                   rows={1}
                   placeholder='Type Message'
-                  onIonInput={stampActivity}
+                  onIonInput={(e) => { stampActivity(); setComposeText((e.detail as any)?.value ?? ""); }}
                   disabled={!ble_connected}>
                 </IonTextarea>
               </IonItem>
+              {composeParts > 0 &&
+                <div className={"compose-info" + (composeParts > 1 ? " compose-split" : "")}>
+                  {composeBytes} B{composeParts > 1 ? ` · ${composeParts} packets` : ""}
+                </div>}
             </div>
           </div>
 
