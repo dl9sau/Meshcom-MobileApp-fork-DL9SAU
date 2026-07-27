@@ -691,6 +691,8 @@ const Tab3: React.FC = () => {
       const idleMs = Date.now() - lastInteractionRef.current;
       notifyLevel = idleMs >= 30000 ? 1 : 0;
     }
+    // TEMP diagnostic (idle-silence debugging): shows which condition decided the level
+    LogS.log(0, `notify: app=${isAppActive} page=${thisPageActive.current} type=${msgType} seg=${segmentFilter} match=${msgType === segmentFilter} idle=${Math.round((Date.now() - lastInteractionRef.current) / 1000)}s -> lvl=${notifyLevel}`);
     if (notifyLevel > 0) {
       notifyMsgUser(notify_title, notifyMsg_s.msgTXT, notifyLevel, msgType);
     }
