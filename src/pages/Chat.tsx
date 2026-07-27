@@ -704,17 +704,14 @@ const Tab3: React.FC = () => {
     // already see the message -> never a banner. And if you interacted within the
     // last 30 s you're clearly watching -> stay silent; only if the app has just
     // been sitting open (idle >= 30 s) play a sound to catch your eye.
-    let beeped = false;
     if (notifyLevel > 0 && isAppActive && thisPageActive.current && msgType === segmentFilter) {
       // you're viewing this exact channel -> NO system notification (no shade entry).
-      // If you've been idle >= 30s, play a short IN-APP beep to catch your eye.
+      // If you've been idle >= 30s, play a short IN-APP beep to catch your eye;
+      // if you've interacted within 30s you're clearly watching -> stay fully silent.
       const idleMs = Date.now() - lastInteractionRef.current;
-      if (idleMs >= 30000) { playBeep(); beeped = true; }
+      if (idleMs >= 30000) playBeep();
       notifyLevel = 0;
     }
-    // TEMP diagnostic (idle-silence + channel routing): which condition decided the
-    // level, which OS channel it would use, and whether an in-app beep played.
-    LogS.log(0, `notify: app=${isAppActive} page=${thisPageActive.current} type=${msgType} seg=${segmentFilter} match=${msgType === segmentFilter} idle=${Math.round((Date.now() - lastInteractionRef.current) / 1000)}s -> lvl=${notifyLevel} ch=${notifyLevel === 2 ? 'banner' : notifyLevel === 1 ? 'sound' : '-'} beep=${beeped}`);
     if (notifyLevel > 0) {
       notifyMsgUser(notify_title, notifyMsg_s.msgTXT, notifyLevel, msgType);
     }

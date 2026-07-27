@@ -110,25 +110,27 @@ changes of this fork relative to upstream. The in-app version shows
     you've discarded — it already beeps, so instead of a ping with nothing to show,
     you can see who mentioned you. The channel's other messages stay hidden.
   - If you're **already viewing that channel** (app in front, chat open, same
-    tab), a would-be *banner* notification never pops up — and if you've **touched
-    the app within the last 30 s** you're clearly watching, so it stays **fully
-    silent**; only if the app has just been sitting open (idle ≥ 30 s) does it
-    play a **sound** to catch your eye.
+    segment), a new message there raises **no system notification at all** — no
+    banner, and **no entry in the notification shade** (you can already see it). If
+    you've **touched or typed within the last 30 s** you're clearly watching, so it
+    stays **fully silent**; only if it's been idle ≥ 30 s does it play a short
+    **in-app beep** (just a sound, no notification) to catch your eye.
   - **Notifications no longer pile up.** Each channel keeps a **single** entry in
     the notification shade — a new message **replaces** the previous one instead of
     stacking dozens of old ones. Coming back to the app **clears** the shade, and
     **viewing a channel clears that channel's** entry (you've just read it).
-- **Reply** prefills a compact reference into the input (mention style follows the
-  widespread **MeshcomWebDesk** web interface — `@call text`, **no colon**):
-  - channel, one other person → **`@call [HH:MM] `** (mention + that message's
-    time); referencing **more people** turns it into an **`@call1, @call2 `
-    mention list** and drops the time (a shared timestamp across time-distinct
-    messages is meaningless). Deduped — replying twice to the same call never
-    repeats it;
-  - channel, your own message → **`[HH:MM] `** (time only, no self-mention);
-  - DM (your own or the partner's) → **`[HH:MM] `** (recipient is already clear).
-  The same timestamp is never stacked twice — tapping Reply on one message again
-  adds nothing; only referencing a *different* message adds another `[HH:MM]`.
+- **Reply** appends a compact reference at the end of your text (mention style
+  follows **MeshcomWebDesk** — `@call text`, **no colon**):
+  - another person's channel message → **`@call [HH:MM] `** (mention + that
+    message's time);
+  - your own channel message → **`[HH:MM] `** (time only, no self-mention);
+  - a DM (yours or the partner's) → **`[HH:MM] `** (recipient is already clear).
+  The reference is **appended where you're typing**, so you can **interleave**:
+  reply to one, type your answer, reply to another — each reference keeps **its own
+  time** (`@call1 [t1] ack @call2 [t2] answer`). If you instead tap Reply several
+  times **without typing anything between**, it collapses to a plain **`@call1
+  @call2 ` mention list** (per-message times dropped, deduped). The @mention is
+  matched anywhere in the text on receive, so referenced stations are still notified.
 - **Tap** (short press) a DM message to **prefill the To-Callsign** with the
   conversation partner (their call if they wrote it, the recipient if you did).
 - **Resend** for your own *unacknowledged* messages — sends directly, no retype.
