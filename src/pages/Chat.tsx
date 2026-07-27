@@ -121,6 +121,10 @@ const Tab3: React.FC = () => {
   // saved on leaving a segment and restored on entering it (segments share one
   // IonContent, so without this the position/atBottom state leaks between them).
   const segScrollRef = useRef<{ [seg: string]: number }>({});
+  // was a segment at the bottom (caught up) when we left it? If so we reopen it at
+  // the bottom so messages that arrived meanwhile are fully visible, instead of
+  // restoring the now-stale pixel offset (which left the new message below the fold).
+  const segAtBottomRef = useRef<{ [seg: string]: boolean }>({});
   const prevSegForMsgRef = useRef<string>("ALL"); // to tell a new message from a segment switch
 
   // DM callsign trigger from Map
@@ -760,10 +764,16 @@ const Tab3: React.FC = () => {
   // render. Then recompute atBottom + button from the real position.
   useEffect(() => {
     const saved = segScrollRef.current[segmentFilter];
+    const wasAtBottom = segAtBottomRef.current[segmentFilter];
     const t = setTimeout(() => {
       const el = scrollElRef.current;
       if (!el) return;
-      el.scrollTop = (saved !== undefined) ? saved : el.scrollHeight;
+      // A channel you were caught up in (at the bottom) - or have never opened -
+      // reopens at the BOTTOM, so messages that arrived while you were away are
+      // fully visible with no half-cut header / scrollbar; the ones you'd already
+      // seen stay visible above (a screenful of short messages fits). A channel you
+      // had scrolled UP in to read history restores its exact reading position.
+      el.scrollTop = (saved === undefined || wasAtBottom) ? el.scrollHeight : saved;
       const near = (el.scrollHeight - el.scrollTop - el.clientHeight) < 24;
       atBottomRef.current = near;
       setShowJump(!near);
@@ -1251,8 +1261,14 @@ const Tab3: React.FC = () => {
   const handleSegmentChange = (val: string, isGrp: boolean) => {
     console.log("Chat Filter Change to: " + val);
     stampActivity(); // switching tabs is an interaction
-    // remember where we were in the segment we're LEAVING, before it swaps out
-    if (scrollElRef.current) segScrollRef.current[segmentFilterRef.current] = scrollElRef.current.scrollTop;
+    // remember where we were in the segment we're LEAVING, before it swaps out:
+    // the pixel offset (to restore a channel you'd scrolled up in) AND whether you
+    // were caught up at the bottom (then we reopen at the bottom - see restore effect)
+    if (scrollElRef.current) {
+      const el = scrollElRef.current;
+      segScrollRef.current[segmentFilterRef.current] = el.scrollTop;
+      segAtBottomRef.current[segmentFilterRef.current] = (el.scrollHeight - el.scrollTop - el.clientHeight) < 24;
+    }
     setSegmentFilter(val);
 
     DatabaseService.setChatFilters(val);
