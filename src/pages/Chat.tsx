@@ -1,4 +1,4 @@
-import { IonButton, IonActionSheet, IonContent, IonFooter, IonGrid, IonHeader, IonIcon, IonInput, IonItem, IonPage, IonText, IonTitle, IonToolbar, useIonViewDidEnter, useIonViewWillEnter, IonAlert, useIonViewWillLeave, IonButtons, IonModal, IonCheckbox, IonSegmentButton, IonLabel, IonSegment, IonTextarea, IonToast } from '@ionic/react';
+import { IonButton, IonActionSheet, IonContent, IonFab, IonFabButton, IonFooter, IonGrid, IonHeader, IonIcon, IonInput, IonItem, IonPage, IonText, IonTitle, IonToolbar, useIonViewDidEnter, useIonViewWillEnter, IonAlert, useIonViewWillLeave, IonButtons, IonModal, IonCheckbox, IonSegmentButton, IonLabel, IonSegment, IonTextarea, IonToast } from '@ionic/react';
 import React,{ useEffect, useRef, useState, createRef } from 'react';
 import {ConfType, MsgType, InfoData} from '../utils/AppInterfaces';
 import {useBLE} from '../hooks/BleHandler';
@@ -9,7 +9,7 @@ import { getConfigStore, getDevID, getMsgStore, getPlatformStore } from '../stor
 import MsgStore from '../store/MsgStore';
 import { computeGlobeState, GlobeState } from '../utils/GlobeState';
 import ConfigStore from '../store/ConfStore';
-import { checkmark, cloudDoneOutline, cloudOutline, caretForwardCircle, settings} from 'ionicons/icons';
+import { checkmark, cloudDoneOutline, cloudOutline, caretForwardCircle, settings, arrowDown} from 'ionicons/icons';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import PlatformStore from '../store/PlatformStore';
 import { Keyboard } from '@capacitor/keyboard';
@@ -103,6 +103,14 @@ const Tab3: React.FC = () => {
 
   // reference to bottom of chat
   const bottomRef = useRef<HTMLDivElement | null>(null);
+
+  // auto-scroll only when you're already at the bottom. If you've scrolled up to
+  // read, a new message must NOT yank you down - instead a "jump to latest" button
+  // appears (tap it, or scroll down yourself, to catch up).
+  const contentRef = useRef<HTMLIonContentElement>(null);
+  const scrollElRef = useRef<HTMLElement | null>(null);
+  const atBottomRef = useRef<boolean>(true);
+  const [showJump, setShowJump] = useState<boolean>(false);
 
   // DM callsign trigger from Map
   const dmFrmMap_ = DMfrmMapStore.useState(s => s.dmfDMfrmMap);
@@ -381,6 +389,9 @@ const Tab3: React.FC = () => {
     stampActivity(); // entering the chat counts as looking at it
     // set the bottom reference
     if(bottomRef.current === null) bottomRef.current = document.getElementById('bottomRefID') as HTMLDivElement;
+    // cache the scroll element for the "am I at the bottom?" check
+    contentRef.current?.getScrollElement().then(el => { scrollElRef.current = el; }).catch(() => {});
+    atBottomRef.current = true; setShowJump(false); // entering -> we scroll to bottom below
 
     // check if we have segmentbuttons to set from initialChatSegmentMarkers
     const initSegs: string[] = ConfigObject.getInitChatSegmentMarkers();
@@ -466,6 +477,23 @@ const Tab3: React.FC = () => {
       }
     }
   }
+
+  // track whether we're (near) the bottom, so a new message doesn't yank you down
+  // while you've scrolled up to read. Threshold ~120px = "close enough to bottom".
+  const onContentScroll = () => {
+    const el = scrollElRef.current;
+    if (!el) return;
+    const near = (el.scrollHeight - el.scrollTop - el.clientHeight) < 120;
+    atBottomRef.current = near;
+    if (near) setShowJump(false); // caught up -> hide the button
+  };
+
+  // "jump to latest" button: go to the bottom and hide it
+  const jumpToLatest = () => {
+    setShowJump(false);
+    atBottomRef.current = true;
+    scrollToBottom();
+  };
 
   
 
@@ -674,13 +702,13 @@ const Tab3: React.FC = () => {
   }
 
 
-  // scroll to bottom if new message arrives
+  // new message arrived: scroll to bottom ONLY if you're already there. If you've
+  // scrolled up to read, keep your place and show the "jump to latest" button.
   useEffect(() => {
 
     if (msgArr_s && msgArr_s.length > 0) {
-      console.log("Chat - New Message Arrived");          
-
-      scrollToBottom();
+      if (atBottomRef.current) scrollToBottom();
+      else setShowJump(true);
     }
 
   }, [msgArr_s]);
@@ -1189,6 +1217,9 @@ const Tab3: React.FC = () => {
     }
     clearSegmentUnread(val); // this channel is read now -> update the Chat tab dot
 
+    // switching segment -> land at the bottom of the new channel, no stale jump btn
+    atBottomRef.current = true; setShowJump(false);
+
     // clear this channel's lingering notification from the shade (you're reading it now)
     clearChannelShade(val);
   }
@@ -1208,7 +1239,14 @@ const Tab3: React.FC = () => {
             </IonSegment>
         </IonToolbar>
       </IonHeader>
-      <IonContent className="ion-padding" onTouchStart={stampActivity}>
+      <IonContent className="ion-padding" ref={contentRef} scrollEvents={true} onIonScroll={onContentScroll} onTouchStart={stampActivity}>
+        {showJump &&
+          <IonFab slot="fixed" vertical="bottom" horizontal="end">
+            <IonFabButton size="small" color="primary" onClick={jumpToLatest} title="Neue Nachrichten">
+              <IonIcon icon={arrowDown} />
+            </IonFabButton>
+          </IonFab>
+        }
 
         <IonAlert
           isOpen={shDiscoCard}
@@ -1438,6 +1476,7 @@ const Tab3: React.FC = () => {
                     ref={callsignInputRef}
                     placeholder='To Callsign'
                     type='text'
+                    clearInput={true}
                     maxlength={MAX_CHAR_CALLSIGN}
                     onIonInput={(ev) => { stampActivity(); handleInput(ev); }}
                     disabled={!ble_connected}
