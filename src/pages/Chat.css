@@ -172,6 +172,16 @@ ion-textarea.customTextAreaInput{
 .segmentbutton_green{
     --background: green;
 }
+/* a transient view-filter is active on this tab (DM To-filter). Yellow reminder;
+   green (new messages) has priority since the current/active tab never gets green.
+   Cover both the active (checked) and idle background + the segment indicator. */
+.tab-filtered{
+    --background: #ffe08a;
+    --background-checked: #ffe08a;
+    --indicator-color: #f0ad4e;
+    --color-checked: #000;
+    --color: #000;
+}
 .textarea_field{
     margin-top: 5px;
 }

@@ -42,6 +42,13 @@ changes of this fork relative to upstream. The in-app version shows
   (ALL / DM / talk group) **remembers its own scroll position**, so switching
   channels and back returns you exactly where you were.
 - **Clear (✕) on the To-Callsign field** — no more holding backspace to erase it.
+- **DM live filter by the To-callsign.** In the DM tab, whatever you type in the
+  *To* field **narrows the view to that conversation** — so you see just the dialog
+  with the station you're writing to. It doubles as a **callsign lookup**: a partial
+  `DL1AA` surfaces the matching messages so you can complete the call (`DL1AAB-12`).
+  Case-insensitive, matches sender **or** recipient. The DM tab turns **yellow** while
+  the filter is active (a reminder it's on; the green new-message marker still wins).
+  Transient — **not saved**; clear the To field (the ✕) to see all DMs again.
 - **Green "unread" dot on the Chat tab icon.** When a genuinely new message
   arrives while you're on another tab (Settings, Map, Mheard …), the bottom Chat
   icon gets a small green dot so you notice something's up — **regardless of

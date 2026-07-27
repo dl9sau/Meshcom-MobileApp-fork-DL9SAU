@@ -86,6 +86,10 @@ const Tab3: React.FC = () => {
   const toCallsign_ = useRef<string>("");
   // last callsign when DM segment was active
   const lastDMcallsign = useRef<string>("");
+  // live DM view-filter: while a "To" callsign is typed in the DM segment, the DM
+  // list is narrowed to that conversation (also a callsign-lookup helper). Transient,
+  // not persisted; cleared when the To field is emptied.
+  const [dmFilter, setDmFilter] = useState<string>("");
 
   // longpress event: the menu now opens WHILE the finger is held (native
   // long-press feel), so this can be shorter than the old release-based value.
@@ -353,7 +357,10 @@ const Tab3: React.FC = () => {
     const eye = val === "DM" && dmShowAll;
     return (
       <IonSegmentButton key={val} value={val} id={val}
-        className={tabDiscarded(val) ? 'tab-dimmed' : undefined}
+        className={[
+          tabDiscarded(val) ? 'tab-dimmed' : '',
+          (val === "DM" && segmentFilter === "DM" && dmFilter.trim() !== "") ? 'tab-filtered' : ''
+        ].filter(Boolean).join(' ') || undefined}
         onClick={() => handleSegmentChange(val, isGroup)}
         onTouchStart={(e) => handleTabPress(e, val)}
         onTouchMove={handleTabMove}
@@ -1147,7 +1154,17 @@ const Tab3: React.FC = () => {
 
     console.log("Input: " + inp);
     toCallsign_.current = inp;
+    setDmFilter(inp.trim()); // live-narrow the DM view to this callsign (and lookup helper)
   }
+
+  // is a message visible under the current DM view-filter? (filter only in the DM
+  // segment, only when a To callsign is typed; matches sender OR recipient, case-
+  // insensitive substring so a partial "DL1AA" surfaces "DL1AAB-12").
+  const dmVisible = (m: MsgType): boolean => {
+    if (segmentFilter !== "DM" || dmFilter.trim() === "") return true;
+    const f = dmFilter.trim().toUpperCase();
+    return (m.fromCall || "").toUpperCase().includes(f) || (m.toCall || "").toUpperCase().includes(f);
+  };
 
 
   // check if timestamps of two text messages have midnight in between to show date
@@ -1226,6 +1243,8 @@ const Tab3: React.FC = () => {
       // remember the last DM callsign
       toCallsign_.current = lastDMcallsign.current;
       setShCallsign(true);
+      // To field is (re)filled -> apply the live DM view-filter to match it
+      setDmFilter(lastDMcallsign.current.trim());
     } else {
       setShCallsign(false);
     }
@@ -1372,7 +1391,7 @@ const Tab3: React.FC = () => {
         <div id="spacer-top"></div>
         <div id="msg-box" >
 
-          {msgArr_s.map((msg, i) => (
+          {msgArr_s.filter(dmVisible).map((msg, i) => (
             <>
               {checkMidnight(msg) &&
                 <div className="date-panel">
