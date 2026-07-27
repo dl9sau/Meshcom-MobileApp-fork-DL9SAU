@@ -669,7 +669,10 @@ const Tab3: React.FC = () => {
             // actually splits). DM routing "{CALL}" is prepended to EACH part - and it
             // counts against the on-air budget, so shrink the per-part budget by it.
             const routing = isDM ? "{" + toCallsign_str_u + "}" : "";
-            const parts = splitForAir(txMsg_str, { maxBytes: 150 - byteLen(routing) });
+            // if this is a quote (forward, or a manual "> ..."), keep the "> " marker
+            // on every wrapped part, like an email client wraps quoted lines
+            const quoted = txMsg_str.startsWith("> ");
+            const parts = splitForAir(txMsg_str, { maxBytes: 150 - byteLen(routing), prefixCont: quoted ? "> " : "" });
             let allSent = true;
             for (let i = 0; i < parts.length; i++) {
               const body = routing + parts[i];
@@ -1745,6 +1748,7 @@ const Tab3: React.FC = () => {
                   rows={1}
                   placeholder='Type Message'
                   onIonInput={(e) => { stampActivity(); setComposeText((e.detail as any)?.value ?? ""); }}
+                  onIonFocus={() => { if (showSearch && searchQuery.trim() === "") setShowSearch(false); }}
                   disabled={!ble_connected}>
                 </IonTextarea>
               </IonItem>
