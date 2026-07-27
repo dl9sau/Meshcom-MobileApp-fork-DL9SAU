@@ -662,9 +662,9 @@ const Tab3: React.FC = () => {
           visibility: 1,
           vibration: true
         });
-        // log the ACTUAL importances into the in-app Log (diagnostic)
+        // channel importances (dev console only): banner=4, sound=3, fg=2 confirmed
         const channels = await LocalNotifications.listChannels();
-        LogS.log(0, "Notify channels: " + channels.channels.map(c => c.id + "=imp" + c.importance).join(", "));
+        console.log("Notify channels: " + channels.channels.map(c => c.id + "=imp" + c.importance).join(", "));
       }
     } else {
       // TODO action when no permission for notifies is set
