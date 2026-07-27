@@ -261,9 +261,14 @@ changes of this fork relative to upstream. The in-app version shows
 
 - **DM with an empty To field no longer eats your message.** If you composed a
   (long) DM but forgot to fill the *To* callsign and hit Send, the text was sent as
-  a plain channel message and the box cleared — your DM was gone. Now Send is
-  **blocked**, the **text is kept**, the cursor **jumps to the To field**, and a
-  short toast says to add a recipient.
+  a plain channel message **to ALL** (publicly!) and the box cleared — your private
+  DM was gone *and* broadcast. Now Send is **blocked**, the **text is kept**, the
+  cursor **jumps to the To field**, and a short toast says to add a recipient.
+- **No more empty / whitespace-only broadcasts.** Sending a blank (or spaces-only)
+  message no longer posts an empty message to ALL. Outgoing text is cleaned first:
+  each line is **right-trimmed** (trailing spaces/tabs removed) and trailing blank
+  lines dropped, while **leading indentation is kept** (e.g. `  ^typo at pos 3`). If
+  nothing but whitespace remains, nothing is sent.
 - **Log button dead after sleep/tab-switch.** The Info-tab *Log* modal had no
   `onDidDismiss`, so when it was closed by anything other than its *Close* button
   (leaving the tab, the resume lifecycle, hardware back) the `isOpen` state stayed

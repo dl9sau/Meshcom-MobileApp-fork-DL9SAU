@@ -620,6 +620,12 @@ const Tab3: React.FC = () => {
 
           let txMsg_str = txMsg.toString();
 
+          // clean the input: right-strip each line (trailing spaces/tabs are noise)
+          // but KEEP leading whitespace - intentional indentation like "  ^typo at
+          // pos 3" or an indented block is legitimate - and drop trailing blank
+          // lines. If nothing but whitespace is left there is nothing to send.
+          txMsg_str = txMsg_str.split('\n').map(l => l.replace(/\s+$/, '')).join('\n').replace(/\n+$/, '');
+
           let final_msg_str = "";
 
           if(txMsg_str.length > 0){
