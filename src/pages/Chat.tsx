@@ -1005,7 +1005,7 @@ const Tab3: React.FC = () => {
             // @call2 [t2] answer"). @mention is matched anywhere on receive either way.
             const pureRefRun = existing.trim() !== "" && /^(\s*(@\S+|\[\d{1,2}:\d{2}\])\s*)*$/.test(existing);
             if (pureRefRun) {
-              const calls = existing.match(/@\S+/g) || [];
+              const calls: string[] = existing.match(/@\S+/g) || [];
               if (!calls.includes(mention)) calls.push(mention);
               textAreaInputRef.current.value = calls.join(" ") + " ";
             } else {
