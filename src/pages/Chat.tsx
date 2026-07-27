@@ -111,6 +111,11 @@ const Tab3: React.FC = () => {
   const scrollElRef = useRef<HTMLElement | null>(null);
   const atBottomRef = useRef<boolean>(true);
   const [showJump, setShowJump] = useState<boolean>(false);
+  // per-segment scroll memory: each segment (ALL/DM/TG) keeps its own scroll position,
+  // saved on leaving a segment and restored on entering it (segments share one
+  // IonContent, so without this the position/atBottom state leaks between them).
+  const segScrollRef = useRef<{ [seg: string]: number }>({});
+  const prevSegForMsgRef = useRef<string>("ALL"); // to tell a new message from a segment switch
 
   // DM callsign trigger from Map
   const dmFrmMap_ = DMfrmMapStore.useState(s => s.dmfDMfrmMap);
@@ -485,7 +490,7 @@ const Tab3: React.FC = () => {
     if (!el) return;
     const near = (el.scrollHeight - el.scrollTop - el.clientHeight) < 120;
     atBottomRef.current = near;
-    if (near) setShowJump(false); // caught up -> hide the button
+    setShowJump(!near); // button visible whenever you're scrolled up
   };
 
   // "jump to latest" button: go to the bottom and hide it
@@ -703,15 +708,35 @@ const Tab3: React.FC = () => {
 
 
   // new message arrived: scroll to bottom ONLY if you're already there. If you've
-  // scrolled up to read, keep your place and show the "jump to latest" button.
+  // scrolled up to read, keep your place (the ↓ button is shown by onIonScroll).
+  // A SEGMENT SWITCH also changes msgArr_s - don't treat that as a new message
+  // (the [segmentFilter] restore effect below handles scrolling for switches).
   useEffect(() => {
-
-    if (msgArr_s && msgArr_s.length > 0) {
-      if (atBottomRef.current) scrollToBottom();
-      else setShowJump(true);
+    if (!msgArr_s || msgArr_s.length === 0) return;
+    if (prevSegForMsgRef.current !== segmentFilterRef.current) {
+      prevSegForMsgRef.current = segmentFilterRef.current; // segment switch, not a new msg
+      return;
     }
-
+    if (atBottomRef.current) scrollToBottom();
   }, [msgArr_s]);
+
+
+  // segment switched: restore THIS segment's saved scroll position (or bottom if we
+  // haven't been here / it was at the bottom). Captured synchronously so a transient
+  // scroll during the content swap can't corrupt it; applied after the new messages
+  // render. Then recompute atBottom + button from the real position.
+  useEffect(() => {
+    const saved = segScrollRef.current[segmentFilter];
+    const t = setTimeout(() => {
+      const el = scrollElRef.current;
+      if (!el) return;
+      el.scrollTop = (saved !== undefined) ? saved : el.scrollHeight;
+      const near = (el.scrollHeight - el.scrollTop - el.clientHeight) < 120;
+      atBottomRef.current = near;
+      setShowJump(!near);
+    }, 80);
+    return () => clearTimeout(t);
+  }, [segmentFilter]);
 
 
   // Trigger that we fire a notification on new message
@@ -1183,6 +1208,8 @@ const Tab3: React.FC = () => {
   const handleSegmentChange = (val: string, isGrp: boolean) => {
     console.log("Chat Filter Change to: " + val);
     stampActivity(); // switching tabs is an interaction
+    // remember where we were in the segment we're LEAVING, before it swaps out
+    if (scrollElRef.current) segScrollRef.current[segmentFilterRef.current] = scrollElRef.current.scrollTop;
     setSegmentFilter(val);
 
     DatabaseService.setChatFilters(val);
@@ -1216,9 +1243,7 @@ const Tab3: React.FC = () => {
       Seqgmentbutton.classList.remove('segmentbutton_green');
     }
     clearSegmentUnread(val); // this channel is read now -> update the Chat tab dot
-
-    // switching segment -> land at the bottom of the new channel, no stale jump btn
-    atBottomRef.current = true; setShowJump(false);
+    // (the [segmentFilter] effect restores this segment's saved scroll position)
 
     // clear this channel's lingering notification from the shade (you're reading it now)
     clearChannelShade(val);

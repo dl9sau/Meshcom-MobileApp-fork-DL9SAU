@@ -36,9 +36,11 @@ changes of this fork relative to upstream. The in-app version shows
 **Chat**
 - **Reading up no longer gets yanked down.** When you've scrolled up to re-read,
   a new message **keeps your place** instead of auto-scrolling to the bottom. A
-  small **↓ button** appears at the bottom-right — tap it (or scroll down yourself)
-  to jump to the latest. Auto-scroll still follows along when you're already at the
-  bottom.
+  small **↓ button** shows whenever you're scrolled up (also handy to get back down
+  from the very top) — tap it (or scroll down yourself) to jump to the latest.
+  Auto-scroll still follows along when you're already at the bottom. Each channel
+  (ALL / DM / talk group) **remembers its own scroll position**, so switching
+  channels and back returns you exactly where you were.
 - **Clear (✕) on the To-Callsign field** — no more holding backspace to erase it.
 - **Green "unread" dot on the Chat tab icon.** When a genuinely new message
   arrives while you're on another tab (Settings, Map, Mheard …), the bottom Chat
