@@ -484,11 +484,12 @@ const Tab3: React.FC = () => {
   }
 
   // track whether we're (near) the bottom, so a new message doesn't yank you down
-  // while you've scrolled up to read. Threshold ~120px = "close enough to bottom".
+  // while you've scrolled up to read. Threshold ~24px (~1 line) = "at the bottom";
+  // scroll up more than that and the ↓ button appears.
   const onContentScroll = () => {
     const el = scrollElRef.current;
     if (!el) return;
-    const near = (el.scrollHeight - el.scrollTop - el.clientHeight) < 120;
+    const near = (el.scrollHeight - el.scrollTop - el.clientHeight) < 24;
     atBottomRef.current = near;
     setShowJump(!near); // button visible whenever you're scrolled up
   };
@@ -731,7 +732,7 @@ const Tab3: React.FC = () => {
       const el = scrollElRef.current;
       if (!el) return;
       el.scrollTop = (saved !== undefined) ? saved : el.scrollHeight;
-      const near = (el.scrollHeight - el.scrollTop - el.clientHeight) < 120;
+      const near = (el.scrollHeight - el.scrollTop - el.clientHeight) < 24;
       atBottomRef.current = near;
       setShowJump(!near);
     }, 80);
