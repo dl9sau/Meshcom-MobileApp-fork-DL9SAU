@@ -616,12 +616,9 @@ const Tab3: React.FC = () => {
 
       //create notify channels on android
       if (thisPlatform === "android") {
-        // Remove the old channels (silent morse channel '1', and the single
-        // default channel '2' from the interim fix). Use TWO channels with the
-        // DEFAULT sound: 'sound' (importance DEFAULT = sound, no pop-up) and
-        // 'banner' (importance HIGH = sound + heads-up). The in-app per-channel
-        // level routes here; DMs/@mentions/level-2 -> banner. Channel settings are
-        // immutable once created, hence fresh ids.
+        // Two channels with the DEFAULT sound: 'sound' (importance DEFAULT = sound,
+        // no heads-up) and 'banner' (importance HIGH = sound + heads-up). On-device
+        // check confirmed both are correct. Clean up the old ids '1'/'2'.
         try { await LocalNotifications.deleteChannel({ id: '1' } as any); } catch (e) { console.log("del 1:", e); }
         try { await LocalNotifications.deleteChannel({ id: '2' } as any); } catch (e) { console.log("del 2:", e); }
         await LocalNotifications.createChannel({
@@ -640,14 +637,9 @@ const Tab3: React.FC = () => {
           visibility: 1,
           vibration: true
         });
+        // log the ACTUAL importances into the in-app Log (diagnostic)
         const channels = await LocalNotifications.listChannels();
-        console.log("Channels:");
-        for (let ch of channels.channels) {
-          console.log("id: " + ch.id);
-          console.log("importance " + ch.importance);
-          console.log("sound " + ch.sound);
-          console.log("visibility " + ch.visibility);
-        }
+        LogS.log(0, "Notify channels: " + channels.channels.map(c => c.id + "=imp" + c.importance).join(", "));
       }
     } else {
       // TODO action when no permission for notifies is set
@@ -691,8 +683,9 @@ const Tab3: React.FC = () => {
       const idleMs = Date.now() - lastInteractionRef.current;
       notifyLevel = idleMs >= 30000 ? 1 : 0;
     }
-    // TEMP diagnostic (idle-silence debugging): shows which condition decided the level
-    LogS.log(0, `notify: app=${isAppActive} page=${thisPageActive.current} type=${msgType} seg=${segmentFilter} match=${msgType === segmentFilter} idle=${Math.round((Date.now() - lastInteractionRef.current) / 1000)}s -> lvl=${notifyLevel}`);
+    // TEMP diagnostic (idle-silence + channel routing): shows which condition decided
+    // the level, and which OS channel (sound=no heads-up / banner=heads-up) it uses.
+    LogS.log(0, `notify: app=${isAppActive} page=${thisPageActive.current} type=${msgType} seg=${segmentFilter} match=${msgType === segmentFilter} idle=${Math.round((Date.now() - lastInteractionRef.current) / 1000)}s -> lvl=${notifyLevel} ch=${notifyLevel === 2 ? 'banner' : notifyLevel === 1 ? 'sound' : '-'}`);
     if (notifyLevel > 0) {
       notifyMsgUser(notify_title, notifyMsg_s.msgTXT, notifyLevel, msgType);
     }
@@ -963,18 +956,32 @@ const Tab3: React.FC = () => {
         if (textAreaInputRef.current && m) {
           const existing = textAreaInputRef.current.value?.toString() ?? "";
           const isDMmsg = m.isDM === 1 && m.isGrpMsg !== 1;
-          // own message or a DM (single partner) -> time reference only (no @self);
-          // others -> "@call [HH:MM] " (MeshcomWebDesk-style "@call text", no colon).
-          // APPEND at the end (cursor), NOT prepend / merge-into-a-front-list, so a
-          // multi-reply reads naturally and keeps EACH reference's own time, e.g.
-          //   "@call1 [t1] ack @call2 [t2] answer"
-          // The @mention is detected anywhere in the text on receive, so it still
-          // notifies the referenced station.
+          const isOwn = isDMmsg || m.fromCall === config_s.callSign;
           const time = timeRef(m.msgTime);
-          const ref = (isDMmsg || m.fromCall === config_s.callSign) ? time : ("@" + m.fromCall + " " + time);
-          if (ref.trim() && !existing.trimEnd().endsWith(ref.trim())) {
+          const appendRef = (ref: string) => {
+            if (!ref.trim() || existing.trimEnd().endsWith(ref.trim())) return;
             const sep = existing && !/\s$/.test(existing) ? " " : "";
-            textAreaInputRef.current.value = existing + sep + ref;
+            textAreaInputRef.current!.value = existing + sep + ref;
+          };
+          if (isOwn) {
+            // DM / own message: time reference only (no @self), appended.
+            appendRef(time);
+          } else {
+            const mention = "@" + m.fromCall;
+            // "pure reference run" = what you've composed so far is ONLY @call / [time]
+            // tokens, i.e. you pressed Reply repeatedly WITHOUT typing anything. That's
+            // a generic multi-mention -> drop the per-message times ("@call1 @call2 ").
+            // As soon as your own prose sits between replies, each reference is a
+            // deliberate, distinct bezug -> keep its own time ("@call1 [t1] ack
+            // @call2 [t2] answer"). @mention is matched anywhere on receive either way.
+            const pureRefRun = existing.trim() !== "" && /^(\s*(@\S+|\[\d{1,2}:\d{2}\])\s*)*$/.test(existing);
+            if (pureRefRun) {
+              const calls = existing.match(/@\S+/g) || [];
+              if (!calls.includes(mention)) calls.push(mention);
+              textAreaInputRef.current.value = calls.join(" ") + " ";
+            } else {
+              appendRef(mention + " " + time);
+            }
           }
           textAreaInputRef.current.setFocus();
         }
