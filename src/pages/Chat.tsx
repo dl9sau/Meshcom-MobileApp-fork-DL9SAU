@@ -963,34 +963,18 @@ const Tab3: React.FC = () => {
         if (textAreaInputRef.current && m) {
           const existing = textAreaInputRef.current.value?.toString() ?? "";
           const isDMmsg = m.isDM === 1 && m.isGrpMsg !== 1;
-          if (isDMmsg || m.fromCall === config_s.callSign) {
-            // own message, or a DM (single partner): reference by time only, no
-            // @self / no mention list. Don't stack the SAME timestamp twice
-            // (double-tapping one message adds no benefit); a different time is
-            // fine as a real multi-reference.
-            const ref = timeRef(m.msgTime);
-            if (ref && !existing.startsWith(ref)) {
-              textAreaInputRef.current.value = ref + existing;
-            }
-          } else {
-            // others' message: build/extend an "@call1, @call2 " mention list (dedup).
-            // No colon after the mentions - we follow the widespread web interface
-            // (MeshcomWebDesk) style "@call text". A SINGLE reference keeps the
-            // message's time ("@call [HH:MM] "); as soon as 2+ people are referenced
-            // the time is dropped (one shared timestamp across time-distinct
-            // messages is meaningless). The mention list ends at the first space
-            // after the run of "@token"s - so we parse on that, never on a colon.
-            const mention = "@" + m.fromCall;
-            const mm = existing.match(/^((?:@[^\s,]+)(?:, @[^\s,]+)*) (.*)$/s);
-            if (mm) {
-              const mentions = mm[1].split(", ");
-              if (!mentions.includes(mention)) mentions.push(mention);
-              let body = mm[2];
-              if (mentions.length >= 2) body = body.replace(/^\[\d{1,2}:\d{2}\] /, ""); // drop the single-ref time
-              textAreaInputRef.current.value = mentions.join(", ") + " " + body;
-            } else {
-              textAreaInputRef.current.value = mention + " " + timeRef(m.msgTime) + existing;
-            }
+          // own message or a DM (single partner) -> time reference only (no @self);
+          // others -> "@call [HH:MM] " (MeshcomWebDesk-style "@call text", no colon).
+          // APPEND at the end (cursor), NOT prepend / merge-into-a-front-list, so a
+          // multi-reply reads naturally and keeps EACH reference's own time, e.g.
+          //   "@call1 [t1] ack @call2 [t2] answer"
+          // The @mention is detected anywhere in the text on receive, so it still
+          // notifies the referenced station.
+          const time = timeRef(m.msgTime);
+          const ref = (isDMmsg || m.fromCall === config_s.callSign) ? time : ("@" + m.fromCall + " " + time);
+          if (ref.trim() && !existing.trimEnd().endsWith(ref.trim())) {
+            const sep = existing && !/\s$/.test(existing) ? " " : "";
+            textAreaInputRef.current.value = existing + sep + ref;
           }
           textAreaInputRef.current.setFocus();
         }
