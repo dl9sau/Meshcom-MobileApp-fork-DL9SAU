@@ -1066,17 +1066,15 @@ const Tab3: React.FC = () => {
   // window slides past historical messages; for old messages that predate the column
   // (no stored value) we fall back to a live compute.
   const globeEl = (msg: MsgType) => {
-    const st: GlobeState = (msg.gwState === 'none' || msg.gwState === 'solid' || msg.gwState === 'dim')
+    const st: GlobeState = (msg.gwState === 'none' || msg.gwState === 'solid' || msg.gwState === 'dim' || msg.gwState === 'faint')
       ? msg.gwState : computeGlobeState(msg);
-    // TEST (2026-07-26): when we're confident the msg actually reached us via HF
-    // (state 'dim' = gw bit set BUT the whole path is in our recent HF horizon),
-    // show NO globe at all instead of a dimmed one. TO RESTORE the dimmed marker:
-    // delete the two TEST lines and uncomment the two ORIGINAL lines below.
-    if (st === 'none' || st === 'dim') return null;   // TEST
-    return <span>🌐 </span>;                           // TEST (solid only)
-    // ORIGINAL:
-    // if (st === 'none') return null;
-    // return <span style={st === 'dim' ? { opacity: 0.4 } : undefined}>🌐 </span>;
+    // 'none'  = no gw bit / definitely local     -> no globe
+    // 'dim'   = gw bit but the SENDER is local    -> no globe (reached us via HF)
+    // 'faint' = gw bit, sender unknown, relays local -> DIMMED globe (undecidable HF/net)
+    // 'solid' = gw bit, relays not local          -> full globe
+    if (st === 'none' || st === 'dim') return null;
+    if (st === 'faint') return <span style={{ opacity: 0.4 }}>🌐 </span>;
+    return <span>🌐 </span>;
   };
 
   // reply time reference "[HH:MM] " from a message's msgTime ("HH:MM:SS")
