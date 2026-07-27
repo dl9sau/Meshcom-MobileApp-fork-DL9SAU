@@ -1,4 +1,4 @@
-import { IonButton, IonActionSheet, IonContent, IonFab, IonFabButton, IonFooter, IonGrid, IonHeader, IonIcon, IonInput, IonItem, IonPage, IonText, IonTitle, IonToolbar, useIonViewDidEnter, useIonViewWillEnter, IonAlert, useIonViewWillLeave, IonButtons, IonModal, IonCheckbox, IonSegmentButton, IonLabel, IonSegment, IonTextarea, IonToast } from '@ionic/react';
+import { IonButton, IonActionSheet, IonContent, IonFab, IonFabButton, IonFooter, IonGrid, IonHeader, IonIcon, IonInput, IonItem, IonPage, IonText, IonTitle, IonToolbar, useIonViewDidEnter, useIonViewWillEnter, IonAlert, useIonViewWillLeave, IonButtons, IonModal, IonCheckbox, IonSegmentButton, IonLabel, IonSegment, IonTextarea, IonToast, IonSearchbar } from '@ionic/react';
 import React,{ useEffect, useRef, useState, createRef } from 'react';
 import {ConfType, MsgType, InfoData} from '../utils/AppInterfaces';
 import {useBLE} from '../hooks/BleHandler';
@@ -9,7 +9,7 @@ import { getConfigStore, getDevID, getMsgStore, getPlatformStore } from '../stor
 import MsgStore from '../store/MsgStore';
 import { computeGlobeState, GlobeState } from '../utils/GlobeState';
 import ConfigStore from '../store/ConfStore';
-import { checkmark, cloudDoneOutline, cloudOutline, caretForwardCircle, settings, arrowDown} from 'ionicons/icons';
+import { checkmark, cloudDoneOutline, cloudOutline, caretForwardCircle, settings, arrowDown, search} from 'ionicons/icons';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import PlatformStore from '../store/PlatformStore';
 import { Keyboard } from '@capacitor/keyboard';
@@ -90,6 +90,12 @@ const Tab3: React.FC = () => {
   // list is narrowed to that conversation (also a callsign-lookup helper). Transient,
   // not persisted; cleared when the To field is emptied.
   const [dmFilter, setDmFilter] = useState<string>("");
+  // transient text/callsign search, kept PER SEGMENT: a search you start in one
+  // channel stays there (its tab shows yellow) while other channels stay unfiltered
+  // - so you can find a message in ALL, switch to a TG to paste it, switch back and
+  // the search is still there. showSearch only toggles the input bar's visibility.
+  const [segSearch, setSegSearch] = useState<{ [seg: string]: string }>({});
+  const [showSearch, setShowSearch] = useState<boolean>(false);
   // generic transient toast (e.g. "enter a recipient" when sending a DM with no To)
   const [toastMsg, setToastMsg] = useState<string>("");
 
@@ -220,6 +226,12 @@ const Tab3: React.FC = () => {
   // current segment via this ref instead)
   const segmentFilterRef = useRef<string>("ALL");
   useEffect(() => { segmentFilterRef.current = segmentFilter; }, [segmentFilter]);
+
+  // the active segment's search text (derived from the per-segment map)
+  const searchQuery = segSearch[segmentFilter] || "";
+  const updateSearch = (v: string) => setSegSearch(s => ({ ...s, [segmentFilterRef.current]: v }));
+  // toggle the search bar; closing it clears THIS channel's search
+  const toggleSearch = () => setShowSearch(prev => { if (prev) updateSearch(""); return !prev; });
 
   // long-press on a channel tab -> mute/unmute menu (Etappe 1). Refs like the
   // message long-press; a finger move cancels it (the segment bar is scrollable).
@@ -365,7 +377,8 @@ const Tab3: React.FC = () => {
       <IonSegmentButton key={val} value={val} id={val}
         className={[
           tabDiscarded(val) ? 'tab-dimmed' : '',
-          (val === "DM" && segmentFilter === "DM" && dmFilter.trim() !== "") ? 'tab-filtered' : ''
+          ((val === "DM" && segmentFilter === "DM" && dmFilter.trim() !== "") ||
+           (segSearch[val] || "").trim() !== "") ? 'tab-filtered' : ''
         ].filter(Boolean).join(' ') || undefined}
         onClick={() => handleSegmentChange(val, isGroup)}
         onTouchStart={(e) => handleTabPress(e, val)}
@@ -1069,6 +1082,16 @@ const Tab3: React.FC = () => {
         writeToClipboard(copyTxt);
       }
 
+      if (asActionDetail === "searchSender") {
+        // slick shortcut: narrow the current channel to this sender via the same
+        // transient search (text/callsign) - pre-fill the query + reveal the bar
+        const m = selMsg[0];
+        if (m && m.fromCall) {
+          updateSearch(m.fromCall);
+          setShowSearch(true);
+        }
+      }
+
       if (asActionDetail === "resend") {
         console.log("Resend pressed");
         const m = selMsg[0];
@@ -1213,6 +1236,19 @@ const Tab3: React.FC = () => {
     return (m.fromCall || "").toUpperCase().includes(f) || (m.toCall || "").toUpperCase().includes(f);
   };
 
+  // transient search over the CURRENT channel's already-visible messages: match the
+  // message text OR the sender/recipient callsign (case-insensitive substring).
+  // Empty query = everything. Only messages already visible under the persistent
+  // filters are searched (msgArr_s is pre-filtered) - matching the yellow "view
+  // filter" model in the spec.
+  const searchVisible = (m: MsgType): boolean => {
+    const q = searchQuery.trim().toUpperCase();
+    if (q === "") return true;
+    return (m.msgTXT || "").toUpperCase().includes(q)
+      || (m.fromCall || "").toUpperCase().includes(q)
+      || (m.toCall || "").toUpperCase().includes(q);
+  };
+
 
   // check if timestamps of two text messages have midnight in between to show date
   const checkMidnight = (msg:MsgType) => {
@@ -1318,11 +1354,17 @@ const Tab3: React.FC = () => {
     clearSegmentUnread(val); // this channel is read now -> update the Chat tab dot
     // (the [segmentFilter] effect restores this segment's saved scroll position)
 
+    // if this channel has a search kept from before, surface its bar so the active
+    // (yellow) filter is visible; otherwise leave the bar as the user left it
+    if ((segSearch[val] || "").trim() !== "") setShowSearch(true);
+
     // clear this channel's lingering notification from the shade (you're reading it now)
     clearChannelShade(val);
   }
   
 
+
+  const visibleMsgs = msgArr_s.filter(dmVisible).filter(searchVisible);
 
   return (
     <IonPage>
@@ -1335,7 +1377,22 @@ const Tab3: React.FC = () => {
                 .filter(g => g !== 0)
                 .map(g => renderTab(g.toString(), g.toString(), true))}
             </IonSegment>
+            <IonButtons slot="end">
+              <IonButton onClick={toggleSearch} title="Suche (Text oder Rufzeichen)">
+                <IonIcon slot="icon-only" icon={search} color={showSearch || searchQuery.trim() !== "" ? "primary" : undefined} />
+              </IonButton>
+            </IonButtons>
         </IonToolbar>
+        {showSearch &&
+          <IonToolbar>
+            <IonSearchbar
+              value={searchQuery}
+              debounce={150}
+              placeholder="Text oder Rufzeichen"
+              onIonInput={(e) => updateSearch(e.detail.value || "")}
+              onIonClear={() => updateSearch("")}
+            />
+          </IonToolbar>}
       </IonHeader>
       <IonContent className="ion-padding" ref={contentRef} scrollEvents={true} onIonScroll={onContentScroll} onTouchStart={stampActivity}>
         {showJump &&
@@ -1401,6 +1458,14 @@ const Tab3: React.FC = () => {
                 action: 'copy',
               },
             },
+            {
+              // pre-fill the transient search with this sender's callsign (the slick
+              // shortcut into the same search engine + yellow indicator)
+              text: 'Search Sender',
+              data: {
+                action: 'searchSender',
+              },
+            },
             ...(segmentFilter !== "DM" && msgArr_s.some(m => m.msgNr === msgNrAS && m.fromCall !== nodeInfo_s.CALL) ? [{
               text: 'Filter Call',
               data: {
@@ -1451,7 +1516,7 @@ const Tab3: React.FC = () => {
         <div id="spacer-top"></div>
         <div id="msg-box" >
 
-          {msgArr_s.filter(dmVisible).map((msg, i) => (
+          {visibleMsgs.map((msg, i) => (
             <>
               {checkMidnight(msg) &&
                 <div className="date-panel">
@@ -1563,6 +1628,13 @@ const Tab3: React.FC = () => {
 
             </>
           ))}
+
+          {searchQuery.trim() !== "" && visibleMsgs.length === 0 &&
+            <div className="search-empty">
+              <IonText>Keine Treffer in diesem Kanal.
+                {AppPrefsStore.getRawState().filtersEnabled ? " Aktive Filter könnten passende Nachrichten ausblenden." : ""}
+              </IonText>
+            </div>}
 
         </div>
         <div id="bottom" style={{ height: chatBoxPadding }}/>

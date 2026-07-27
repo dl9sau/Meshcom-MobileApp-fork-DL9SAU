@@ -195,6 +195,13 @@ ion-textarea.customTextAreaInput{
     white-space: pre-wrap;
     overflow-wrap: anywhere;
 }
+/* transient search: shown when the query matches nothing in the current channel */
+.search-empty{
+    text-align: center;
+    padding: 16px 12px;
+    color: #bbb;
+    font-size: 0.95em;
+}
 /* a discarded channel's tab is dimmed (the bell/eye markers are inline-styled in
    renderTab so they never shift the label height) */
 .tab-dimmed{
