@@ -124,6 +124,31 @@ const Tab3: React.FC = () => {
   const lastInteractionRef = useRef<number>(Date.now());
   const stampActivity = () => { lastInteractionRef.current = Date.now(); };
 
+  // short in-app beep (Web Audio) - used when you're viewing the very channel a
+  // message arrives on and have been idle >= 30s: a sound to catch your eye WITHOUT
+  // an Android shade entry (which a LocalNotification would leave). App is in the
+  // foreground here, so Web Audio plays; resume() covers the autoplay policy.
+  const beepCtxRef = useRef<AudioContext | null>(null);
+  const playBeep = () => {
+    try {
+      const Ctx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!Ctx) return;
+      if (!beepCtxRef.current) beepCtxRef.current = new Ctx();
+      const ctx = beepCtxRef.current;
+      if (ctx.state === 'suspended') ctx.resume();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.25);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.26);
+    } catch { /* ignore */ }
+  };
+
   // alertcard handling
   const [shAlertCard, setShAlertCard] = useState<boolean>(false);
   const [alHeader, setAlHeader] = useState<string>("");
@@ -679,13 +704,17 @@ const Tab3: React.FC = () => {
     // already see the message -> never a banner. And if you interacted within the
     // last 30 s you're clearly watching -> stay silent; only if the app has just
     // been sitting open (idle >= 30 s) play a sound to catch your eye.
+    let beeped = false;
     if (notifyLevel > 0 && isAppActive && thisPageActive.current && msgType === segmentFilter) {
+      // you're viewing this exact channel -> NO system notification (no shade entry).
+      // If you've been idle >= 30s, play a short IN-APP beep to catch your eye.
       const idleMs = Date.now() - lastInteractionRef.current;
-      notifyLevel = idleMs >= 30000 ? 1 : 0;
+      if (idleMs >= 30000) { playBeep(); beeped = true; }
+      notifyLevel = 0;
     }
-    // TEMP diagnostic (idle-silence + channel routing): shows which condition decided
-    // the level, and which OS channel (sound=no heads-up / banner=heads-up) it uses.
-    LogS.log(0, `notify: app=${isAppActive} page=${thisPageActive.current} type=${msgType} seg=${segmentFilter} match=${msgType === segmentFilter} idle=${Math.round((Date.now() - lastInteractionRef.current) / 1000)}s -> lvl=${notifyLevel} ch=${notifyLevel === 2 ? 'banner' : notifyLevel === 1 ? 'sound' : '-'}`);
+    // TEMP diagnostic (idle-silence + channel routing): which condition decided the
+    // level, which OS channel it would use, and whether an in-app beep played.
+    LogS.log(0, `notify: app=${isAppActive} page=${thisPageActive.current} type=${msgType} seg=${segmentFilter} match=${msgType === segmentFilter} idle=${Math.round((Date.now() - lastInteractionRef.current) / 1000)}s -> lvl=${notifyLevel} ch=${notifyLevel === 2 ? 'banner' : notifyLevel === 1 ? 'sound' : '-'} beep=${beeped}`);
     if (notifyLevel > 0) {
       notifyMsgUser(notify_title, notifyMsg_s.msgTXT, notifyLevel, msgType);
     }
