@@ -23,7 +23,11 @@ class LogS {
         // get the actual time
         const d = new Date();
         const time_str = d.toLocaleTimeString();
-        const msg_str = time_str + " - " + message;
+        // Keep every log entry on ONE line: message text may carry real CR/LF
+        // (own or received messages). Escape them to visible \r / \n so a
+        // multi-line message can't break the log view into several entries.
+        const safe_message = message.replace(/\r/g, '\\r').replace(/\n/g, '\\n');
+        const msg_str = time_str + " - " + safe_message;
 
         if (level === 0) {
             console.log(msg_str);
