@@ -259,6 +259,11 @@ changes of this fork relative to upstream. The in-app version shows
 
 ### Fixes
 
+- **DM with an empty To field no longer eats your message.** If you composed a
+  (long) DM but forgot to fill the *To* callsign and hit Send, the text was sent as
+  a plain channel message and the box cleared — your DM was gone. Now Send is
+  **blocked**, the **text is kept**, the cursor **jumps to the To field**, and a
+  short toast says to add a recipient.
 - **Log button dead after sleep/tab-switch.** The Info-tab *Log* modal had no
   `onDidDismiss`, so when it was closed by anything other than its *Close* button
   (leaving the tab, the resume lifecycle, hardware back) the `isOpen` state stayed

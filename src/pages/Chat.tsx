@@ -90,6 +90,8 @@ const Tab3: React.FC = () => {
   // list is narrowed to that conversation (also a callsign-lookup helper). Transient,
   // not persisted; cleared when the To field is emptied.
   const [dmFilter, setDmFilter] = useState<string>("");
+  // generic transient toast (e.g. "enter a recipient" when sending a DM with no To)
+  const [toastMsg, setToastMsg] = useState<string>("");
 
   // longpress event: the menu now opens WHILE the finger is held (native
   // long-press feel), so this can be shorter than the old release-based value.
@@ -593,6 +595,18 @@ const Tab3: React.FC = () => {
       isDM = true;
       toCallsign_str_u = toCallsign_.current;
       console.log("Group Message to Group: " + toCallsign_str_u);
+    }
+
+    // DM segment but the To callsign is missing/invalid -> do NOT send (and do NOT
+    // clear the composed text). Jump the cursor to the To field so the user can add
+    // the recipient they forgot, instead of silently losing the message.
+    if (shCallsign && !isDM && !sendDMGrpFlag) {
+      const hasText = !!textAreaInputRef.current?.value?.toString().trim();
+      if (hasText) {
+        setToastMsg("Enter a recipient callsign in the To field first.");
+        callsignInputRef.current?.setFocus();
+        return; // keep the text
+      }
     }
     
 
@@ -1385,6 +1399,13 @@ const Tab3: React.FC = () => {
           duration={6000}
           position="top"
           onDidDismiss={() => setShTabHint(false)}
+        ></IonToast>
+        <IonToast
+          isOpen={toastMsg !== ""}
+          message={toastMsg}
+          duration={2500}
+          position="top"
+          onDidDismiss={() => setToastMsg("")}
         ></IonToast>
 
 
