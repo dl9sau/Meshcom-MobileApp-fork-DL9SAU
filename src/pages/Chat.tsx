@@ -871,7 +871,16 @@ const Tab3: React.FC = () => {
       if (msgType !== segmentFilter) {
         const Seqgmentbutton = document.getElementById(msgType) as HTMLIonSegmentButtonElement;
         if (Seqgmentbutton) {
+          const wasGreen = Seqgmentbutton.classList.contains('segmentbutton_green');
           Seqgmentbutton.classList.add('segmentbutton_green');
+          // reveal it: the tab strip scrolls horizontally, so a channel that just
+          // lit up may be off-screen. Slide the strip to bring the new green into
+          // view - the user sees both the motion and WHERE it happened. Only on the
+          // read->green transition, so an already-flagged busy channel doesn't make
+          // the strip jitter on every further message.
+          if (chatVisible && !wasGreen) {
+            Seqgmentbutton.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' });
+          }
         }
         markSegmentUnread(msgType); // keep the Chat tab dot in sync
       } else if (!chatVisible) {
