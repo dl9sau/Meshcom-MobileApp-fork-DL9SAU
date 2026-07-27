@@ -209,23 +209,15 @@ changes of this fork relative to upstream. The in-app version shows
   (a number that just moves to another slot) keeps them too.
 
 **App / Build**
-- **Background notifications via an Android foreground service.** So the app keeps
-  processing messages and firing notifications while backgrounded (otherwise Android
-  freezes the WebView JS and nothing arrives until you reopen), a foreground service
-  is started while the BLE node is connected — shown by a quiet persistent
-  notification. It uses the **`location`** service type (honest: MeshCom already uses
-  GPS for position beaconing, so this also keeps beaconing alive in the background).
-  No separate permission prompt is needed — Android already requires the location
-  permission for **BLE scanning**, so the app can't connect without it anyway; the
-  foreground service simply reuses that existing grant (**no tracking**). Built on
-  the MIT-licensed
-  `@capawesome-team/capacitor-android-foreground-service` plugin; a hand-written
-  native Kotlin service is envisioned later to be independent of external licenses.
-  *Known limit:* the service keeps the **BLE connection alive and loses no
-  messages** (the backlog is processed on reopen), but with the **screen off**
-  Android's Doze eventually freezes the WebView JS, so a *live* notification can be
-  delayed until you reopen the app. For guaranteed live signalling use *Keep screen
-  on* (below). A native BLE service (the real fix) is an upstream architecture topic.
+- **Foreground service to keep the mesh alive in the background.** While the BLE
+  node is connected a foreground service runs (quiet persistent "MeshCom background"
+  notification), so the **BLE connection stays up and no messages are lost** — the
+  backlog is delivered when you reopen. It uses the **`location`** service type
+  (honest: MeshCom already uses GPS for beaconing, so beaconing keeps running too);
+  no separate permission prompt — Android already requires the location permission
+  for **BLE scanning**, so the service just reuses that grant (**no tracking**).
+  Built on the MIT `@capawesome-team/capacitor-android-foreground-service` plugin.
+  *Live* background notifications have a hard limit though — see **Known / parked**.
 - **Keep screen on (monitoring mode)** — *Settings → Advanced Settings*. Keeps the
   screen lit while MeshCom is open, so the WebView JS is never paused → messages and
   notifications come through **live, without any Doze gap**. Costs battery (screen
@@ -299,6 +291,29 @@ changes of this fork relative to upstream. The in-app version shows
 
 ### Known / parked
 
-- **Background notifications** need an Android foreground service (BLE + message
-  processing keep running when the app is backgrounded) — planned, not yet built.
-  Until then, notifications fire only while the app is in the foreground.
+- **Live notifications while the phone is deep-asleep — an Android limitation that
+  needs a redesign beyond this fork.** This concerns the **Android** OS specifically:
+  with the screen off, Android's **Doze** suspends and eventually evicts the app's
+  **WebView / JavaScript** entirely (overnight it is a full cold reload on reopen).
+  Everything that turns an incoming packet into a notification lives in that
+  WebView/JS today — **BLE receive, frame parsing (what is it: ALL / talk-group /
+  DM), the per-channel notification level, mute / discard, @mention, and the
+  block / allow filters.** The **foreground service keeps the process (and the BLE
+  link) alive, but not the WebView JS** — so during deep sleep a message is received
+  natively, queued, and only parsed + notified once the app is reopened.
+  - **The fix is an Android architecture change (upstream territory, not a fork
+    add-on):** move the whole **receive → parse → decide → notify** pipeline into the
+    **native foreground process (Kotlin)**, so an incoming BLE frame is parsed and the
+    notification posted **natively, without the WebView**. i.e. the message parsing
+    (classify the message, look up the channel's signalling level, is it discarded,
+    filters, …) has to move out of the WebUI into that native service.
+  - **Tried, does NOT close the gap:** the MIT `@capawesome` foreground-service plugin
+    (keeps the process, not the JS); a partial wake lock (does not un-pause the
+    WebView); Android's wake-on-BLE `PendingIntent` (only for advertisement **scans**,
+    not a **connected GATT** stream — which is what MeshCom uses); **Keep screen on**
+    (works reliably, but the screen stays lit → battery, not for overnight).
+  - **iOS differs:** Core Bluetooth's `bluetooth-central` background mode can wake the
+    app for a known peripheral, so the approach there would not be the same as Android.
+  - Shipped mitigations available today (see *App / Build*): the **foreground service**
+    (keeps BLE alive, no message loss) and **Keep screen on** (reliable live signalling
+    while the app is open).
