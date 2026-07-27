@@ -1422,7 +1422,7 @@ const Tab3: React.FC = () => {
                     placeholder='To Callsign'
                     type='text'
                     maxlength={MAX_CHAR_CALLSIGN}
-                    onIonInput={(ev) => handleInput(ev)}
+                    onIonInput={(ev) => { stampActivity(); handleInput(ev); }}
                     disabled={!ble_connected}
                     value={toCallsign_.current}>
                   </IonInput>
@@ -1431,15 +1431,16 @@ const Tab3: React.FC = () => {
 
             <div className="textarea_field">
               <IonItem>
-                <IonTextarea 
+                <IonTextarea
                   className='customTextAreaInput'
                   ref={textAreaInputRef}
-                  autoCorrect='on' 
-                  spellcheck={true} 
-                  autoGrow={true} 
-                  maxlength={MAX_CHAR_TEXTINPUT} 
+                  autoCorrect='on'
+                  spellcheck={true}
+                  autoGrow={true}
+                  maxlength={MAX_CHAR_TEXTINPUT}
                   rows={1}
                   placeholder='Type Message'
+                  onIonInput={stampActivity}
                   disabled={!ble_connected}>
                 </IonTextarea>
               </IonItem>
