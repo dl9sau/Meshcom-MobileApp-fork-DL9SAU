@@ -185,6 +185,16 @@ ion-textarea.customTextAreaInput{
 .textarea_field{
     margin-top: 5px;
 }
+/* message body: preserve the sender's line breaks AND intentional leading
+   indentation (our send-cleaning rstrips each line but keeps leading spaces).
+   Without this the default white-space:normal collapses every \n and run of
+   spaces into a single space ("test\ntest" showed as "test test"). pre-wrap
+   still wraps long lines; overflow-wrap breaks unbroken strings (URLs) so they
+   can't overflow the bubble. */
+.msg_text{
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
 /* a discarded channel's tab is dimmed (the bell/eye markers are inline-styled in
    renderTab so they never shift the label height) */
 .tab-dimmed{
