@@ -768,12 +768,24 @@ const Tab3: React.FC = () => {
     const t = setTimeout(() => {
       const el = scrollElRef.current;
       if (!el) return;
-      // A channel you were caught up in (at the bottom) - or have never opened -
-      // reopens at the BOTTOM, so messages that arrived while you were away are
-      // fully visible with no half-cut header / scrollbar; the ones you'd already
-      // seen stay visible above (a screenful of short messages fits). A channel you
-      // had scrolled UP in to read history restores its exact reading position.
-      el.scrollTop = (saved === undefined || wasAtBottom) ? el.scrollHeight : saved;
+      if (saved === undefined) {
+        // never opened this segment -> bottom
+        el.scrollTop = el.scrollHeight;
+      } else if (wasAtBottom) {
+        // You were caught up here. Reopen so the seen<->new boundary sits near the
+        // TOP: the last already-seen line peeks above the messages that arrived
+        // while you were away ("these I had - the rest below is new"). `saved` was
+        // (scrollHeight - clientHeight) at the old bottom, so saved+clientHeight is
+        // where the old content ended; back off a small peek and put that at the
+        // top. If only a little arrived the browser clamps this to the real bottom,
+        // so few-new just shows everything and nothing new is ever cut off; only
+        // when MANY arrived does the boundary stay pinned near the top.
+        const PEEK = 48; // px of already-seen context kept visible at the top
+        el.scrollTop = saved + el.clientHeight - PEEK;
+      } else {
+        // you'd scrolled UP to read history -> restore the exact reading position
+        el.scrollTop = saved;
+      }
       const near = (el.scrollHeight - el.scrollTop - el.clientHeight) < 24;
       atBottomRef.current = near;
       setShowJump(!near);
