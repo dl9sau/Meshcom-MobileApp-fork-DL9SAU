@@ -38,7 +38,9 @@
     margin-bottom: 3%;
 }
 .input_bar{
-    width: 85%;
+    /* leave room on the right so the To-field's clear (✕) doesn't sit on top of the
+       send caret (>). 80% clears the large caret; tune if it still overlaps. */
+    width: 80%;
 }
 .dm_btn{
     padding-left: 3%;

@@ -9,7 +9,7 @@ import { getConfigStore, getDevID, getMsgStore, getPlatformStore } from '../stor
 import MsgStore from '../store/MsgStore';
 import { computeGlobeState, GlobeState } from '../utils/GlobeState';
 import ConfigStore from '../store/ConfStore';
-import { checkmark, cloudDoneOutline, cloudOutline, caretForwardCircle, settings, arrowDown, search} from 'ionicons/icons';
+import { checkmark, cloudDoneOutline, cloudOutline, caretForwardCircle, settings, arrowDown, searchOutline} from 'ionicons/icons';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import PlatformStore from '../store/PlatformStore';
 import { Keyboard } from '@capacitor/keyboard';
@@ -232,6 +232,14 @@ const Tab3: React.FC = () => {
   const updateSearch = (v: string) => setSegSearch(s => ({ ...s, [segmentFilterRef.current]: v }));
   // toggle the search bar; closing it clears THIS channel's search
   const toggleSearch = () => setShowSearch(prev => { if (prev) updateSearch(""); return !prev; });
+  // auto-hide the search bar once it has been empty for a short while, so it doesn't
+  // linger after you clear it. Typing resets the timer (searchQuery changes); a
+  // non-empty query keeps it open.
+  useEffect(() => {
+    if (!showSearch || searchQuery.trim() !== "") return;
+    const t = setTimeout(() => setShowSearch(false), 10000);
+    return () => clearTimeout(t);
+  }, [showSearch, searchQuery]);
 
   // long-press on a channel tab -> mute/unmute menu (Etappe 1). Refs like the
   // message long-press; a finger move cancels it (the segment bar is scrollable).
@@ -1092,6 +1100,12 @@ const Tab3: React.FC = () => {
         }
       }
 
+      if (asActionDetail === "finishSearch") {
+        // end the transient search from the same long-press it was started with
+        updateSearch("");
+        setShowSearch(false);
+      }
+
       if (asActionDetail === "resend") {
         console.log("Resend pressed");
         const m = selMsg[0];
@@ -1365,6 +1379,12 @@ const Tab3: React.FC = () => {
 
 
   const visibleMsgs = msgArr_s.filter(dmVisible).filter(searchVisible);
+  // the message the long-press action sheet is currently about (for context labels)
+  const asMsg = msgArr_s.find(m => m.msgNr === msgNrAS);
+  const asSender = asMsg?.fromCall || "";
+  // is the active search exactly this sender's callsign? (then the long-press can
+  // offer to finish that same search - you turned it on there, turn it off there)
+  const searchIsThisSender = asSender !== "" && searchQuery.trim().toUpperCase() === asSender.toUpperCase();
 
   return (
     <IonPage>
@@ -1378,8 +1398,8 @@ const Tab3: React.FC = () => {
                 .map(g => renderTab(g.toString(), g.toString(), true))}
             </IonSegment>
             <IonButtons slot="end">
-              <IonButton onClick={toggleSearch} title="Suche (Text oder Rufzeichen)">
-                <IonIcon slot="icon-only" icon={search} color={showSearch || searchQuery.trim() !== "" ? "primary" : undefined} />
+              <IonButton onClick={toggleSearch} title="Search (text or callsign)">
+                <IonIcon slot="icon-only" icon={searchOutline} style={{ fontSize: "1.1rem" }} color={showSearch || searchQuery.trim() !== "" ? "primary" : undefined} />
               </IonButton>
             </IonButtons>
         </IonToolbar>
@@ -1388,7 +1408,7 @@ const Tab3: React.FC = () => {
             <IonSearchbar
               value={searchQuery}
               debounce={150}
-              placeholder="Text oder Rufzeichen"
+              placeholder="Text or callsign"
               onIonInput={(e) => updateSearch(e.detail.value || "")}
               onIonClear={() => updateSearch("")}
             />
@@ -1461,11 +1481,19 @@ const Tab3: React.FC = () => {
             {
               // pre-fill the transient search with this sender's callsign (the slick
               // shortcut into the same search engine + yellow indicator)
-              text: 'Search Sender',
+              text: asSender ? 'Search ' + asSender : 'Search Sender',
               data: {
                 action: 'searchSender',
               },
             },
+            // a search is active -> offer to end it right here (you likely started it
+            // via long-press too, so you expect to stop it the same way)
+            ...(searchQuery.trim() !== "" ? [{
+              text: searchIsThisSender ? 'Finish search from ' + asSender : 'Finish search',
+              data: {
+                action: 'finishSearch',
+              },
+            }] : []),
             ...(segmentFilter !== "DM" && msgArr_s.some(m => m.msgNr === msgNrAS && m.fromCall !== nodeInfo_s.CALL) ? [{
               text: 'Filter Call',
               data: {
@@ -1631,8 +1659,8 @@ const Tab3: React.FC = () => {
 
           {searchQuery.trim() !== "" && visibleMsgs.length === 0 &&
             <div className="search-empty">
-              <IonText>Keine Treffer in diesem Kanal.
-                {AppPrefsStore.getRawState().filtersEnabled ? " Aktive Filter könnten passende Nachrichten ausblenden." : ""}
+              <IonText>No matches in this channel.
+                {AppPrefsStore.getRawState().filtersEnabled ? " Active filters may be hiding matching messages." : ""}
               </IonText>
             </div>}
 
