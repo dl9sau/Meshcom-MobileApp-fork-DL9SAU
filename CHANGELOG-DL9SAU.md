@@ -132,6 +132,9 @@ changes of this fork relative to upstream. The in-app version shows
 - **Tap** (short press) a DM message to **prefill the To-Callsign** with the
   conversation partner (their call if they wrote it, the recipient if you did).
 - **Resend** for your own *unacknowledged* messages — sends directly, no retype.
+  Offered until a real **ACK** arrives (cloud-with-check), so it stays available at
+  the intermediate "heard via gateway" state (plain cloud, `ack` 1) — only a true
+  acknowledgement (`ack` 2) hides it.
 - **🌐 via Gateway** marker: messages that already travelled via an MQTT gateway
   (header byte 6, bit `0x80`) are flagged in the chat bubble. The marker now has a
   **nuance**: a gateway sets the bit on ~everything it relays, so it can't tell

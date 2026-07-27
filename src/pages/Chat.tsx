@@ -1221,7 +1221,7 @@ const Tab3: React.FC = () => {
                 action: 'reply',
               },
             }] : []),
-            ...(msgArr_s.some(m => m.msgNr === msgNrAS && m.fromCall === nodeInfo_s.CALL && m.ack === 0) ? [{
+            ...(msgArr_s.some(m => m.msgNr === msgNrAS && m.fromCall === nodeInfo_s.CALL && m.ack !== 2) ? [{
               text: 'Resend Message',
               data: {
                 action: 'resend',
