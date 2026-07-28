@@ -59,21 +59,18 @@ export function computeGlobeState(msg: MsgType): GlobeState {
         hfSeen(n);
 
     const sf = norm(msg.fromCall);
-    const relays = (msg.via || "").split(" > ").map(norm).filter(Boolean);
-
     const senderLocal = sf !== "" && local(sf);
-    const relaysLocal = relays.length > 0 && relays.every(local);
 
-    let verdict: GlobeState;
-    // whole path incl. the original sender is provably local -> reached us via HF
-    if (senderLocal && (relays.length === 0 || relaysLocal)) verdict = 'dim';
-    // delivery relays all local HF but the sender is unknown -> undecidable -> dimmed
-    else if (relaysLocal) verdict = 'faint';
-    // not even the relays are confidently local -> treat as from the wider network
-    else verdict = 'solid';
+    // ONLY the sender's own HF-locality decides. Local RELAYS do NOT imply an HF
+    // origin: a local gateway injects internet traffic and relays it locally on HF -
+    // field-confirmed (distant senders from Dortmund/Sauerland, several 100 km, all
+    // arriving via the SAME local relay chain, and we never heard THEIR position on
+    // HF). So the old dimmed 'faint' hedge for "relays local, sender unknown" was
+    // ~99% wrong (internet) and is dropped: no confirmed-local sender -> full globe.
+    const verdict: GlobeState = senderLocal ? 'dim' : 'solid';
 
-    // DIAGNOSTIC (remove once verified): show WHY. "+" = node counts as local, "-" = not.
-    LogS.log(0, `GLOBE ${sf}[${senderLocal ? "+" : "-"}] via=[${relays.map(r => r + (local(r) ? "+" : "-")).join(" ")}] => ${verdict}`);
+    // DIAGNOSTIC (remove once verified): "+" = sender counts as local (heard/pos/hf).
+    LogS.log(0, `GLOBE ${sf}[${senderLocal ? "+" : "-"}] => ${verdict}`);
 
     return verdict;
 }

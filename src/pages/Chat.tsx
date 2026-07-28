@@ -1083,12 +1083,12 @@ const Tab3: React.FC = () => {
   const globeEl = (msg: MsgType) => {
     const st: GlobeState = (msg.gwState === 'none' || msg.gwState === 'solid' || msg.gwState === 'dim' || msg.gwState === 'faint')
       ? msg.gwState : computeGlobeState(msg);
-    // 'none'  = no gw bit / definitely local     -> no globe
-    // 'dim'   = gw bit but the SENDER is local    -> no globe (reached us via HF)
-    // 'faint' = gw bit, sender unknown, relays local -> DIMMED globe (undecidable HF/net)
-    // 'solid' = gw bit, relays not local          -> full globe
+    // 'none' = no gw bit / definitely local  -> no globe
+    // 'dim'  = gw bit but the SENDER is local -> no globe (reached us via HF)
+    // 'solid'= gw bit, sender not local       -> full globe (from the wider network)
+    // 'faint'= LEGACY (no longer produced; local relays turned out ~99% internet) ->
+    //          render as a full globe like solid
     if (st === 'none' || st === 'dim') return null;
-    if (st === 'faint') return <span style={{ opacity: 0.4 }}>🌐 </span>;
     return <span>🌐 </span>;
   };
 
