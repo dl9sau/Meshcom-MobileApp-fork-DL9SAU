@@ -1478,9 +1478,11 @@ const Tab3: React.FC = () => {
         {showJump &&
           <IonFab slot="fixed" vertical="bottom" horizontal="end">
             <IonFabButton size="small" color="primary" onClick={jumpToLatest} title="Neue Nachrichten">
-              <IonIcon icon={arrowDown} />
-              {newBelow > 0 &&
-                <span className="jump-badge">{newBelow > 99 ? "99+" : newBelow}</span>}
+              {/* show the count IN the button when new msgs arrived below (a corner
+                  badge gets clipped by the round FAB's overflow:hidden), else the arrow */}
+              {newBelow > 0
+                ? <span className="jump-count">{newBelow > 99 ? "99+" : newBelow}</span>
+                : <IonIcon icon={arrowDown} />}
             </IonFabButton>
           </IonFab>
         }
