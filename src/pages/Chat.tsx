@@ -443,9 +443,18 @@ const Tab3: React.FC = () => {
     stampActivity(); // entering the chat counts as looking at it
     // set the bottom reference
     if(bottomRef.current === null) bottomRef.current = document.getElementById('bottomRefID') as HTMLDivElement;
-    // cache the scroll element for the "am I at the bottom?" check
-    contentRef.current?.getScrollElement().then(el => { scrollElRef.current = el; }).catch(() => {});
-    atBottomRef.current = true; setShowJump(false); // entering -> we scroll to bottom below
+    // cache the scroll element, then RESTORE the position we left the chat with (per
+    // segment) instead of forcing the bottom - returning from another tab should keep
+    // your place; the ↓ counter signals anything new. First-ever enter has no saved
+    // position -> bottom (as before).
+    contentRef.current?.getScrollElement().then(el => {
+      scrollElRef.current = el;
+      const saved = segScrollRef.current[segmentFilterRef.current];
+      el.scrollTop = (saved !== undefined) ? saved : el.scrollHeight;
+      const near = (el.scrollHeight - el.scrollTop - el.clientHeight) < 24;
+      atBottomRef.current = near;
+      setShowJump(!near);
+    }).catch(() => {});
 
     // check if we have segmentbuttons to set from initialChatSegmentMarkers
     const initSegs: string[] = ConfigObject.getInitChatSegmentMarkers();
@@ -470,7 +479,7 @@ const Tab3: React.FC = () => {
 
     //const devid = devID_s;
     //updateDevID(devid);
-    scrollToBottom();
+    // (scroll position handled by the getScrollElement restore above - no forced bottom)
   });
 
 
@@ -487,6 +496,13 @@ const Tab3: React.FC = () => {
   // remember that we left the page
   useIonViewWillLeave(()=>{
     thisPageActive.current = false;
+    // save where we are so returning to the chat restores it (per segment) instead of
+    // the old reflex of jumping to the bottom
+    const el = scrollElRef.current;
+    if (el) {
+      segScrollRef.current[segmentFilterRef.current] = el.scrollTop;
+      segAtBottomRef.current[segmentFilterRef.current] = (el.scrollHeight - el.scrollTop - el.clientHeight) < 24;
+    }
   });
 
 
@@ -504,7 +520,14 @@ const Tab3: React.FC = () => {
       // if the chat is the visible page, the segment you're on counts as read now
       // (a message to it while backgrounded set the tab dot -> clear it)
       if (thisPageActive.current) clearSegmentUnread(segmentFilterRef.current);
-      scrollToBottom();
+      // don't force the bottom on wake - the WebView kept the scroll position; just
+      // recompute atBottom + the ↓ button from it. New messages are shown by the counter.
+      const el = scrollElRef.current;
+      if (el) {
+        const near = (el.scrollHeight - el.scrollTop - el.clientHeight) < 24;
+        atBottomRef.current = near;
+        setShowJump(!near);
+      }
     }
   }, [isAppActive]);
 
