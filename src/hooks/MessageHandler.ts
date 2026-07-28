@@ -228,7 +228,12 @@ export function useMSG() {
                         // learn them for the globe marker. Positions ONLY (msg_type
                         // 33 = '!'): text/message paths can carry far relays and are
                         // not a reliable HF signal.
-                        if (msg_type === 33) HfHeardService.mark(route_call_arr, Date.now());
+                        if (msg_type === 33) {
+                            HfHeardService.mark(route_call_arr, Date.now());
+                            // these path nodes are now confirmed HF-local -> ratchet any
+                            // earlier 'solid' messages from them to 'dim' (globe ratchet)
+                            DatabaseService.ratchetGlobeToLocal(route_call_arr);
+                        }
 
                         // the last 4 bytes are the unix timestamp from node
                         const unix_time = msg.getUint32(msg_len - 5, false) * 1000; // convert to ms
@@ -997,6 +1002,10 @@ export function useMSG() {
                         LogS.log(0, `Pos Msg from ${from_callsign_}${posViaHops ? " via " + posViaHops : " (direct)"}: Lat ${lat_degree_final} Lon ${lon_degree_final} Alt ${alt_nr_meter}m`);
                         // count position reports per node (runtime)
                         NodeRuntimeService.incPos(from_callsign_);
+                        // this sender just beaconed a position on HF -> it's confirmed
+                        // local; ratchet its earlier 'solid' messages to 'dim' (covers
+                        // direct positions too, where there is no relay path)
+                        DatabaseService.ratchetGlobeToLocal([from_callsign_]);
                         // booked groups for the Mheard list / map overlay (runtime store,
                         // seeded from the DB on start like hops/path)
                         if (groups_str !== "") NodeRuntimeService.setGroups(from_callsign_, groups_str);

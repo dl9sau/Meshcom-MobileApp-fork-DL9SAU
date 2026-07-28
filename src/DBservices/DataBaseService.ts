@@ -828,6 +828,35 @@ class DatabaseService {
         }
     }
 
+    // Globe RATCHET: when a node is CONFIRMED local (a position packet arrived from/via
+    // it -> it's an HF node), upgrade its already-received 'solid' (from-the-net)
+    // messages to 'dim' (no globe): its earlier messages must have reached us over HF
+    // too, we just hadn't heard its position yet. MONOTONIC - only solid->dim, never the
+    // reverse (that would be the drift we deliberately froze out). Persists to DB (so it
+    // survives restart) and updates the live store for an immediate visual change.
+    static async ratchetGlobeToLocal(calls: string[]) {
+        if (!DatabaseService.db) return;
+        const norm = [...new Set(calls
+            .map(c => (c || "").replace(/[[\]]/g, "").replace(/'/g, "''").trim().toUpperCase())
+            .filter(c => c !== ""))];
+        if (norm.length === 0) return;
+        const inList = norm.map(c => `'${c}'`).join(",");
+        try {
+            await DatabaseService.db.execute(
+                `UPDATE TextMessages SET gwState='dim' WHERE gwState='solid' AND UPPER(fromCall) IN (${inList});`);
+            // reflect immediately in the currently-shown messages (other segments pick
+            // it up from the DB when they're next loaded)
+            MsgStore.update(s => {
+                s.msgArr.forEach(m => {
+                    if (m.gwState === 'solid' && norm.includes((m.fromCall || "").toUpperCase()))
+                        m.gwState = 'dim';
+                });
+            });
+        } catch (err) {
+            LogS.log(1, 'Error ratcheting globe state: ' + err);
+        }
+    }
+
     // FILTERING
     // set the filterstring based on the seqgment button selection in the Chat page
     static async setChatFilters(filterStr: string) {
