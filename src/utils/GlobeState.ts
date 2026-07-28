@@ -1,6 +1,7 @@
 import { MsgType } from "./AppInterfaces";
 import MheardStore from "../store/MheardStore";
 import PosiStore from "../store/PosiStore";
+import LogS from "./LogService";
 
 // Gateway/HF-origin verdict for a chat message ("globe" marker). The gw bit (0x80)
 // only says "ran through an MQTT gateway SOMEWHERE" - a local HF message that a
@@ -55,10 +56,16 @@ export function computeGlobeState(msg: MsgType): GlobeState {
     const senderLocal = sf !== "" && local(sf);
     const relaysLocal = relays.length > 0 && relays.every(local);
 
+    let verdict: GlobeState;
     // whole path incl. the original sender is provably local -> reached us via HF
-    if (senderLocal && (relays.length === 0 || relaysLocal)) return 'dim';
+    if (senderLocal && (relays.length === 0 || relaysLocal)) verdict = 'dim';
     // delivery relays all local HF but the sender is unknown -> undecidable -> dimmed
-    if (relaysLocal) return 'faint';
+    else if (relaysLocal) verdict = 'faint';
     // not even the relays are confidently local -> treat as from the wider network
-    return 'solid';
+    else verdict = 'solid';
+
+    // DIAGNOSTIC (remove once verified): show WHY. "+" = node counts as local, "-" = not.
+    LogS.log(0, `GLOBE ${sf}[${senderLocal ? "+" : "-"}] via=[${relays.map(r => r + (local(r) ? "+" : "-")).join(" ")}] => ${verdict}`);
+
+    return verdict;
 }
