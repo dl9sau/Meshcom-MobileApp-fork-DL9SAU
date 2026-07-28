@@ -1,3 +1,10 @@
+> **📢 You are viewing the `main` branch — a plain fork of the upstream Meshcom-MobileApp.**
+> The active **DL9SAU** development (extra chat features, fixes, etc.) lives on a separate branch.
+> You are most likely looking for:
+> ### ➡️ [`meshcom-fork-dl9sau-enhancement`](https://github.com/dl9sau/Meshcom-MobileApp-fork-DL9SAU/tree/meshcom-fork-dl9sau-enhancement)
+
+---
+
 <h3>MeshCom mobile App</h3>
 
 Works with nodes of the MeshCom Project <br>
