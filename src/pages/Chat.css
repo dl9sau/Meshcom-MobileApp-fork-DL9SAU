@@ -53,6 +53,9 @@
 
 ion-input.custominput{
     height: 60px;
+    /* center the input row + its clear (✕) vertically in the 60px box (was
+       top-aligned, so the ✕ sat too high) */
+    align-items: center;
     font-size: 1.1em;
     --padding-end: 7px;
 }
