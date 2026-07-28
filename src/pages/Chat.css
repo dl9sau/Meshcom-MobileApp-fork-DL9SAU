@@ -44,7 +44,9 @@
        just left of the caret instead of indented in the middle (and never on top of it) */
     flex: 1;
     min-width: 0;
+    outline: 1px solid red;   /* DIAGNOSTIC - remove: shows the input-bar box */
 }
+.send_btn{ outline: 1px solid deepskyblue; }  /* DIAGNOSTIC - remove: shows the send-button box */
 .dm_btn{
     padding-left: 3%;
     margin-top: auto;
