@@ -449,11 +449,7 @@ const Tab3: React.FC = () => {
     // position -> bottom (as before).
     contentRef.current?.getScrollElement().then(el => {
       scrollElRef.current = el;
-      const saved = segScrollRef.current[segmentFilterRef.current];
-      el.scrollTop = (saved !== undefined) ? saved : el.scrollHeight;
-      const near = (el.scrollHeight - el.scrollTop - el.clientHeight) < 24;
-      atBottomRef.current = near;
-      setShowJump(!near);
+      applyRestore(segmentFilterRef.current); // same restore as a segment switch
     }).catch(() => {});
 
     // check if we have segmentbuttons to set from initialChatSegmentMarkers
@@ -527,6 +523,11 @@ const Tab3: React.FC = () => {
         const near = (el.scrollHeight - el.scrollTop - el.clientHeight) < 24;
         atBottomRef.current = near;
         setShowJump(!near);
+        // messages that arrived for this channel while the app slept -> ↓ badge
+        const seg = segmentFilterRef.current;
+        const away = segUnreadRef.current[seg] || 0;
+        segUnreadRef.current[seg] = 0;
+        setNewBelow(near ? 0 : away);
       }
     }
   }, [isAppActive]);
@@ -553,6 +554,31 @@ const Tab3: React.FC = () => {
         }
       }
     }
+  }
+
+  // restore a segment's scroll: its saved position (or a small peek if you were caught
+  // up, or the bottom if never opened), then recompute atBottom + the ↓ button, and
+  // surface any messages that arrived while you were away as the ↓ count (if you land
+  // scrolled up). Shared by segment switch AND Chat re-enter, so both behave the same.
+  const applyRestore = (seg: string) => {
+    const el = scrollElRef.current;
+    if (!el) return;
+    const saved = segScrollRef.current[seg];
+    const wasAtBottom = segAtBottomRef.current[seg];
+    if (saved === undefined) {
+      el.scrollTop = el.scrollHeight;                 // never opened -> bottom
+    } else if (wasAtBottom) {
+      const PEEK = 48;                                // caught up -> peek boundary near top
+      el.scrollTop = saved + el.clientHeight - PEEK;
+    } else {
+      el.scrollTop = saved;                           // scrolled up -> exact position
+    }
+    const near = (el.scrollHeight - el.scrollTop - el.clientHeight) < 24;
+    atBottomRef.current = near;
+    setShowJump(!near);
+    const away = segUnreadRef.current[seg] || 0;
+    segUnreadRef.current[seg] = 0;                     // now viewing -> addressed
+    setNewBelow(near ? 0 : away);
   }
 
   // track whether we're (near) the bottom, so a new message doesn't yank you down
@@ -834,43 +860,10 @@ const Tab3: React.FC = () => {
   }, [msgArr_s]);
 
 
-  // segment switched: restore THIS segment's saved scroll position (or bottom if we
-  // haven't been here / it was at the bottom). Captured synchronously so a transient
-  // scroll during the content swap can't corrupt it; applied after the new messages
-  // render. Then recompute atBottom + button from the real position.
+  // segment switched: restore THIS segment's scroll (see applyRestore). Applied after
+  // an 80ms tick so the new messages have rendered before we set the scroll position.
   useEffect(() => {
-    const saved = segScrollRef.current[segmentFilter];
-    const wasAtBottom = segAtBottomRef.current[segmentFilter];
-    const t = setTimeout(() => {
-      const el = scrollElRef.current;
-      if (!el) return;
-      if (saved === undefined) {
-        // never opened this segment -> bottom
-        el.scrollTop = el.scrollHeight;
-      } else if (wasAtBottom) {
-        // You were caught up here. Reopen so the seen<->new boundary sits near the
-        // TOP: the last already-seen line peeks above the messages that arrived
-        // while you were away ("these I had - the rest below is new"). `saved` was
-        // (scrollHeight - clientHeight) at the old bottom, so saved+clientHeight is
-        // where the old content ended; back off a small peek and put that at the
-        // top. If only a little arrived the browser clamps this to the real bottom,
-        // so few-new just shows everything and nothing new is ever cut off; only
-        // when MANY arrived does the boundary stay pinned near the top.
-        const PEEK = 48; // px of already-seen context kept visible at the top
-        el.scrollTop = saved + el.clientHeight - PEEK;
-      } else {
-        // you'd scrolled UP to read history -> restore the exact reading position
-        el.scrollTop = saved;
-      }
-      const near = (el.scrollHeight - el.scrollTop - el.clientHeight) < 24;
-      atBottomRef.current = near;
-      setShowJump(!near);
-      // messages that arrived here while you were on ANOTHER channel: show them as the
-      // ↓ badge if you land scrolled up (landing at the bottom means you see them).
-      const away = segUnreadRef.current[segmentFilter] || 0;
-      segUnreadRef.current[segmentFilter] = 0; // now viewing this channel -> addressed
-      setNewBelow(near ? 0 : away);
-    }, 80);
+    const t = setTimeout(() => applyRestore(segmentFilter), 80);
     return () => clearTimeout(t);
   }, [segmentFilter]);
 
@@ -937,6 +930,8 @@ const Tab3: React.FC = () => {
         // still light the Chat tab dot. No segment-green here: the moment you open
         // chat you're viewing this very segment, and entering chat clears its marker.
         markSegmentUnread(msgType);
+        // count it too, so the ↓ badge shows it when you come back to the chat
+        segUnreadRef.current[msgType] = (segUnreadRef.current[msgType] || 0) + 1;
       }
     }
 
