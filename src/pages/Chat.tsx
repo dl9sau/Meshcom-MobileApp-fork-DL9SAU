@@ -134,6 +134,10 @@ const Tab3: React.FC = () => {
   // since the active tab never goes green). Reset on reaching the bottom / segment switch.
   const [newBelow, setNewBelow] = useState<number>(0);
   const prevMsgLenRef = useRef<number>(0); // to tell how many messages were just added
+  // per-segment count of messages that arrived while you were NOT viewing that channel
+  // (you were on another tab). Surfaced as the ↓ badge when you switch in and land
+  // scrolled up; cleared once you're viewing that channel.
+  const segUnreadRef = useRef<{ [seg: string]: number }>({});
   // per-segment scroll memory: each segment (ALL/DM/TG) keeps its own scroll position,
   // saved on leaving a segment and restored on entering it (segments share one
   // IonContent, so without this the position/atBottom state leaks between them).
@@ -814,7 +818,6 @@ const Tab3: React.FC = () => {
   useEffect(() => {
     const saved = segScrollRef.current[segmentFilter];
     const wasAtBottom = segAtBottomRef.current[segmentFilter];
-    setNewBelow(0); // switching channels -> the "new below" count starts fresh
     const t = setTimeout(() => {
       const el = scrollElRef.current;
       if (!el) return;
@@ -839,6 +842,11 @@ const Tab3: React.FC = () => {
       const near = (el.scrollHeight - el.scrollTop - el.clientHeight) < 24;
       atBottomRef.current = near;
       setShowJump(!near);
+      // messages that arrived here while you were on ANOTHER channel: show them as the
+      // ↓ badge if you land scrolled up (landing at the bottom means you see them).
+      const away = segUnreadRef.current[segmentFilter] || 0;
+      segUnreadRef.current[segmentFilter] = 0; // now viewing this channel -> addressed
+      setNewBelow(near ? 0 : away);
     }, 80);
     return () => clearTimeout(t);
   }, [segmentFilter]);
@@ -898,6 +906,8 @@ const Tab3: React.FC = () => {
           }
         }
         markSegmentUnread(msgType); // keep the Chat tab dot in sync
+        // count it for the ↓ badge you'll see when you switch INTO this channel
+        segUnreadRef.current[msgType] = (segUnreadRef.current[msgType] || 0) + 1;
       } else if (!chatVisible) {
         // message for the currently-selected segment, but the chat isn't on screen
         // (you're on another tab / app backgrounded) -> you're NOT seeing it, so
