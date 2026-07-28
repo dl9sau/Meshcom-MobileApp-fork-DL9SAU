@@ -47,13 +47,9 @@
 }
 
 ion-input.custominput{
-    /* padding-based height instead of a fixed 60px: under Ionic 8 the fixed height
-       left the text (and clear ✕) at the bottom with empty space above. Symmetric
-       vertical padding gives a comfortable height with the content centred. */
+    height: 60px;
     font-size: 1.1em;
     --padding-end: 7px;
-    --padding-top: 10px;
-    --padding-bottom: 10px;
 }
 ion-textarea.customTextAreaInput{
     font-size: 1.1em;
