@@ -59,7 +59,10 @@ export function computeGlobeState(msg: MsgType): GlobeState {
         hfSeen(n);
 
     const sf = norm(msg.fromCall);
-    const senderLocal = sf !== "" && local(sf);
+
+    // heard DIRECTLY (hop 0 - no relays in the path): we received the sender's own RF,
+    // so it's HF regardless of whether we hold its beacon/position yet.
+    const directHeard = (msg.via || "").split(" > ").map(norm).filter(Boolean).length === 0;
 
     // ONLY the sender's own HF-locality decides. Local RELAYS do NOT imply an HF
     // origin: a local gateway injects internet traffic and relays it locally on HF -
@@ -67,10 +70,11 @@ export function computeGlobeState(msg: MsgType): GlobeState {
     // arriving via the SAME local relay chain, and we never heard THEIR position on
     // HF). So the old dimmed 'faint' hedge for "relays local, sender unknown" was
     // ~99% wrong (internet) and is dropped: no confirmed-local sender -> full globe.
+    const senderLocal = sf !== "" && (directHeard || local(sf));
     const verdict: GlobeState = senderLocal ? 'dim' : 'solid';
 
-    // DIAGNOSTIC (remove once verified): "+" = sender counts as local (heard/pos/hf).
-    LogS.log(0, `GLOBE ${sf}[${senderLocal ? "+" : "-"}] => ${verdict}`);
+    // DIAGNOSTIC (remove once verified): "+" = sender counts as local (direct/heard/pos/hf).
+    LogS.log(0, `GLOBE ${sf}[${senderLocal ? "+" : "-"}${directHeard ? "d" : ""}] => ${verdict}`);
 
     return verdict;
 }
