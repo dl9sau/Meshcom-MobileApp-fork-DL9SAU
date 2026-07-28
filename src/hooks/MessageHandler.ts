@@ -52,6 +52,7 @@ import MheardStaticStore from '../utils/MheardStaticStore';
 import RelayCountService from '../utils/RelayCountService';
 import NodeRuntimeService from '../utils/NodeRuntimeService';
 import HfHeardService from '../utils/HfHeardService';
+import { computeGlobeState } from '../utils/GlobeState';
 import { distanceKm } from '../utils/GeoUtils';
 import NodeSettingsStore from '../store/NodeSettingsStore';
 import LogS from '../utils/LogService';
@@ -644,6 +645,14 @@ export function useMSG() {
                             // byte 6 = MAX-HOP+flags; bit 0x80 = already ran via MQTT gateway
                             gw: (msg.getUint8(6) & 0x80) ? 1 : 0
                         }
+
+                        // freeze the globe verdict NOW (at receive) on the in-memory
+                        // object too, not just in the DB. Otherwise the live object has
+                        // no gwState and globeEl re-computes it every render against the
+                        // session-growing stores (mheard/positions/HfHeard) -> a message
+                        // could dim mid-session but show its frozen (undimmed) DB value
+                        // after a restart. Freezing here keeps in-memory == persisted.
+                        newMsgDB.gwState = computeGlobeState(newMsgDB);
 
                         return (newMsgDB);
                     }

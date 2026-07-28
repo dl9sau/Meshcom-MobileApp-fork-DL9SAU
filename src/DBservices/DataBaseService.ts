@@ -8,6 +8,7 @@ import { MsgType, PosType, MheardType } from "../utils/AppInterfaces";
 import MheardStaticStore from "../utils/MheardStaticStore";
 import NodeRuntimeService from "../utils/NodeRuntimeService";
 import RelayCountService from "../utils/RelayCountService";
+import HfHeardService from "../utils/HfHeardService";
 import { msgDiscarded, baseCall, isChannelMention } from "../utils/NotifyPrefs";
 import { computeGlobeState } from "../utils/GlobeState";
 import PosiStore from "../store/PosiStore";
@@ -297,6 +298,9 @@ class DatabaseService {
                                 const neighbour = hops[hops.length - 1];
                                 RelayCountService.seedMax(neighbour, hops.slice(0, hops.length - 1));
                             }
+                            // seed the HF-heard set: a persisted position travelled over
+                            // HF, so all its path nodes are HF-local (globe marker source)
+                            HfHeardService.mark(hops, p.timestamp);
                         }
                         // seed booked groups too (Mheard list / map overlay / GW-TG list)
                         if (p.groups) NodeRuntimeService.setGroups(p.callSign, p.groups);
@@ -352,7 +356,7 @@ class DatabaseService {
                 const id = Date.now();
                 // freeze the globe verdict NOW (against the current heard/positions
                 // horizon) so it doesn't drift as the 24h window ages past this message
-                const gwState = computeGlobeState(msg);
+                const gwState = msg.gwState ?? computeGlobeState(msg);
                 const query_str = `INSERT INTO TextMessages (id,timestamp, msgNr, msgTime, fromCall, toCall, msgTXT, via, ack, isDM, isGrpMsg, grpNum, notify, gw, gwState) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
                 const values = [id, msg.timestamp, msg.msgNr, msg.msgTime, msg.fromCall, msg.toCall, msg.msgTXT, msg.via, msg.ack, msg.isDM, msg.isGrpMsg, msg.grpNum, msg.notify, msg.gw ?? 0, gwState];
                 const ret = await DatabaseService.db.run(query_str, values);
