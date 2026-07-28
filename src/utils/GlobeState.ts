@@ -2,6 +2,7 @@ import { MsgType } from "./AppInterfaces";
 import MheardStore from "../store/MheardStore";
 import PosiStore from "../store/PosiStore";
 import HfHeardService from "./HfHeardService";
+import LogS from "./LogService";
 
 // Gateway/HF-origin verdict for a chat message ("globe" marker). The gw bit (0x80)
 // only says "ran through an MQTT gateway SOMEWHERE" - a local HF message that a
@@ -70,5 +71,10 @@ export function computeGlobeState(msg: MsgType): GlobeState {
     // HF). So the old dimmed 'faint' hedge for "relays local, sender unknown" was
     // ~99% wrong (internet) and is dropped: no confirmed-local sender -> full globe.
     const senderLocal = sf !== "" && (directHeard || local(sf));
-    return senderLocal ? 'dim' : 'solid';
+    const verdict: GlobeState = senderLocal ? 'dim' : 'solid';
+
+    // DIAGNOSTIC (remove later): "+" = sender counts as local (direct/heard/pos/hf), "d" = direct hop-0.
+    LogS.log(0, `GLOBE ${sf}[${senderLocal ? "+" : "-"}${directHeard ? "d" : ""}] => ${verdict}`);
+
+    return verdict;
 }
