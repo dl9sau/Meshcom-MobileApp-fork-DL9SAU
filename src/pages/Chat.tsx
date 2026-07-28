@@ -9,7 +9,7 @@ import { getConfigStore, getDevID, getMsgStore, getPlatformStore } from '../stor
 import MsgStore from '../store/MsgStore';
 import { computeGlobeState, GlobeState } from '../utils/GlobeState';
 import ConfigStore from '../store/ConfStore';
-import { checkmark, cloudDoneOutline, cloudOutline, caretForwardCircle, settings, arrowDown, searchOutline} from 'ionicons/icons';
+import { checkmark, cloudDoneOutline, cloudOutline, caretForwardCircle, settings, arrowDown, searchOutline, closeCircle} from 'ionicons/icons';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import PlatformStore from '../store/PlatformStore';
 import { Keyboard } from '@capacitor/keyboard';
@@ -1419,6 +1419,15 @@ const Tab3: React.FC = () => {
   
 
 
+  // clear the DM To-callsign field (our own ✕ - placed in the free top-right space
+  // above the send button, since the built-in clearInput ✕ crowded the send caret)
+  const clearToField = () => {
+    toCallsign_.current = "";
+    if (callsignInputRef.current) callsignInputRef.current.value = "";
+    setDmFilter("");            // emptying To also clears the DM view-filter
+    callsignInputRef.current?.setFocus();
+  };
+
   const visibleMsgs = msgArr_s.filter(dmVisible).filter(searchVisible);
   // the message the long-press action sheet is currently about (for context labels)
   const asMsg = msgArr_s.find(m => m.msgNr === msgNrAS);
@@ -1729,6 +1738,11 @@ const Tab3: React.FC = () => {
       <IonFooter>
         <div className="send-text">
 
+          {/* our own small clear-✕ for the To field, in the free space above the send
+              button (the built-in clearInput ✕ sat on top of the send caret) */}
+          {shCallsign &&
+            <IonIcon icon={closeCircle} className="to-clear" onClick={clearToField} title="Clear recipient" />}
+
           <div className='input_bar'>
             {shCallsign &&
               <div className="textarea_field">
@@ -1738,7 +1752,6 @@ const Tab3: React.FC = () => {
                     ref={callsignInputRef}
                     placeholder='To Callsign'
                     type='text'
-                    clearInput={true}
                     maxlength={MAX_CHAR_CALLSIGN}
                     onIonInput={(ev) => { stampActivity(); handleInput(ev); }}
                     onIonFocus={() => { if (showSearch && searchQuery.trim() === "") setShowSearch(false); }}

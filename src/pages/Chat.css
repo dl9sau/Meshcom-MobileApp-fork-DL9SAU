@@ -30,6 +30,18 @@
     height: auto;
     display: flex;
     flex-wrap: wrap;
+    position: relative;   /* anchor for the To-field clear ✕ */
+}
+/* our own clear-✕ for the To field, parked in the free space at the top-right (above
+   the send button), so it no longer sits on the send caret */
+.to-clear {
+    position: absolute;
+    top: 2px;
+    right: 3%;
+    font-size: 1.4rem;
+    color: #999;
+    z-index: 3;
+    cursor: pointer;
 }
 .send_btn{
     /* sit right after the input fields with a small gap (was margin-left:auto, which
@@ -44,9 +56,7 @@
        just left of the caret instead of indented in the middle (and never on top of it) */
     flex: 1;
     min-width: 0;
-    outline: 1px solid red;   /* DIAGNOSTIC - remove: shows the input-bar box */
 }
-.send_btn{ outline: 1px solid deepskyblue; }  /* DIAGNOSTIC - remove: shows the send-button box */
 .dm_btn{
     padding-left: 3%;
     margin-top: auto;
