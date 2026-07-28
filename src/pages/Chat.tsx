@@ -129,6 +129,11 @@ const Tab3: React.FC = () => {
   const scrollElRef = useRef<HTMLElement | null>(null);
   const atBottomRef = useRef<boolean>(true);
   const [showJump, setShowJump] = useState<boolean>(false);
+  // count of new messages that arrived in THIS segment while scrolled up (shown as a
+  // badge on the ↓ jump button - the "new below" signal for the channel you're viewing,
+  // since the active tab never goes green). Reset on reaching the bottom / segment switch.
+  const [newBelow, setNewBelow] = useState<number>(0);
+  const prevMsgLenRef = useRef<number>(0); // to tell how many messages were just added
   // per-segment scroll memory: each segment (ALL/DM/TG) keeps its own scroll position,
   // saved on leaving a segment and restored on entering it (segments share one
   // IonContent, so without this the position/atBottom state leaks between them).
@@ -532,12 +537,14 @@ const Tab3: React.FC = () => {
     const near = (el.scrollHeight - el.scrollTop - el.clientHeight) < 24;
     atBottomRef.current = near;
     setShowJump(!near); // button visible whenever you're scrolled up
+    if (near) setNewBelow(0); // caught up -> clear the "new below" count
   };
 
   // "jump to latest" button: go to the bottom and hide it
   const jumpToLatest = () => {
     setShowJump(false);
     atBottomRef.current = true;
+    setNewBelow(0); // you're going to the bottom -> seen them
     scrollToBottom();
   };
 
@@ -788,12 +795,15 @@ const Tab3: React.FC = () => {
   // A SEGMENT SWITCH also changes msgArr_s - don't treat that as a new message
   // (the [segmentFilter] restore effect below handles scrolling for switches).
   useEffect(() => {
-    if (!msgArr_s || msgArr_s.length === 0) return;
+    if (!msgArr_s || msgArr_s.length === 0) { prevMsgLenRef.current = 0; return; }
+    const delta = msgArr_s.length - prevMsgLenRef.current;
+    prevMsgLenRef.current = msgArr_s.length;
     if (prevSegForMsgRef.current !== segmentFilterRef.current) {
       prevSegForMsgRef.current = segmentFilterRef.current; // segment switch, not a new msg
       return;
     }
     if (atBottomRef.current) scrollToBottom();
+    else if (delta > 0) setNewBelow(n => n + delta); // arrived below while you're scrolled up
   }, [msgArr_s]);
 
 
@@ -804,6 +814,7 @@ const Tab3: React.FC = () => {
   useEffect(() => {
     const saved = segScrollRef.current[segmentFilter];
     const wasAtBottom = segAtBottomRef.current[segmentFilter];
+    setNewBelow(0); // switching channels -> the "new below" count starts fresh
     const t = setTimeout(() => {
       const el = scrollElRef.current;
       if (!el) return;
@@ -1477,6 +1488,8 @@ const Tab3: React.FC = () => {
           <IonFab slot="fixed" vertical="bottom" horizontal="end">
             <IonFabButton size="small" color="primary" onClick={jumpToLatest} title="Neue Nachrichten">
               <IonIcon icon={arrowDown} />
+              {newBelow > 0 &&
+                <span className="jump-badge">{newBelow > 99 ? "99+" : newBelow}</span>}
             </IonFabButton>
           </IonFab>
         }

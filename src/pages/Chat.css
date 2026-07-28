@@ -219,6 +219,24 @@ ion-textarea.customTextAreaInput{
     color: #bbb;
     font-size: 0.95em;
 }
+/* "N new messages below" badge on the ↓ jump button */
+.jump-badge{
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    box-sizing: border-box;
+    background: #d33;
+    color: #fff;
+    border-radius: 9px;
+    font-size: 0.72rem;
+    line-height: 18px;
+    text-align: center;
+    font-weight: 600;
+    pointer-events: none;
+}
 /* live compose indicator: on-air byte size + packet-split count under the textarea */
 .compose-info{
     font-size: 0.7em;
