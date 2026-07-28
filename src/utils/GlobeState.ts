@@ -1,6 +1,7 @@
 import { MsgType } from "./AppInterfaces";
 import MheardStore from "../store/MheardStore";
 import PosiStore from "../store/PosiStore";
+import HfHeardService from "./HfHeardService";
 import LogS from "./LogService";
 
 // Gateway/HF-origin verdict for a chat message ("globe" marker). The gw bit (0x80)
@@ -46,9 +47,16 @@ export function computeGlobeState(msg: MsgType): GlobeState {
     const posTime: { [k: string]: number } = {};
     posArr.forEach(p => { const c = (p.callSign || "").trim().toUpperCase(); if (c) posTime[c] = Math.max(posTime[c] || 0, p.timestamp || 0); });
 
+    // 3rd source: seen as a relay in an HF position packet (positions are HF-only,
+    // so any node in a position's path is HF-local - even without its own beacon)
+    const hfSeen = (n: string) => {
+        const t = HfHeardService.lastHeard(n);
+        return t !== undefined && (now - t) < POS_WINDOW;
+    };
     const local = (n: string) =>
         (heardTime[n] !== undefined && (now - heardTime[n]) < HEARD_WINDOW) ||
-        (posTime[n] !== undefined && (now - posTime[n]) < POS_WINDOW);
+        (posTime[n] !== undefined && (now - posTime[n]) < POS_WINDOW) ||
+        hfSeen(n);
 
     const sf = norm(msg.fromCall);
     const relays = (msg.via || "").split(" > ").map(norm).filter(Boolean);

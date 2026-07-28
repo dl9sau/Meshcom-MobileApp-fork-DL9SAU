@@ -51,6 +51,7 @@ import WifiSettingsStore from '../store/WifiSettings';
 import MheardStaticStore from '../utils/MheardStaticStore';
 import RelayCountService from '../utils/RelayCountService';
 import NodeRuntimeService from '../utils/NodeRuntimeService';
+import HfHeardService from '../utils/HfHeardService';
 import { distanceKm } from '../utils/GeoUtils';
 import NodeSettingsStore from '../store/NodeSettingsStore';
 import LogS from '../utils/LogService';
@@ -220,6 +221,13 @@ export function useMSG() {
                         node_hops = route_call_cnt - 1;
                         node_via = via_str;
                         NodeRuntimeService.setPath(route_call_arr[0], node_hops, node_via);
+
+                        // POSITIONS travel only over HF (not re-injected from the
+                        // internet), so every node in this path is a local HF node ->
+                        // learn them for the globe marker. Positions ONLY (msg_type
+                        // 33 = '!'): text/message paths can carry far relays and are
+                        // not a reliable HF signal.
+                        if (msg_type === 33) HfHeardService.mark(route_call_arr, Date.now());
 
                         // the last 4 bytes are the unix timestamp from node
                         const unix_time = msg.getUint32(msg_len - 5, false) * 1000; // convert to ms
