@@ -1,16 +1,3 @@
-<h3>MeshCom mobile App</h3>
-
-Works with nodes of the MeshCom Project <br>
-Controlling, sending text and position messages <br>
-Project Web Site: [MeshCom](https://icssw.org/en/meshcom-2-0-protokoll/)<br>
-Project Firmware Source on [Github](https://github.com/icssw-org/MeshCom-Firmware)<br><br>
-
-OE1KFR, Rainer<br>
-
-<br>
-
----
-
 ### DL9SAU Fork
 
 A fork of the MeshCom App with extra features and fixes — see the
@@ -39,3 +26,13 @@ Notes:
   re-enter the BLE code once.
 - After **changing** the PIN, if reconnect fails, **quit and reopen the app** once.
 
+---
+
+<h3>MeshCom mobile App</h3>
+
+Works with nodes of the MeshCom Project <br>
+Controlling, sending text and position messages <br>
+Project Web Site: [MeshCom](https://icssw.org/en/meshcom-2-0-protokoll/)<br>
+Project Firmware Source on [Github](https://github.com/icssw-org/MeshCom-Firmware)<br><br>
+
+OE1KFR, Rainer<br>
