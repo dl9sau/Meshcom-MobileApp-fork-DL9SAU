@@ -37,10 +37,14 @@ changes of this fork relative to upstream. The in-app version shows
 - **Reading up no longer gets yanked down.** When you've scrolled up to re-read,
   a new message **keeps your place** instead of auto-scrolling to the bottom. A
   small **↓ button** shows whenever you're scrolled up (also handy to get back down
-  from the very top) — tap it (or scroll down yourself) to jump to the latest.
-  Auto-scroll still follows along when you're already at the bottom. Each channel
-  (ALL / DM / talk group) **remembers its own scroll position**, so switching
-  channels and back returns you exactly where you were.
+  from the very top); when new messages have arrived below, it shows **how many**
+  (a count on the button) — tap it (or scroll down yourself) to jump to the latest.
+  Auto-scroll still follows along when you're already at the bottom.
+- **Your reading position is remembered.** Each channel (ALL / DM / talk group)
+  keeps its **own** scroll position — and returning to Chat **from another tab**
+  (Map, Settings …) or **after the app was asleep** now keeps your place too,
+  instead of the old reflex of jumping to the bottom. The ↓ count tells you if
+  anything came in while you were away.
 - **Clear (✕) on the To-Callsign field** — no more holding backspace to erase it.
 - **DM live filter by the To-callsign.** In the DM tab, whatever you type in the
   *To* field **narrows the view to that conversation** — so you see just the dialog
