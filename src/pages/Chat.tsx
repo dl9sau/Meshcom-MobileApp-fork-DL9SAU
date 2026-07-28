@@ -1737,6 +1737,7 @@ const Tab3: React.FC = () => {
                     clearInput={true}
                     maxlength={MAX_CHAR_CALLSIGN}
                     onIonInput={(ev) => { stampActivity(); handleInput(ev); }}
+                    onIonFocus={() => { if (showSearch && searchQuery.trim() === "") setShowSearch(false); }}
                     disabled={!ble_connected}
                     value={toCallsign_.current}>
                   </IonInput>

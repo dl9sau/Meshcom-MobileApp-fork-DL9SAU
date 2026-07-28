@@ -32,15 +32,18 @@
     flex-wrap: wrap;
 }
 .send_btn{
-    margin-left: auto;
+    /* sit right after the input fields with a small gap (was margin-left:auto, which
+       pushed the caret to the far edge and left the To-field ✕ stranded mid-row) */
+    margin-left: 6px;
     padding-right: 3%;
     margin-top: auto;
     margin-bottom: 3%;
 }
 .input_bar{
-    /* leave room on the right so the To-field's clear (✕) doesn't sit on top of the
-       send caret (>). 80% clears the large caret; tune if it still overlaps. */
-    width: 80%;
+    /* fill the row up to just before the send caret, so the To-field's clear (✕) sits
+       just left of the caret instead of indented in the middle (and never on top of it) */
+    flex: 1;
+    min-width: 0;
 }
 .dm_btn{
     padding-left: 3%;
