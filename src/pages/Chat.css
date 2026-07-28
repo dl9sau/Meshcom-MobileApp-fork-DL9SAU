@@ -32,18 +32,13 @@
     flex-wrap: wrap;
 }
 .send_btn{
-    /* sit right after the input fields with a small gap (was margin-left:auto, which
-       pushed the caret to the far edge and left the To-field ✕ stranded mid-row) */
-    margin-left: 6px;
+    margin-left: auto;
     padding-right: 3%;
     margin-top: auto;
     margin-bottom: 3%;
 }
 .input_bar{
-    /* fill the row up to just before the send caret, so the To-field's clear (✕) sits
-       just left of the caret instead of indented in the middle (and never on top of it) */
-    flex: 1;
-    min-width: 0;
+    width: 85%;
 }
 .dm_btn{
     padding-left: 3%;
@@ -53,9 +48,6 @@
 
 ion-input.custominput{
     height: 60px;
-    /* center the input row + its clear (✕) vertically in the 60px box (was
-       top-aligned, so the ✕ sat too high) */
-    align-items: center;
     font-size: 1.1em;
     --padding-end: 7px;
 }
