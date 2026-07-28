@@ -24,7 +24,13 @@ import PosiStore from "../store/PosiStore";
 
 export type GlobeState = 'none' | 'solid' | 'dim' | 'faint';
 
-const DAY = 24 * 3600 * 1000;
+// "recently heard on RF" window: aligned to the firmware, which purges its mheard
+// list after 12h (mheard_functions.cpp) - so an app mheard entry means "the node was
+// a direct RF neighbour within the last 12h". Positions get their own, longer window:
+// a position beacon from the last day still places the node locally (covers "I'm
+// travelling"), and there's no firmware retention to match there.
+const HEARD_WINDOW = 12 * 3600 * 1000;
+const POS_WINDOW = 24 * 3600 * 1000;
 const norm = (c: string) => (c || "").replace(/[[\]]/g, "").trim().toUpperCase();
 
 export function computeGlobeState(msg: MsgType): GlobeState {
@@ -40,8 +46,8 @@ export function computeGlobeState(msg: MsgType): GlobeState {
     posArr.forEach(p => { const c = (p.callSign || "").trim().toUpperCase(); if (c) posTime[c] = Math.max(posTime[c] || 0, p.timestamp || 0); });
 
     const local = (n: string) =>
-        (heardTime[n] !== undefined && (now - heardTime[n]) < DAY) ||
-        (posTime[n] !== undefined && (now - posTime[n]) < DAY);
+        (heardTime[n] !== undefined && (now - heardTime[n]) < HEARD_WINDOW) ||
+        (posTime[n] !== undefined && (now - posTime[n]) < POS_WINDOW);
 
     const sf = norm(msg.fromCall);
     const relays = (msg.via || "").split(" > ").map(norm).filter(Boolean);
