@@ -1002,6 +1002,7 @@ class DatabaseService {
                 if ('ownCall' in prefs) s.ownCall = prefs['ownCall'];
                 if ('filtersEnabled' in prefs) s.filtersEnabled = prefs['filtersEnabled'] === '1';
                 if ('keepScreenOn' in prefs) s.keepScreenOn = prefs['keepScreenOn'] === '1';
+                if ('splitMethod' in prefs) s.splitMethod = prefs['splitMethod'] === 'greedy' ? 'greedy' : 'balanced';
                 s.retAll = numPref('retAll', s.retAll);
                 s.retGroup = numPref('retGroup', s.retGroup);
                 s.retMyDM = numPref('retMyDM', s.retMyDM);

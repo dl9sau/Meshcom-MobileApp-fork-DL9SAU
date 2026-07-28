@@ -351,6 +351,13 @@ const Tab2: React.FC = () => {
     await DataBaseService.setPref('keepScreenOn', checked ? '1' : '0');
   };
 
+  // split method for long (multi-packet) messages
+  const splitMethod = useStoreState(AppPrefsStore, s => s.splitMethod);
+  const setSplitMethod = async (m: 'balanced' | 'greedy') => {
+    AppPrefsStore.update(s => { s.splitMethod = m; });
+    await DataBaseService.setPref('splitMethod', m);
+  };
+
   // (DM "show all traffic" toggle moved to the DM tab's long-press menu)
 
   // Advanced Settings: raw node command console. Send a "--xxx" like the web /
@@ -2950,6 +2957,10 @@ const Tab2: React.FC = () => {
                 <IonToggle enableOnOffLabels={true} checked={keepScreenOn} onIonChange={(ev) => setKeepScreenOn(ev.detail.checked)}>Keep screen on</IonToggle>
               </IonItem>
               <div className='mt-3 mb-3'>Follow messages without interruption, and reliable notifications, while MeshCom is open. The screen stays lit — uses more battery.</div>
+              <div id="spacer-advTop" />
+              {/* split method for a message too long for one LoRa packet */}
+              <IonButton id="settings_button" fill='solid' slot='start' onClick={() => setSplitMethod(splitMethod === 'balanced' ? 'greedy' : 'balanced')}>Split long messages: {splitMethod}</IonButton>
+              <div className='mt-3 mb-3'>How a message too long for one packet is divided (same number of packets either way): <b>balanced</b> = even, shorter packets (better chance to get through); <b>greedy</b> = fill the first packet, keeping the start of the message together.</div>
               <div id="spacer-advTop" />
               <IonButton id="settings_button" fill='outline' slot='start' onClick={()=>deletePositions()}>Clear received nodes</IonButton>
               <div id="spacer-advTop" />

@@ -672,7 +672,11 @@ const Tab3: React.FC = () => {
             // if this is a quote (forward, or a manual "> ..."), keep the "> " marker
             // on every wrapped part, like an email client wraps quoted lines
             const quoted = txMsg_str.startsWith("> ");
-            const parts = splitForAir(txMsg_str, { maxBytes: 150 - byteLen(routing), prefixCont: quoted ? "> " : "" });
+            const parts = splitForAir(txMsg_str, {
+              maxBytes: 150 - byteLen(routing),
+              prefixCont: quoted ? "> " : "",
+              method: AppPrefsStore.getRawState().splitMethod,
+            });
             let allSent = true;
             for (let i = 0; i < parts.length; i++) {
               const body = routing + parts[i];

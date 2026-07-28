@@ -38,6 +38,10 @@ export interface AppPrefsState {
     // WebView JS never gets paused -> live messages + notifications without a Doze
     // gap. Costs battery (screen stays lit). Default OFF.
     keepScreenOn: boolean;
+    // how a too-long message is split into on-air packets (same packet count either
+    // way): 'balanced' (default, even-sized parts -> shorter, better delivery) vs
+    // 'greedy' (front-fill -> the gist lands in part 1/2). See MsgSplit.
+    splitMethod: 'balanced' | 'greedy';
     // retention per category, in DAYS (0 = unlimited / never delete)
     retAll: number;        // ALL / broadcast
     retGroup: number;      // group channels
@@ -62,6 +66,7 @@ const AppPrefsStore = new Store<AppPrefsState>({
     ownCall: "",
     filtersEnabled: true,
     keepScreenOn: false,
+    splitMethod: 'balanced',
     retAll: 2,
     retGroup: 7,
     retMyDM: 90,

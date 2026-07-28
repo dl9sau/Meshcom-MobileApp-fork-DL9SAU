@@ -21,6 +21,12 @@ export interface SplitOpts {
   prefixFirst?: string; // prepended to part 1 (e.g. "> DO3BOX: " for a forward)
   prefixCont?: string;  // prepended to parts 2..n (e.g. "> DO3BOX " for attribution B)
   tag?: string;         // 2-char group id; a random one is used when omitted
+  // how to distribute a message that must split (same MINIMAL packet count either way):
+  //  'balanced' (default) - even-sized parts, so no part sits at the risky max length
+  //                         -> shorter packets, better delivery odds
+  //  'greedy'             - fill front-first (part 1 packed full) -> the gist lands in
+  //                         part 1/2, survives if a later part is lost
+  method?: 'balanced' | 'greedy';
 }
 
 const DEFAULT_MAX = 150;
@@ -49,38 +55,72 @@ const rand2 = (): string => {
 export const splitCount = (text: string, opts: SplitOpts = {}): number =>
   splitForAir(text, opts).length;
 
+// cut the largest word-bounded, UTF-8-safe prefix of `rest` that fits `budget` bytes.
+// returns [head, tail]: head right-trimmed (keeps leading indentation), tail left-trimmed.
+const cutOne = (rest: string, budget: number): [string, string] => {
+  const chars = Array.from(rest);
+  const cut = fitCodePoints(chars, budget);
+  const fitStr = chars.slice(0, cut).join("");
+  // break between words: back up to the last whitespace inside the fitting slice; if
+  // there is none (one very long word / URL) hard-cut at the byte boundary.
+  const lastWs = Math.max(fitStr.lastIndexOf(" "), fitStr.lastIndexOf("\n"));
+  const breakAt = lastWs > 0 ? lastWs : fitStr.length;
+  return [rest.slice(0, breakAt).replace(/\s+$/, ""), rest.slice(breakAt).replace(/^\s+/, "")];
+};
+
 export function splitForAir(text: string, opts: SplitOpts = {}): string[] {
   const maxBytes = opts.maxBytes ?? DEFAULT_MAX;
   const prefixFirst = opts.prefixFirst ?? "";
   const prefixCont = opts.prefixCont ?? "";
+  const method = opts.method ?? 'balanced';
   const t = text.replace(/\r\n?/g, "\n");
 
   // fast path: fits one packet with just the first prefix -> no marker, no tag
   if (byteLen(prefixFirst + t) <= maxBytes) return [prefixFirst + t];
 
-  // split into word chunks, each leaving room for its prefix + the marker
   const tag = opts.tag ?? rand2();
-  const chunks: string[] = [];
-  let rest = t;
-  let k = 0;
-  while (rest.length > 0 && k <= 99) {
-    const prefix = k === 0 ? prefixFirst : prefixCont;
-    const budget = maxBytes - byteLen(prefix) - MARKER_RESERVE;
-    if (budget <= 0) break; // pathological: prefix bigger than the packet
-    if (byteLen(rest) <= budget) { chunks.push(rest); break; }
+  const prefixFor = (i: number) => (i === 0 ? prefixFirst : prefixCont);
+  const fullBudget = (i: number) => maxBytes - byteLen(prefixFor(i)) - MARKER_RESERVE;
 
-    const chars = Array.from(rest);
-    const cut = fitCodePoints(chars, budget);
-    const fitStr = chars.slice(0, cut).join("");
-    // break between words: back up to the last whitespace inside the fitting slice;
-    // if there is none (one very long word / URL) hard-cut at the byte boundary.
-    const lastWs = Math.max(fitStr.lastIndexOf(" "), fitStr.lastIndexOf("\n"));
-    const breakAt = lastWs > 0 ? lastWs : fitStr.length;
-    chunks.push(rest.slice(0, breakAt).replace(/\s+$/, ""));
-    rest = rest.slice(breakAt).replace(/^\s+/, "");
-    k++;
+  // GREEDY pass - fill each part to the max; this also fixes the minimal part count N
+  const greedy: string[] = [];
+  {
+    let rest = t;
+    while (rest.length > 0 && greedy.length <= 99) {
+      const budget = fullBudget(greedy.length);
+      if (budget <= 0) break; // pathological: prefix bigger than the packet
+      if (byteLen(rest) <= budget) { greedy.push(rest); break; }
+      const [head, tail] = cutOne(rest, budget);
+      if (!head) break;
+      greedy.push(head); rest = tail;
+    }
+  }
+
+  let chunks = greedy;
+
+  // BALANCED pass - spread the content evenly over the SAME number of parts, so no
+  // part sits at the risky maximum. Each part takes an even share of what's left
+  // (capped at its hard budget). Only accepted if it still fits in <= N parts;
+  // otherwise (word boundaries pile up on the tail) we keep the greedy result.
+  if (method === 'balanced' && greedy.length > 1) {
+    const N = greedy.length;
+    const balanced: string[] = [];
+    let rest = t;
+    let ok = true;
+    while (rest.length > 0) {
+      const i = balanced.length;
+      if (i >= N) { ok = false; break; } // needed more than N parts -> give up
+      const even = Math.ceil(byteLen(rest) / (N - i));
+      const budget = Math.min(even, fullBudget(i));
+      if (budget <= 0) { ok = false; break; }
+      if (byteLen(rest) <= budget) { balanced.push(rest); rest = ""; break; }
+      const [head, tail] = cutOne(rest, budget);
+      if (!head) { ok = false; break; }
+      balanced.push(head); rest = tail;
+    }
+    if (ok && rest === "") chunks = balanced;
   }
 
   const n = chunks.length;
-  return chunks.map((c, i) => `${i === 0 ? prefixFirst : prefixCont}${c} (${i + 1}/${n} ${tag})`);
+  return chunks.map((c, i) => `${prefixFor(i)}${c} (${i + 1}/${n} ${tag})`);
 }
