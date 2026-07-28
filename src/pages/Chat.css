@@ -30,18 +30,6 @@
     height: auto;
     display: flex;
     flex-wrap: wrap;
-    position: relative;   /* anchor for the To-field clear ✕ */
-}
-/* our own clear-✕ for the To field, parked in the free space at the top-right (above
-   the send button), so it no longer sits on the send caret */
-.to-clear {
-    position: absolute;
-    top: 2px;
-    right: 3%;
-    font-size: 1.4rem;
-    color: #999;
-    z-index: 3;
-    cursor: pointer;
 }
 .send_btn{
     /* sit right after the input fields with a small gap (was margin-left:auto, which
