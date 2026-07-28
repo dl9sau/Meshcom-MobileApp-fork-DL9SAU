@@ -45,6 +45,14 @@ changes of this fork relative to upstream. The in-app version shows
   (Map, Settings …) or **after the app was asleep** now keeps your place too,
   instead of the old reflex of jumping to the bottom. The ↓ count tells you if
   anything came in while you were away.
+- **Sharper 🌐 "from the wider network" marker.** MeshCom's gateway flag alone
+  over-reports "internet" — a gateway that merely *relays* a local HF message on its
+  way to the server also sets it. The 🌐 now appears only when the **sender isn't a
+  confirmed local HF station**: no globe if we've heard the sender directly (0 hops),
+  hold a recent position for it, or it relayed an HF position (position packets aren't
+  fed back from the internet, so their whole path is HF — and we learn those relays as
+  local too). It also **self-corrects**: if a message showed the 🌐 but that sender
+  *later* beacons on HF, the globe is removed retroactively.
 - **Clear (✕) on the To-Callsign field** — no more holding backspace to erase it.
 - **DM live filter by the To-callsign.** In the DM tab, whatever you type in the
   *To* field **narrows the view to that conversation** — so you see just the dialog
