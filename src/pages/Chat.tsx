@@ -523,11 +523,10 @@ const Tab3: React.FC = () => {
         const near = (el.scrollHeight - el.scrollTop - el.clientHeight) < 24;
         atBottomRef.current = near;
         setShowJump(!near);
-        // messages that arrived for this channel while the app slept -> ↓ badge
+        // this channel's unseen count -> ↓ badge; clear only if we're at the bottom
         const seg = segmentFilterRef.current;
-        const away = segUnreadRef.current[seg] || 0;
-        segUnreadRef.current[seg] = 0;
-        setNewBelow(near ? 0 : away);
+        if (near) segUnreadRef.current[seg] = 0;
+        setNewBelow(segUnreadRef.current[seg] || 0);
       }
     }
   }, [isAppActive]);
@@ -576,9 +575,10 @@ const Tab3: React.FC = () => {
     const near = (el.scrollHeight - el.scrollTop - el.clientHeight) < 24;
     atBottomRef.current = near;
     setShowJump(!near);
-    const away = segUnreadRef.current[seg] || 0;
-    segUnreadRef.current[seg] = 0;                     // now viewing -> addressed
-    setNewBelow(near ? 0 : away);
+    // show this segment's unseen count; only clear it if we land at the bottom (seen).
+    // Scrolled-up landing KEEPS the count so it survives switching channels and back.
+    if (near) segUnreadRef.current[seg] = 0;
+    setNewBelow(segUnreadRef.current[seg] || 0);
   }
 
   // track whether we're (near) the bottom, so a new message doesn't yank you down
@@ -590,14 +590,15 @@ const Tab3: React.FC = () => {
     const near = (el.scrollHeight - el.scrollTop - el.clientHeight) < 24;
     atBottomRef.current = near;
     setShowJump(!near); // button visible whenever you're scrolled up
-    if (near) setNewBelow(0); // caught up -> clear the "new below" count
+    if (near) { segUnreadRef.current[segmentFilterRef.current] = 0; setNewBelow(0); } // caught up -> clear
   };
 
   // "jump to latest" button: go to the bottom and hide it
   const jumpToLatest = () => {
     setShowJump(false);
     atBottomRef.current = true;
-    setNewBelow(0); // you're going to the bottom -> seen them
+    segUnreadRef.current[segmentFilterRef.current] = 0; // going to the bottom -> seen them
+    setNewBelow(0);
     scrollToBottom();
   };
 
@@ -856,7 +857,13 @@ const Tab3: React.FC = () => {
       return;
     }
     if (atBottomRef.current) scrollToBottom();
-    else if (delta > 0) setNewBelow(n => n + delta); // arrived below while you're scrolled up
+    else if (delta > 0) {
+      // arrived below while you're scrolled up -> bump THIS segment's unseen count
+      // (in segUnreadRef so it survives switching channels and back); newBelow mirrors it
+      const seg = segmentFilterRef.current;
+      segUnreadRef.current[seg] = (segUnreadRef.current[seg] || 0) + delta;
+      setNewBelow(segUnreadRef.current[seg]);
+    }
   }, [msgArr_s]);
 
 
@@ -930,8 +937,9 @@ const Tab3: React.FC = () => {
         // still light the Chat tab dot. No segment-green here: the moment you open
         // chat you're viewing this very segment, and entering chat clears its marker.
         markSegmentUnread(msgType);
-        // count it too, so the ↓ badge shows it when you come back to the chat
-        segUnreadRef.current[msgType] = (segUnreadRef.current[msgType] || 0) + 1;
+        // NB: the ↓ count for this (the current segment) is handled by the msgArr
+        // effect - it fires for its messages even while the chat page isn't shown.
+        // Don't also count here or it would double.
       }
     }
 
