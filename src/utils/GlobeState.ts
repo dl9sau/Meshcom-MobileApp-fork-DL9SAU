@@ -37,12 +37,6 @@ const norm = (c: string) => (c || "").replace(/[[\]]/g, "").trim().toUpperCase()
 export function computeGlobeState(msg: MsgType): GlobeState {
     if (msg.gw !== 1) return 'none';
 
-    // TG 9 is, by MeshCom network convention, a LOCAL / RF-only group that is not
-    // gatewayed to the internet. So a message in it reached us over HF regardless of the
-    // gw bit (which only says it passed SOME gateway) -> the sender is provably local ->
-    // no globe. (Convention, not firmware-enforced; revisit if that ever changes.)
-    if (msg.isGrpMsg === 1 && msg.grpNum === 9) return 'dim';
-
     const now = Date.now();
     // last time we heard each call on RF (mheard) and last position we hold for it
     const mhArr = MheardStore.getRawState().mhArr;

@@ -258,6 +258,20 @@ export function useMSG() {
                         NodeRuntimeService.setPath(from_callsign_, node_hops, node_via);
                     }
 
+                    // Learn HF-local nodes from a gw=0 TEXT message (byte6 0x80 = msg_server
+                    // clear). msg_server is the network-wide gateway/loop-protection flag:
+                    // it MUST be set on anything that passed a gateway/server (a missing bit
+                    // would let messages loop and DoS the servers), so gw=0 provably means
+                    // pure node-to-node HF -> origin + every relay in node_path are HF-local.
+                    // Same treatment as a position path (which is HF-only by firmware design
+                    // regardless of gw); a gw=1 text may have come from the internet, so it
+                    // is NOT trusted. (This replaced a TG9-specific rule that rested on the
+                    // fragile server-side "TG9 is local" convention.)
+                    if (msg_type === 58 && (msg.getUint8(6) & 0x80) === 0 && node_path.length > 0) {
+                        HfHeardService.mark(node_path, Date.now());
+                        DatabaseService.ratchetGlobeToLocal(node_path);
+                    }
+
                     /**
                      * Since 4.35p July 11 there is a new VIA function which routes messages over a specific node.
                      * A Group message is also a DM but to a number instead of a callsign.
@@ -319,17 +333,6 @@ export function useMSG() {
                                 isGrpMsg_ = 1;
                                 grpNum_ = +dm_callsign;
                                 console.log("Group Message Nr: " + grpNum_);
-
-                                // TG 9 is RF-only by MeshCom convention (not gatewayed to
-                                // the internet), so - like a position path - the origin AND
-                                // every relay in this text message's path are provably HF-
-                                // local. Learn them for the globe marker (helps confirm the
-                                // SAME nodes as local in OTHER channels), and ratchet any
-                                // earlier 'solid' messages from them down to 'dim'.
-                                if (msg_type === 58 && grpNum_ === 9 && node_path.length > 0) {
-                                    HfHeardService.mark(node_path, Date.now());
-                                    DatabaseService.ratchetGlobeToLocal(node_path);
-                                }
                             }
                         }
 
