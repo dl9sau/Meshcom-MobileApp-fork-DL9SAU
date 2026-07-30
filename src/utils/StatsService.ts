@@ -1,5 +1,4 @@
 import StatsStore from "../store/StatsStore";
-import { GlobeState } from "./GlobeState";
 
 // App-wide RECEIVE statistics since app start (RAM). Counts UNIQUE messages/positions
 // (the firmware dedups by msg_id, so each is counted once) received FROM OTHERS,
@@ -25,8 +24,9 @@ class StatsService {
         });
     }
 
-    // a received TEXT message from `from`, with our globe verdict. Skips own + empty.
-    countMsg(from: string, globe: GlobeState, ownCall: string) {
+    // a received TEXT message from `from`, with our globe verdict ('none'|'dim'|'solid'|
+    // 'faint'; typed as string because MsgType.gwState is). Skips own + empty.
+    countMsg(from: string, globe: string, ownCall: string) {
         const c = this.norm(from);
         if (c === "" || c === this.norm(ownCall)) return;
         if (globe === 'solid') { this.rxMsgGw++; this.callsGw.add(c); }
