@@ -222,6 +222,9 @@ ion-textarea.customTextAreaInput{
     font-weight: 600;
     letter-spacing: 0.08em;
     text-transform: uppercase;
+    /* when we snap to the divider on switch-in, leave a small gap above it so it isn't
+       flush against (or clipped by) the top edge */
+    scroll-margin-top: 10px;
 }
 .new-divider::before,
 .new-divider::after{

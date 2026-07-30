@@ -651,6 +651,18 @@ const Tab3: React.FC = () => {
     segUnreadRef.current[seg] = count;
     setNewBelow(count);
     setShowJump(!near || count > 0);
+    // You were caught up and several msgs arrived that don't all fit (near=false): land
+    // exactly ON the "new messages" divider once it has rendered, rather than the peek
+    // math's ~48px of the old message above it (which pushed the divider partly off the
+    // top). The divider IS the boundary; scroll up for old context. scroll-margin-top
+    // keeps it off the very edge. Only when scrolled up, so the few-msgs-fit case (near)
+    // is untouched.
+    if (wasAtBottom && count > 0 && !near) {
+      setTimeout(() => {
+        const d = document.getElementById('new-divider-anchor');
+        if (d) d.scrollIntoView({ block: 'start' });
+      }, 40);
+    }
   }
 
   // track whether we're (near) the bottom, so a new message doesn't yank you down
