@@ -133,6 +133,13 @@ const Tab3: React.FC = () => {
   // badge on the ↓ jump button - the "new below" signal for the channel you're viewing,
   // since the active tab never goes green). Reset on reaching the bottom / segment switch.
   const [newBelow, setNewBelow] = useState<number>(0);
+  // "new messages" divider linger: when you reach the bottom, newBelow drops to 0 at
+  // once. Hiding the divider that instant gives no time to orient which msgs were new,
+  // so we HOLD the last boundary for a few seconds after catching up, then fade it out.
+  const [heldBelow, setHeldBelow] = useState<number>(0);
+  const dividerHoldTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevNewBelowRef = useRef<number>(0); // to detect the >0 -> 0 "just caught up" edge
+  const DIVIDER_LINGER_MS = 5000;
   const prevMsgLenRef = useRef<number>(0); // to tell how many messages were just added
   // per-segment count of messages that arrived while you were NOT viewing that channel
   // (you were on another tab). Surfaced as the ↓ badge when you switch in and land
@@ -897,9 +904,37 @@ const Tab3: React.FC = () => {
   }, [msgArr_s]);
 
 
+  // "new messages" divider linger: while there are unseen msgs (newBelow > 0) the live
+  // count drives the divider. The instant you catch up (newBelow: >0 -> 0) we keep the
+  // last boundary shown for DIVIDER_LINGER_MS so you can see which msgs were new, then
+  // clear it. Any new arrival (newBelow > 0 again) cancels the pending hide immediately.
+  useEffect(() => {
+    const prev = prevNewBelowRef.current;
+    prevNewBelowRef.current = newBelow;
+    if (newBelow > 0) {
+      if (dividerHoldTimer.current) { clearTimeout(dividerHoldTimer.current); dividerHoldTimer.current = null; }
+      setHeldBelow(0);
+      return;
+    }
+    if (prev > 0) { // just reached the bottom -> linger, then hide
+      setHeldBelow(prev);
+      if (dividerHoldTimer.current) clearTimeout(dividerHoldTimer.current);
+      dividerHoldTimer.current = setTimeout(() => { setHeldBelow(0); dividerHoldTimer.current = null; }, DIVIDER_LINGER_MS);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newBelow]);
+
+  // clear any pending divider-hide timer when Chat unmounts
+  useEffect(() => () => { if (dividerHoldTimer.current) clearTimeout(dividerHoldTimer.current); }, []);
+
   // segment switched: restore THIS segment's scroll (see applyRestore). Applied after
   // an 80ms tick so the new messages have rendered before we set the scroll position.
   useEffect(() => {
+    // a lingering divider from the segment we just left must not bleed into this one:
+    // reset the hold state so the >0 -> 0 edge is detected fresh per segment.
+    if (dividerHoldTimer.current) { clearTimeout(dividerHoldTimer.current); dividerHoldTimer.current = null; }
+    setHeldBelow(0);
+    prevNewBelowRef.current = 0;
     // capture the unseen count NOW, before the content-swap can transiently clear it
     const unread = segUnreadRef.current[segmentFilter] || 0;
     const t = setTimeout(() => applyRestore(segmentFilter, unread), 80);
@@ -1505,8 +1540,13 @@ const Tab3: React.FC = () => {
   // unseen below, persists while you scroll up AND down, and clears only when you reach
   // the bottom (the forgiving model - glancing past doesn't wipe it). Suppressed while
   // a text search is active (the filtered subset would misplace the boundary).
-  const dividerIdx = (newBelow > 0 && searchQuery.trim() === "")
-    ? Math.max(0, visibleMsgs.length - newBelow) : -1;
+  // effective boundary: the live unseen count, or - just after catching up - the held
+  // one during the linger window (see the divider-linger effect). `lingering` marks the
+  // held phase so the divider can fade out rather than blink away.
+  const lingering = newBelow === 0 && heldBelow > 0;
+  const effectiveBelow = newBelow > 0 ? newBelow : heldBelow;
+  const dividerIdx = (effectiveBelow > 0 && searchQuery.trim() === "")
+    ? Math.max(0, visibleMsgs.length - effectiveBelow) : -1;
   // the message the long-press action sheet is currently about (for context labels)
   const asMsg = msgArr_s.find(m => m.msgNr === msgNrAS);
   const asSender = asMsg?.fromCall || "";
@@ -1695,7 +1735,7 @@ const Tab3: React.FC = () => {
           {visibleMsgs.map((msg, i) => (
             <>
               {i === dividerIdx &&
-                <div className="new-divider"><span>new messages</span></div>}
+                <div className={lingering ? "new-divider new-divider-fade" : "new-divider"}><span>new messages</span></div>}
 
               {checkMidnight(msg) &&
                 <div className="date-panel">

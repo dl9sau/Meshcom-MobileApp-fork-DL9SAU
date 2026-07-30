@@ -230,6 +230,16 @@ ion-textarea.customTextAreaInput{
     height: 1px;
     background: rgba(255, 120, 0, 0.5);
 }
+/* linger-then-fade: once you've caught up the divider is held ~5s (Chat.tsx
+   DIVIDER_LINGER_MS) so you can orient, staying solid most of that window and only
+   fading over the last stretch before it's removed. Keep the two in sync. */
+.new-divider-fade{
+    animation: new-divider-out 5s ease-in forwards;
+}
+@keyframes new-divider-out{
+    0%, 60% { opacity: 1; }
+    100%    { opacity: 0; }
+}
 /* transient search: shown when the query matches nothing in the current channel */
 .search-empty{
     text-align: center;
