@@ -186,9 +186,10 @@ const Tab3: React.FC = () => {
   // live mirror of isAppActive for reads inside the msgArr effect (whose deps are just
   // [msgArr_s]); kept in sync by the wake effect below.
   const isActiveRef = useRef<boolean>(true);
-  // set right after YOU send: the next incoming batch (your own echoed message) should
-  // jump to the bottom so you see it go out, regardless of autoscroll/away - you just
-  // acted, and hiding your own sent message behind a "↓ 1" would be confusing.
+  // set right after YOU send, to whether you were at the bottom then: the next incoming
+  // batch (your own echoed message) jumps to the bottom so you see it go out - but ONLY
+  // if you were already at the bottom. Scrolled up (referencing messages while composing)
+  // -> stay put; being yanked down would force you to scroll back up.
   const pendingOwnScrollRef = useRef<boolean>(false);
 
   // short in-app beep (Web Audio) - used when you're viewing the very channel a
@@ -840,7 +841,11 @@ const Tab3: React.FC = () => {
               if (i < parts.length - 1) await new Promise(r => setTimeout(r, 300));
             }
             if (!allSent) return;
-            pendingOwnScrollRef.current = true; // jump to your own message when it echoes back
+            // jump to your own echoed message ONLY if you were already at the bottom when
+            // you sent. If you'd scrolled up (e.g. to reference a few messages while you
+            // compose a reply), STAY there - being yanked to the bottom would force you to
+            // scroll back up. Your sent message then just shows up in the ↓ counter.
+            pendingOwnScrollRef.current = atBottomRef.current;
 
             // clear input
             textAreaInputRef.current!.value = "";
