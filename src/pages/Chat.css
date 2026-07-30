@@ -196,14 +196,19 @@ ion-textarea.customTextAreaInput{
     overflow-wrap: anywhere;
 }
 /* brief highlight when a resend was folded into this message and we scrolled up to it
-   (see Chat.tsx resendJump effect) - a short fade so the update is noticeable but calm */
+   (see Chat.tsx resendJump effect). A glowing orange RING (box-shadow) rather than a
+   background tint: the tint washed out on the light/coloured message bubbles, the ring
+   stands out regardless of the bubble colour. Double-pulse to draw the eye, then fade. */
 .resend-flash{
-    animation: resend-flash-fade 1.6s ease-out;
+    animation: resend-flash-pulse 1.8s ease-out;
     border-radius: 6px;
 }
-@keyframes resend-flash-fade{
-    0%   { background-color: rgba(255, 214, 0, 0.55); }
-    100% { background-color: transparent; }
+@keyframes resend-flash-pulse{
+    0%   { box-shadow: 0 0 0 3px rgba(255, 120, 0, 0.95); }
+    25%  { box-shadow: 0 0 0 3px rgba(255, 120, 0, 0.15); }
+    50%  { box-shadow: 0 0 0 3px rgba(255, 120, 0, 0.95); }
+    75%  { box-shadow: 0 0 0 3px rgba(255, 120, 0, 0.15); }
+    100% { box-shadow: 0 0 0 0   rgba(255, 120, 0, 0); }
 }
 /* transient search: shown when the query matches nothing in the current channel */
 .search-empty{
