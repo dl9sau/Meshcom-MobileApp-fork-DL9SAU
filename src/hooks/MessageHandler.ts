@@ -50,6 +50,7 @@ import UpdateFW from '../store/UpdtFW';
 import WifiSettingsStore from '../store/WifiSettings';
 import MheardStaticStore from '../utils/MheardStaticStore';
 import RelayCountService from '../utils/RelayCountService';
+import AdjacencyService from '../utils/AdjacencyService';
 import NodeRuntimeService from '../utils/NodeRuntimeService';
 import StatsService from '../utils/StatsService';
 import HfHeardService from '../utils/HfHeardService';
@@ -218,6 +219,9 @@ export function useMSG() {
                             const neighbour = route_call_arr[route_call_cnt - 1];
                             const heard_via = route_call_arr.slice(0, route_call_cnt - 1);
                             RelayCountService.addHeardVia(neighbour, heard_via);
+                            // consecutive calls in the path are mutual direct neighbours -
+                            // learn each node's direct-neighbour set (works for far nodes too)
+                            AdjacencyService.addPath(route_call_arr);
                         }
 
                         // record hop count + route path for the originating node

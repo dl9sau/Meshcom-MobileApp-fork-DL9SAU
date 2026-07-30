@@ -8,6 +8,7 @@ import { MsgType, PosType, MheardType } from "../utils/AppInterfaces";
 import MheardStaticStore from "../utils/MheardStaticStore";
 import NodeRuntimeService from "../utils/NodeRuntimeService";
 import RelayCountService from "../utils/RelayCountService";
+import AdjacencyService from "../utils/AdjacencyService";
 import HfHeardService from "../utils/HfHeardService";
 import { msgDiscarded, baseCall, isChannelMention } from "../utils/NotifyPrefs";
 import { computeGlobeState } from "../utils/GlobeState";
@@ -308,6 +309,8 @@ class DatabaseService {
                             if (hops.length >= 2) {
                                 const neighbour = hops[hops.length - 1];
                                 RelayCountService.seedMax(neighbour, hops.slice(0, hops.length - 1));
+                                // seed direct-neighbour adjacency (all-time) from the path
+                                AdjacencyService.seedPath(hops);
                             }
                             // seed the HF-heard set: a persisted position travelled over
                             // HF, so all its path nodes are HF-local (globe marker source)
