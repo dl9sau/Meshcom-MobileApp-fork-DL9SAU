@@ -51,6 +51,7 @@ import WifiSettingsStore from '../store/WifiSettings';
 import MheardStaticStore from '../utils/MheardStaticStore';
 import RelayCountService from '../utils/RelayCountService';
 import NodeRuntimeService from '../utils/NodeRuntimeService';
+import StatsService from '../utils/StatsService';
 import HfHeardService from '../utils/HfHeardService';
 import { computeGlobeState } from '../utils/GlobeState';
 import { distanceKm } from '../utils/GeoUtils';
@@ -676,6 +677,13 @@ export function useMSG() {
                         // after a restart. Freezing here keeps in-memory == persisted.
                         newMsgDB.gwState = computeGlobeState(newMsgDB);
 
+                        // app-wide receive stats (from others, skip -- command echoes):
+                        // classify by the globe verdict (solid = gw / internet-origin,
+                        // else HF-local). Own msgs are excluded inside the service.
+                        if (!msg_text_.startsWith("--")) {
+                            StatsService.countMsg(from_callsign_, newMsgDB.gwState, node_call_ref.current);
+                        }
+
                         return (newMsgDB);
                     }
                 }
@@ -1019,6 +1027,9 @@ export function useMSG() {
                         LogS.log(0, `Pos Msg from ${from_callsign_}${posViaHops ? " via " + posViaHops : " (direct)"}: Lat ${lat_degree_final} Lon ${lon_degree_final} Alt ${alt_nr_meter}m`);
                         // count position reports per node (runtime)
                         NodeRuntimeService.incPos(from_callsign_);
+                        // app-wide receive stats: positions are HF-only (never gatewayed);
+                        // own beacons are excluded inside the service
+                        StatsService.countPos(from_callsign_, node_call_ref.current);
                         // this sender just beaconed a position on HF -> it's confirmed
                         // local; ratchet its earlier 'solid' messages to 'dim' (covers
                         // direct positions too, where there is no relay path)

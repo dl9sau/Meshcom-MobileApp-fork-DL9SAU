@@ -10,9 +10,10 @@ import { getConfigStore, getPosiStore, getMheards, getDevID } from '../store/Sel
 import ConfigStore from '../store/ConfStore';
 import { ConfType, PosType, MheardType } from '../utils/AppInterfaces';
 import { MapOverlay } from '../components/MapOverlay';
-import {compass, chevronUpCircle, search, swapHorizontal, contract} from 'ionicons/icons';
+import {compass, chevronUpCircle, search, swapHorizontal, contract, statsChart} from 'ionicons/icons';
 import MhStore from '../store/MheardStore';
 import NodeRuntimeStore from '../store/NodeRuntimeStore';
+import StatsStore from '../store/StatsStore';
 import AppActiveState from '../store/AppActive';
 import DevIDStore from '../store/DevIDstore';
 import BLEconnStore from '../store/BLEconnected';
@@ -43,6 +44,9 @@ const NodeMap = () => {
   // per-node runtime path (subscribed, so the drawn hop line updates live when a
   // new packet arrives via a different path)
   const nodeInfoMap = NodeRuntimeStore.useState(s => s.info);
+  // app-wide receive statistics (from others) for the "Stats" panel
+  const stats = StatsStore.useState(s => s);
+  const [shStats, setShStats] = useState<boolean>(false);
   // for testing insert Positions here
   //const positions = testPosis;
 
@@ -723,8 +727,31 @@ const NodeMap = () => {
             <IonFabButton className='ion-btn-fab'>
               <IonIcon icon={swapHorizontal} className='ion-icon-fab' color='primary' onClick={() => toggleLines()}></IonIcon>
             </IonFabButton>
+            <IonFabButton className='ion-btn-fab'>
+              <IonIcon icon={statsChart} className='ion-icon-fab' color='primary' onClick={() => setShStats(v => !v)}></IonIcon>
+            </IonFabButton>
           </IonFabList>
         </IonFab>
+
+        {shStats && (() => {
+          // "me" numbers come from NodeRuntimeService for the own callsign (same values
+          // as your own node overlay): #msg = sent, #pos = beacons heard back.
+          const me = nodeInfoMap[(currConfig.callSign || "").toUpperCase()];
+          const rxMsg = stats.rxMsgHf + stats.rxMsgGw;
+          return (
+            <div className="stats-panel" onClick={() => setShStats(false)}>
+              <div className="stats-title">MY STATS · since connect</div>
+              <div className="stats-row"><span className="stats-key">rx</span>
+                <span>#msg {rxMsg} <span className="stats-dim">(hf {stats.rxMsgHf} · gw {stats.rxMsgGw})</span></span></div>
+              <div className="stats-row"><span className="stats-key"></span>
+                <span>#pos {stats.rxPos} <span className="stats-dim">(all HF)</span></span></div>
+              <div className="stats-row"><span className="stats-key">calls</span>
+                <span>HF {stats.callsHf} · gw {stats.callsGw}</span></div>
+              <div className="stats-row"><span className="stats-key">me</span>
+                <span>#msg {me?.msgCount ?? 0} · #pos {me?.posCount ?? 0}</span></div>
+            </div>
+          );
+        })()}
 
       </IonContent>
     </IonPage>
