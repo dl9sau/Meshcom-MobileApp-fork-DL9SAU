@@ -1499,6 +1499,14 @@ const Tab3: React.FC = () => {
 
 
   const visibleMsgs = msgArr_s.filter(dmVisible).filter(searchVisible);
+  // "new messages" divider: sits right above the unseen tail. Derived purely from
+  // newBelow (= segUnreadRef[current segment]) so there's no second, drifting state -
+  // it therefore inherits the counter's behaviour exactly: appears when messages are
+  // unseen below, persists while you scroll up AND down, and clears only when you reach
+  // the bottom (the forgiving model - glancing past doesn't wipe it). Suppressed while
+  // a text search is active (the filtered subset would misplace the boundary).
+  const dividerIdx = (newBelow > 0 && searchQuery.trim() === "")
+    ? Math.max(0, visibleMsgs.length - newBelow) : -1;
   // the message the long-press action sheet is currently about (for context labels)
   const asMsg = msgArr_s.find(m => m.msgNr === msgNrAS);
   const asSender = asMsg?.fromCall || "";
@@ -1686,6 +1694,9 @@ const Tab3: React.FC = () => {
 
           {visibleMsgs.map((msg, i) => (
             <>
+              {i === dividerIdx &&
+                <div className="new-divider"><span>new messages</span></div>}
+
               {checkMidnight(msg) &&
                 <div className="date-panel">
                   <IonText id="msg-time">{getLocalDate(msg)}</IonText>

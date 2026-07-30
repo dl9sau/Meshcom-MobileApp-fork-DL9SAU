@@ -210,6 +210,26 @@ ion-textarea.customTextAreaInput{
     75%  { box-shadow: 0 0 0 3px rgba(255, 120, 0, 0.15); }
     100% { box-shadow: 0 0 0 0   rgba(255, 120, 0, 0); }
 }
+/* "new messages" divider at the seen<->unread boundary (see Chat.tsx dividerIdx). A
+   centred label with a horizontal rule to each side, so it reads as a section break. */
+.new-divider{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 6px 10px;
+    color: #ff7800;
+    font-size: 0.72em;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+.new-divider::before,
+.new-divider::after{
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: rgba(255, 120, 0, 0.5);
+}
 /* transient search: shown when the query matches nothing in the current channel */
 .search-empty{
     text-align: center;
