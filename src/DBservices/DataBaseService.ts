@@ -76,7 +76,9 @@ class DatabaseService {
                         grpNum INTEGER,
                         notify INTEGER,
                         gw INTEGER DEFAULT 0,
-                        gwState TEXT
+                        gwState TEXT,
+                        resends INTEGER DEFAULT 0,
+                        resendTime TEXT
                     )
                 `).catch((err) => {
                     LogS.log(1, 'Error creating TextMessages table:' + err);
@@ -106,6 +108,15 @@ class DatabaseService {
                 await DatabaseService.db.query(`SELECT gwState FROM TextMessages;`).catch(async (err) => {
                     LogS.log(1, 'Checking/adding gwState in TextMessages table:' + err);
                     await DatabaseService.db?.execute(`ALTER TABLE TextMessages ADD COLUMN gwState TEXT;`);
+                });
+            }
+
+            // check if we have the resends/resendTime columns (resend collapse)
+            if (DatabaseService.db) {
+                await DatabaseService.db.query(`SELECT resends FROM TextMessages;`).catch(async (err) => {
+                    LogS.log(1, 'Checking/adding resends, resendTime in TextMessages table:' + err);
+                    await DatabaseService.db?.execute(`ALTER TABLE TextMessages ADD COLUMN resends INTEGER DEFAULT 0;`);
+                    await DatabaseService.db?.execute(`ALTER TABLE TextMessages ADD COLUMN resendTime TEXT;`);
                 });
             }
 
@@ -348,6 +359,24 @@ class DatabaseService {
             if (res.values && res.values.length > 0) {
                 console.log('DB Writing Txt Msg: Message already in database');
                 return;
+            }
+
+            // RESEND COLLAPSE: a same text/sender/channel message that arrived within
+            // ~10 min but with a DIFFERENT msgNr is a RESEND, not a new message -> fold it
+            // into the original (bump its resend count + note the new time) rather than
+            // show a duplicate line. 10 min ~ "someone retransmits while finding a better
+            // spot". Keeps the message in its original context; shown as "#N" + 2nd time.
+            const RESEND_WINDOW = 10 * 60 * 1000;
+            const resHit = await DatabaseService.db.query(
+                `SELECT id, resends FROM TextMessages WHERE fromCall = '${msg.fromCall}' AND toCall = '${msg.toCall}' AND msgTXT = '${msg.msgTXT}' AND isDM = ${msg.isDM ?? 0} AND isGrpMsg = ${msg.isGrpMsg ?? 0} AND grpNum = ${msg.grpNum ?? 0} AND msgNr != ${msg.msgNr} AND (${msg.timestamp} - timestamp) BETWEEN 0 AND ${RESEND_WINDOW} ORDER BY timestamp DESC LIMIT 1;`);
+            if (resHit.values && resHit.values.length > 0) {
+                const orig = resHit.values[0];
+                const newResends = (orig.resends || 0) + 1;
+                await DatabaseService.db.run(`UPDATE TextMessages SET resends = ?, resendTime = ? WHERE id = ?;`, [newResends, msg.msgTime, orig.id]);
+                console.log('DB resend collapsed into id ' + orig.id + ' (#' + (newResends + 1) + ')');
+                const txtMsgs = await DatabaseService.getTextMessages();
+                DatabaseService.applyFilters(DatabaseService.escapeQuotesInArr(txtMsgs));
+                return; // don't insert a duplicate row
             }
 
             console.log('DB Writing text message:' + msg.msgTXT);

@@ -1682,6 +1682,8 @@ const Tab3: React.FC = () => {
                         return null;
                       })()}
                       <IonText id="msg-time"> ·{msg.msgTime?.slice(0, 5)}</IonText>
+                      {(msg.resends ?? 0) > 0 &&
+                        <IonText id="msg-time"> · #{(msg.resends ?? 0) + 1}{msg.resendTime ? " (" + msg.resendTime.slice(0, 5) + ")" : ""}</IonText>}
                     </div>
                   ) : (
                     <>
@@ -1699,6 +1701,8 @@ const Tab3: React.FC = () => {
 
                   <div className="ion-text-start">
                     <IonText id="msg-time">{msg.msgTime}</IonText>
+                    {(msg.resends ?? 0) > 0 &&
+                      <IonText id="msg-time"> · resent #{(msg.resends ?? 0) + 1}{msg.resendTime ? " at " + msg.resendTime.slice(0, 5) : ""}</IonText>}
                   </div>
                   {(() => {
                     const relays = viaRelays(msg.via, msg.fromCall);

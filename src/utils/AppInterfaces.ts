@@ -15,7 +15,12 @@ export interface MsgType {
     grpNum:number,
     notify:number,
     gw?:number,   // 1 if the message already travelled via an MQTT gateway (byte6 bit 0x80)
-    gwState?:string  // frozen globe verdict at receive time: "none" | "solid" | "dim" | "faint"
+    gwState?:string,  // frozen globe verdict at receive time: "none" | "solid" | "dim" | "faint"
+    // resend collapse: a resend (same text/sender/channel within ~10 min, new msgNr) is
+    // folded into the original instead of shown as a duplicate. resends = how many times
+    // it was re-sent; resendTime = time of the latest resend. Shown as "#N" + 2nd time.
+    resends?:number,
+    resendTime?:string
 }
 
 // position interface
