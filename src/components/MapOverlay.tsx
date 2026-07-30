@@ -7,6 +7,7 @@ import DMfrmMapStore from "../store/DMfrmMap";
 import MhStore from "../store/MheardStore";
 import NodeRuntimeStore from "../store/NodeRuntimeStore";
 import RelayCountStore from "../store/RelayCountStore";
+import AdjacencyStore from "../store/AdjacencyStore";
 import { useHistory } from "react-router";
 import ConfigObject from "../utils/ConfigObject";
 import { distanceKm } from "../utils/GeoUtils";
@@ -87,21 +88,36 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
     // the Mheard list); current session + all-time "(max N)", same as Mheard
     const relayCounts = useStoreState(RelayCountStore, s => s.counts);
     const relayMax = useStoreState(RelayCountStore, s => s.max);
+    // direct-neighbour counts we inferred from route-path adjacency (any node)
+    const adjCounts = useStoreState(AdjacencyStore, s => s.counts);
+    const adjMax = useStoreState(AdjacencyStore, s => s.max);
     // runtime per-node info (hops/path/#pos/#msg/groups/ncnt)
     const nodeInfoMap = useStoreState(NodeRuntimeStore, s => s.info);
     const nodeInfo = callUp ? nodeInfoMap[callUp] : undefined;
-    const neighboursText = (() => {
-        if (!mheard) return null;                       // not directly heard -> no line
-        // firmware neighbour count: the larger of the mheard NCNT and the position "N" field
-        const fwNcnt = Math.max(mheard.mh_ncnt ?? 0, nodeInfo?.ncnt ?? 0);
-        if (fwNcnt > 0) return "" + fwNcnt;
+    // DIRECT NEIGHBOURS of this node: what WE observed from path adjacency
+    // (this session `count`, all-time `max` - accumulates, grows only) plus what the
+    // node itself last ADVERTISED (max of its position "N" and Mheard NCNT - the LAST
+    // value, overwritten on each fresh packet, so it updates after a reboot but can be
+    // stale until we hear it again). Shown for ANY node we have data for.
+    const directNeighboursText = (() => {
+        const sess = (callUp ? adjCounts[callUp] : 0) ?? 0;
+        const max = (callUp ? adjMax[callUp] : 0) ?? 0;
+        const advertised = Math.max(mheard?.mh_ncnt ?? 0, nodeInfo?.ncnt ?? 0);
+        if (max <= 0 && advertised <= 0) return null;
+        let s = max > sess ? sess + " (max " + max + ")" : (max > 0 ? "" + max : "");
+        if (advertised > 0) s = (s ? s + " · " : "") + "advertised " + advertised;
+        return s;
+    })();
+    // HEARD VIA this node: unique nodes that reached US through it as the last hop.
+    // Only meaningful for our OWN direct neighbours (in the Mheard list).
+    const heardViaText = (() => {
+        if (!mheard) return null;
         const session = (callUp ? relayCounts[callUp] : 0) ?? 0;
         const overall = (callUp ? relayMax[callUp] : 0) ?? 0;
-        if (overall <= 0) return null;                  // no data -> no line
+        if (overall <= 0) return null;
         return overall > session ? session + " (max " + overall + ")" : "≈" + session;
     })();
 
-    // (nodeInfoMap / nodeInfo are defined above, before neighboursText)
     // route path for display: origin dropped, wrapped after every 2 calls
     const pathLines = nodeInfo ? formatPathLines(nodeInfo.path, callSign) : [];
 
@@ -201,8 +217,11 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
                                 <div className="info">
                                     {pathBlock}
                                     <IonText>#pos: {nodeInfo?.posCount ?? 0}&nbsp;&nbsp;#msg: {nodeInfo?.msgCount ?? 0}</IonText><br />
-                                    {/* Neighbours: only for directly heard nodes (in the Mheard list) */}
-                                    {neighboursText !== null ? <><IonText>Neighbours: {neighboursText}</IonText><br /></> : <></>}
+                                    {/* Direct neighbours (our path-adjacency observation + what the
+                                        node last advertised) - shown for any node we have data on */}
+                                    {directNeighboursText !== null ? <><IonText>Neighbours: {directNeighboursText}</IonText><br /></> : <></>}
+                                    {/* Heard via this node - only for our own direct neighbours */}
+                                    {heardViaText !== null ? <><IonText>Heard via: {heardViaText}</IonText><br /></> : <></>}
                                     {/* booked talk groups (R= field), if the node reports any */}
                                     {nodeInfo?.groups ? <><IonText>Grp: {nodeInfo.groups.split(",").sort((a, b) => (parseInt(a) || 0) - (parseInt(b) || 0)).join(", ")}</IonText><br /></> : <></>}
                                     {/* sensor values: hidden when empty (0 = no sensor; temp uses 999 as n.a.) */}
