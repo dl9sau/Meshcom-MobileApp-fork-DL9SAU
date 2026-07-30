@@ -449,7 +449,8 @@ const Tab3: React.FC = () => {
     // position -> bottom (as before).
     contentRef.current?.getScrollElement().then(el => {
       scrollElRef.current = el;
-      applyRestore(segmentFilterRef.current); // same restore as a segment switch
+      const seg = segmentFilterRef.current;
+      applyRestore(seg, segUnreadRef.current[seg] || 0); // same restore as a segment switch
     }).catch(() => {});
 
     // check if we have segmentbuttons to set from initialChatSegmentMarkers
@@ -559,7 +560,7 @@ const Tab3: React.FC = () => {
   // up, or the bottom if never opened), then recompute atBottom + the ↓ button, and
   // surface any messages that arrived while you were away as the ↓ count (if you land
   // scrolled up). Shared by segment switch AND Chat re-enter, so both behave the same.
-  const applyRestore = (seg: string) => {
+  const applyRestore = (seg: string, unread: number) => {
     const el = scrollElRef.current;
     if (!el) return;
     const saved = segScrollRef.current[seg];
@@ -575,10 +576,13 @@ const Tab3: React.FC = () => {
     const near = (el.scrollHeight - el.scrollTop - el.clientHeight) < 24;
     atBottomRef.current = near;
     setShowJump(!near);
-    // show this segment's unseen count; only clear it if we land at the bottom (seen).
-    // Scrolled-up landing KEEPS the count so it survives switching channels and back.
-    if (near) segUnreadRef.current[seg] = 0;
-    setNewBelow(segUnreadRef.current[seg] || 0);
+    // Use the count the CALLER captured before this ran: during a segment content-swap
+    // a transient onIonScroll (position clamps to the bottom for a moment) can fire and
+    // clear segUnreadRef before this 80ms restore, which would drop the ↓ count to 0.
+    // So we (re)set it authoritatively here. At the bottom = seen -> 0; scrolled up -> keep.
+    const count = near ? 0 : unread;
+    segUnreadRef.current[seg] = count;
+    setNewBelow(count);
   }
 
   // track whether we're (near) the bottom, so a new message doesn't yank you down
@@ -870,7 +874,9 @@ const Tab3: React.FC = () => {
   // segment switched: restore THIS segment's scroll (see applyRestore). Applied after
   // an 80ms tick so the new messages have rendered before we set the scroll position.
   useEffect(() => {
-    const t = setTimeout(() => applyRestore(segmentFilter), 80);
+    // capture the unseen count NOW, before the content-swap can transiently clear it
+    const unread = segUnreadRef.current[segmentFilter] || 0;
+    const t = setTimeout(() => applyRestore(segmentFilter, unread), 80);
     return () => clearTimeout(t);
   }, [segmentFilter]);
 
