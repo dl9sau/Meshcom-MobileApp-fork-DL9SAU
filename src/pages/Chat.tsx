@@ -638,14 +638,19 @@ const Tab3: React.FC = () => {
     }
     const near = (el.scrollHeight - el.scrollTop - el.clientHeight) < 24;
     atBottomRef.current = near;
-    setShowJump(!near);
     // Use the count the CALLER captured before this ran: during a segment content-swap
     // a transient onIonScroll (position clamps to the bottom for a moment) can fire and
     // clear segUnreadRef before this 80ms restore, which would drop the ↓ count to 0.
-    // So we (re)set it authoritatively here. At the bottom = seen -> 0; scrolled up -> keep.
-    const count = near ? 0 : unread;
+    // So we (re)set it authoritatively here. Normally landing at the bottom = caught up
+    // -> 0. BUT with autoscroll OFF you chose to catch up yourself, so keep the unseen
+    // count (and thus the "new messages" divider + ↓ badge) even when the few new msgs
+    // fit on screen and the peek clamps you to the bottom - else switching in silently
+    // wipes the marker (the reported bug: no "1", no divider). Clear it by scrolling to
+    // the bottom or tapping the button.
+    const count = (near && autoscrollEnabledFor(seg)) ? 0 : unread;
     segUnreadRef.current[seg] = count;
     setNewBelow(count);
+    setShowJump(!near || count > 0);
   }
 
   // track whether we're (near) the bottom, so a new message doesn't yank you down
@@ -895,7 +900,10 @@ const Tab3: React.FC = () => {
       const newPading = "3px";
       console.log("new Padding: " + newPading)
       setchatBoxPadding(newPading);
-      scrollToBottom();
+      // only follow to the bottom if you were already there. If you'd scrolled up (e.g.
+      // to read what you're referencing, then pressed Back to dismiss the keyboard and
+      // see more), STAY put - don't yank to the bottom.
+      if (atBottomRef.current) scrollToBottom();
       keyBopen.current = false;
     });
 
@@ -914,7 +922,10 @@ const Tab3: React.FC = () => {
         console.log("new Padding: " + newPadding_str);
         setchatBoxPadding(newPadding_str);
 
-        scrollToBottom();
+        // opening the keyboard (tap compose / To-callsign / Reply) should keep your
+        // reading position if you'd scrolled up to reference a message while composing;
+        // only stick to the bottom if you were already there.
+        if (atBottomRef.current) scrollToBottom();
         const newPading1 = "3px";
         setchatBoxPadding(newPading1);
       }
@@ -1577,7 +1588,7 @@ const Tab3: React.FC = () => {
 
 
   const modalDidDismiss = () => {
-    scrollToBottom();
+    if (atBottomRef.current) scrollToBottom(); // don't yank down if you'd scrolled up
   }
 
   // CHAT FIlterING with Segment Buttons
