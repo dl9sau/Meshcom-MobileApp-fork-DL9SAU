@@ -45,6 +45,33 @@ changes of this fork relative to upstream. The in-app version shows
   (Map, Settings …) or **after the app was asleep** now keeps your place too,
   instead of the old reflex of jumping to the bottom. The ↓ count tells you if
   anything came in while you were away.
+- **Repeated messages fold into one.** When someone (or you) resends the **same
+  text** to the **same conversation** within **~10 minutes** — e.g. moving around
+  looking for a better spot — it no longer piles up as duplicate lines. Instead the
+  **original message is updated in place** with a **`#N`** counter and a **second
+  timestamp** (`· #2 (14:23)`), and the view briefly **scrolls to it and flashes an
+  orange ring** so you notice the update. The firmware gives every transmission a new
+  message-id, so these aren't caught by the normal duplicate check — this is a display
+  fold, **not** silent de-duplication: the same text sent deliberately later, or to a
+  different channel, still stands on its own. Counts the window from the **first**
+  send. (Works per channel and, for DMs, per exact sender+recipient.)
+- **"── new messages ──" divider.** A line marks the boundary between what you'd
+  already seen and what's new, so you can orient at a glance. It **stays while you
+  scroll up and down** and only clears once you actually reach the bottom (a quick
+  glance doesn't wipe it); after catching up it **lingers ~5 s** and fades. When the
+  ↓ button shows a **count**, tapping it now jumps to the **first new message** (read
+  top-to-bottom); a second tap takes you to the newest.
+- **Autoscroll on/off per channel — and never miss what arrived while away.**
+  Long-press a channel tab → **Autoscroll to newest** (default on). Turn it **off**
+  for a busy channel (like ALL) and new messages no longer chase you to the bottom —
+  they surface via the divider + ↓ count so you catch up at your own pace. Even with
+  autoscroll **on**, a message that arrives while you'd **stepped away** (app asleep,
+  or ~30 s untouched at the bottom) is **not** silently scrolled past — it's marked
+  new, so returning you can see what you missed.
+- **Composing while scrolled up stays put.** Opening the keyboard (tap the input,
+  *To*-callsign, or **Reply**), dismissing it, or closing a dialog no longer yanks you
+  to the bottom — so you can keep a message you're **referring to** in view while you
+  write. Your own sent message only jumps to the bottom if you were **already** there.
 - **Sharper 🌐 "from the wider network" marker.** MeshCom's gateway flag alone
   over-reports "internet" — a gateway that merely *relays* a local HF message on its
   way to the server also sets it. The 🌐 now appears only when the **sender isn't a
@@ -174,6 +201,16 @@ changes of this fork relative to upstream. The in-app version shows
   bit set and path not confirmable as local; no globe = definitely local (bit unset).
 
 **Map & Heard**
+- **"MY STATS" panel on the map** (📊 button). A quick, at-a-glance summary of what
+  you've received **since connecting**: **`#msg`** (text messages from others,
+  de-duplicated, split into **hf** = local RF vs **gw** = reached you from the wider
+  network) and **`#pos`** (position beacons — always RF), so you can compare *user
+  messages vs. beacon load* at a glance; **unique callsigns** heard (HF vs gw); and a
+  **me** line — your own **`#msg` sent** and **`#pos` heard-back** (beacons of yours
+  that came back over RF). Counts are de-duplicated (the firmware only forwards the
+  first copy of each packet), so they're *unique* messages, not airtime. (What the
+  firmware doesn't expose — packets you relayed, gateway throughput, airtime — isn't
+  shown; noted as a firmware wishlist.)
 - **Booked talk groups per node** (`Grp: 232, 2321`) — the talk groups a node has
   subscribed to (from the firmware `R=` field) are shown in the **map node overlay**
   and the **Mheard list**, and persist across restarts (ported from upstream: a
