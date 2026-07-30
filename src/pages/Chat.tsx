@@ -679,6 +679,24 @@ const Tab3: React.FC = () => {
     scrollToBottom();
   }
 
+  // the ↓ button when it shows a COUNT: one rule from your position vs the divider.
+  // Divider still BELOW you (you haven't reached the new block) -> jump down to it
+  // (first new message at the top, read top-to-bottom); count stays, you're not at the
+  // bottom yet. Divider AT or ABOVE you (you're at the first new, or already reading
+  // past it) -> go to the newest. So: 1st tap -> start of the new block, 2nd tap (now at
+  // the divider) -> bottom; scroll back up above the divider and a tap targets it again.
+  const jumpToNewOrBottom = () => {
+    const el = scrollElRef.current;
+    const divider = document.getElementById('new-divider-anchor');
+    if (!el || !divider) { jumpToLatest(); return; } // e.g. during search (no divider)
+    const rel = divider.getBoundingClientRect().top - el.getBoundingClientRect().top;
+    if (rel > 8) {
+      divider.scrollIntoView({ behavior: 'smooth', block: 'start' }); // don't clear - not at bottom
+    } else {
+      jumpToLatest();
+    }
+  }
+
   // a resend got folded into an existing message (writeTxtMsg): if that message's
   // channel is the one on screen, gently scroll up to the updated row and flash it,
   // so an in-place "#N" update on an older message doesn't go unnoticed. If the
@@ -1693,9 +1711,10 @@ const Tab3: React.FC = () => {
       <IonContent className="ion-padding" ref={contentRef} scrollEvents={true} onIonScroll={onContentScroll} onTouchStart={stampActivity}>
         {showJump &&
           <IonFab slot="fixed" vertical="bottom" horizontal="end">
-            <IonFabButton size="small" color="primary" onClick={jumpToLatest} title="Neue Nachrichten">
+            <IonFabButton size="small" color="primary" onClick={newBelow > 0 ? jumpToNewOrBottom : jumpToLatest} title="Neue Nachrichten">
               {/* show the count IN the button when new msgs arrived below (a corner
-                  badge gets clipped by the round FAB's overflow:hidden), else the arrow */}
+                  badge gets clipped by the round FAB's overflow:hidden), else the arrow.
+                  Count -> jumpToNewOrBottom (first new / then bottom); arrow -> bottom. */}
               {newBelow > 0
                 ? <span className="jump-count">{newBelow > 99 ? "99+" : newBelow}</span>
                 : <IonIcon icon={arrowDown} />}
@@ -1835,7 +1854,7 @@ const Tab3: React.FC = () => {
           {visibleMsgs.map((msg, i) => (
             <>
               {i === dividerIdx &&
-                <div className={dividerFading ? "new-divider new-divider-fade" : "new-divider"}><span>new messages</span></div>}
+                <div id="new-divider-anchor" className={dividerFading ? "new-divider new-divider-fade" : "new-divider"}><span>new messages</span></div>}
 
               {checkMidnight(msg) &&
                 <div className="date-panel">
