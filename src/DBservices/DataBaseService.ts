@@ -368,7 +368,7 @@ class DatabaseService {
             // spot". Keeps the message in its original context; shown as "#N" + 2nd time.
             const RESEND_WINDOW = 10 * 60 * 1000;
             const resHit = await DatabaseService.db.query(
-                `SELECT id, resends FROM TextMessages WHERE fromCall = '${msg.fromCall}' AND toCall = '${msg.toCall}' AND msgTXT = '${msg.msgTXT}' AND isDM = ${msg.isDM ?? 0} AND isGrpMsg = ${msg.isGrpMsg ?? 0} AND grpNum = ${msg.grpNum ?? 0} AND msgNr != ${msg.msgNr} AND (${msg.timestamp} - timestamp) BETWEEN 0 AND ${RESEND_WINDOW} ORDER BY timestamp DESC LIMIT 1;`);
+                `SELECT id, msgNr, resends FROM TextMessages WHERE fromCall = '${msg.fromCall}' AND toCall = '${msg.toCall}' AND msgTXT = '${msg.msgTXT}' AND isDM = ${msg.isDM ?? 0} AND isGrpMsg = ${msg.isGrpMsg ?? 0} AND grpNum = ${msg.grpNum ?? 0} AND msgNr != ${msg.msgNr} AND (${msg.timestamp} - timestamp) BETWEEN 0 AND ${RESEND_WINDOW} ORDER BY timestamp DESC LIMIT 1;`);
             if (resHit.values && resHit.values.length > 0) {
                 const orig = resHit.values[0];
                 const newResends = (orig.resends || 0) + 1;
@@ -376,6 +376,15 @@ class DatabaseService {
                 console.log('DB resend collapsed into id ' + orig.id + ' (#' + (newResends + 1) + ')');
                 const txtMsgs = await DatabaseService.getTextMessages();
                 DatabaseService.applyFilters(DatabaseService.escapeQuotesInArr(txtMsgs));
+                // signal Chat to scroll up to + flash the updated original (if its
+                // channel is on screen) so the in-place update doesn't go unnoticed
+                MsgStore.update(s => {
+                    s.resendJump = {
+                        msgNr: orig.msgNr, fromCall: msg.fromCall,
+                        isDM: msg.isDM ?? 0, isGrpMsg: msg.isGrpMsg ?? 0, grpNum: msg.grpNum ?? 0,
+                        nonce: Date.now()
+                    };
+                });
                 return; // don't insert a duplicate row
             }
 

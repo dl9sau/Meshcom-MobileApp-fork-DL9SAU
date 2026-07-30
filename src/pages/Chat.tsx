@@ -151,6 +151,9 @@ const Tab3: React.FC = () => {
   // DM callsign trigger from Map
   const dmFrmMap_ = DMfrmMapStore.useState(s => s.dmfDMfrmMap);
 
+  // resend-collapse jump signal (see MsgStore.resendJump / DataBaseService.writeTxtMsg)
+  const resendJump_s = MsgStore.useState(s => s.resendJump);
+
   // stores the last timestamp of a message in chat to insert date panel
   const lastMsgTime = useRef<number>(Date.now());
 
@@ -604,7 +607,30 @@ const Tab3: React.FC = () => {
     segUnreadRef.current[segmentFilterRef.current] = 0; // going to the bottom -> seen them
     setNewBelow(0);
     scrollToBottom();
-  };
+  }
+
+  // a resend got folded into an existing message (writeTxtMsg): if that message's
+  // channel is the one on screen, gently scroll up to the updated row and flash it,
+  // so an in-place "#N" update on an older message doesn't go unnoticed. If the
+  // channel isn't showing, we do nothing - the marker is there when the user visits.
+  useEffect(() => {
+    if (!resendJump_s) return;
+    const { msgNr, fromCall, isDM, isGrpMsg, grpNum } = resendJump_s;
+    const seg = (isDM === 0 && isGrpMsg === 0) ? "ALL"
+      : (isDM === 1 && isGrpMsg === 0) ? "DM"
+        : grpNum.toString();
+    if (seg !== segmentFilterRef.current || !thisPageActive.current) return;
+    // let the applyFilters re-render settle, then locate + reveal the row
+    const t = setTimeout(() => {
+      const el = document.getElementById(`msg-${msgNr}-${fromCall}`);
+      if (!el) return;
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('resend-flash');
+      setTimeout(() => el.classList.remove('resend-flash'), 1600);
+    }, 120);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resendJump_s?.nonce]);;
 
   
 
@@ -1667,7 +1693,7 @@ const Tab3: React.FC = () => {
 
               {msg.msgNr !== 0 ? <>
 
-                <div key={i} onTouchStart={(e) => handleButtonPress(e, msg.msgNr)} onTouchMove={handleButtonMove} onTouchEnd={() => handleButtonRelease(msg.msgNr)} className={msgType(msg)}>
+                <div key={i} id={`msg-${msg.msgNr}-${msg.fromCall}`} onTouchStart={(e) => handleButtonPress(e, msg.msgNr)} onTouchMove={handleButtonMove} onTouchEnd={() => handleButtonRelease(msg.msgNr)} className={msgType(msg)}>
 
                   {compactHeader ? (
                     /* COMPACT: one header line - sender (bold), (via ...), time.
