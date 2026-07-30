@@ -142,9 +142,10 @@ const Tab3: React.FC = () => {
   const dividerHoldTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevNewBelowRef = useRef<number>(0); // to detect the >0 -> 0 "just caught up" edge
   const DIVIDER_LINGER_MS = 5000;
-  // "you've stepped away" threshold: no interaction for this long (or the app was
-  // backgrounded/asleep) means new messages that arrive at the bottom are NOT auto-
-  // scrolled past - they're surfaced as unseen. Same 30s used for the idle in-app beep.
+  // idle threshold for the in-app beep: a message on the channel you're viewing only
+  // beeps if you haven't interacted for this long (sitting idle) - if you're actively
+  // using it, stay silent. (No longer gates autoscroll: that's a plain on/off per
+  // channel now, so parking at the bottom keeps following live regardless of idle.)
   const AWAY_IDLE_MS = 30000;
   const prevMsgLenRef = useRef<number>(0); // to tell how many messages were just added
   // per-segment count of messages that arrived while you were NOT viewing that channel
@@ -183,9 +184,6 @@ const Tab3: React.FC = () => {
   // channel you're on still needs a sound (idle >= 30s) or you're clearly watching
   const lastInteractionRef = useRef<number>(Date.now());
   const stampActivity = () => { lastInteractionRef.current = Date.now(); };
-  // live mirror of isAppActive for reads inside the msgArr effect (whose deps are just
-  // [msgArr_s]); kept in sync by the wake effect below.
-  const isActiveRef = useRef<boolean>(true);
   // set right after YOU send, to whether you were at the bottom then: the next incoming
   // batch (your own echoed message) jumps to the bottom so you see it go out - but ONLY
   // if you were already at the bottom. Scrolled up (referencing messages while composing)
@@ -568,13 +566,9 @@ const Tab3: React.FC = () => {
     // update BLE Hook
     LogS.log(0,"Chat - BLE Connected: " + ble_connected);
     console.log("Chat - BLE DevID: " + devID_s);
-    isActiveRef.current = isAppActive;
     // scroll down if Chat screen gets active again
     if (isAppActive) {
-      // NB: coming back to the app does NOT count as "read" - only an actual interaction
-      // (touch/scroll/tab select) stamps activity. So messages that arrived while the
-      // app was asleep are treated as unseen (surfaced by the ↓ counter + divider),
-      // not silently scrolled past. See the msgArr effect's "away" check.
+      stampActivity(); // coming back to the app counts as looking at it
       // you're looking at the app now -> the shade entries are stale, clear them
       LocalNotifications.removeAllDeliveredNotifications().catch(() => {});
       // if the chat is the visible page, the segment you're on counts as read now
@@ -1002,11 +996,12 @@ const Tab3: React.FC = () => {
       prevSegForMsgRef.current = segmentFilterRef.current; // segment switch, not a new msg
       return;
     }
-    // follow the conversation live ONLY when you're at the bottom AND actively watching
-    // (app active + interacted within AWAY_IDLE_MS) AND this channel autoscrolls. If any
-    // of those is false - scrolled up, autoscroll OFF for this channel, or you stepped
-    // away / the app was asleep - the new messages are unseen: keep your position and
-    // surface them via the ↓ counter + the "new messages" divider.
+    // follow the conversation live when you're at the bottom AND this channel
+    // autoscrolls - a simple binary: autoscroll ON = live monitor (glance any time and
+    // see the newest), OFF = never chase, surface everything via the ↓ counter + divider.
+    // (No idle/away exception: parking at the bottom to watch every few minutes must keep
+    // following; you'd otherwise have to swipe down just to check for new messages.)
+    // If you're scrolled up OR autoscroll is OFF, keep your position and mark it new.
     const seg = segmentFilterRef.current;
     // your own just-sent message echoing back -> always jump to it (see pendingOwnScrollRef)
     if (pendingOwnScrollRef.current && delta > 0) {
@@ -1016,8 +1011,7 @@ const Tab3: React.FC = () => {
       scrollToBottom();
       return;
     }
-    const watching = isActiveRef.current && (Date.now() - lastInteractionRef.current) < AWAY_IDLE_MS;
-    if (atBottomRef.current && watching && autoscrollEnabledFor(seg)) {
+    if (atBottomRef.current && autoscrollEnabledFor(seg)) {
       scrollToBottom();
     } else if (delta > 0) {
       atBottomRef.current = false; // no longer pinned to the bottom (unseen msgs below)
