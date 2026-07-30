@@ -122,6 +122,7 @@ export function useMSG() {
                 let timestamp_node = 0;
                 let isGrpMsg_ = 0;
                 let grpNum_ = 0;
+                let node_path: string[] = []; // full RF path (origin + relays), for HF-local learning
                 
                 // if txt or pos msg extract callsign
                 let call_arr: number[] = [];
@@ -221,6 +222,7 @@ export function useMSG() {
                         // record hop count + route path for the originating node
                         node_hops = route_call_cnt - 1;
                         node_via = via_str;
+                        node_path = route_call_arr; // origin + every relay
                         NodeRuntimeService.setPath(route_call_arr[0], node_hops, node_via);
 
                         // POSITIONS travel only over HF (not re-injected from the
@@ -252,6 +254,7 @@ export function useMSG() {
                         // direct reception (no relay in path) -> 0 hops
                         node_hops = 0;
                         node_via = from_callsign_;
+                        node_path = [from_callsign_];
                         NodeRuntimeService.setPath(from_callsign_, node_hops, node_via);
                     }
 
@@ -316,6 +319,17 @@ export function useMSG() {
                                 isGrpMsg_ = 1;
                                 grpNum_ = +dm_callsign;
                                 console.log("Group Message Nr: " + grpNum_);
+
+                                // TG 9 is RF-only by MeshCom convention (not gatewayed to
+                                // the internet), so - like a position path - the origin AND
+                                // every relay in this text message's path are provably HF-
+                                // local. Learn them for the globe marker (helps confirm the
+                                // SAME nodes as local in OTHER channels), and ratchet any
+                                // earlier 'solid' messages from them down to 'dim'.
+                                if (msg_type === 58 && grpNum_ === 9 && node_path.length > 0) {
+                                    HfHeardService.mark(node_path, Date.now());
+                                    DatabaseService.ratchetGlobeToLocal(node_path);
+                                }
                             }
                         }
 
