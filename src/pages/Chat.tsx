@@ -241,9 +241,10 @@ const Tab3: React.FC = () => {
   const dmShowAll = useStoreState(AppPrefsStore, s => s.dmShowAll);
   const autoscrollAll = useStoreState(AppPrefsStore, s => s.autoscrollAll);
   const autoscrollTGs = useStoreState(AppPrefsStore, s => s.autoscrollTGs);
-  // does a channel autoscroll to the newest message? (default ON; DMs always ON)
+  const autoscrollDM = useStoreState(AppPrefsStore, s => s.autoscrollDM);
+  // does a channel autoscroll to the newest message? (default ON for all)
   const autoscrollEnabledFor = (val: string): boolean => {
-    if (val === "DM") return true;
+    if (val === "DM") return autoscrollDM;
     if (val === "ALL") return autoscrollAll;
     const tg = parseInt(val);
     return isNaN(tg) ? true : !parseTGset(autoscrollTGs).has(tg);
@@ -371,7 +372,11 @@ const Tab3: React.FC = () => {
   // needed - it only changes how the NEXT incoming message is handled (see msgArr effect).
   const toggleTabAutoscroll = async (val: string) => {
     const s = AppPrefsStore.getRawState();
-    if (val === "ALL") {
+    if (val === "DM") {
+      const nv = !s.autoscrollDM;
+      AppPrefsStore.update(x => { x.autoscrollDM = nv; });
+      await DatabaseService.setPref('autoscrollDM', nv ? '1' : '0');
+    } else if (val === "ALL") {
       const nv = !s.autoscrollAll;
       AppPrefsStore.update(x => { x.autoscrollAll = nv; });
       await DatabaseService.setPref('autoscrollAll', nv ? '1' : '0');
@@ -419,6 +424,7 @@ const Tab3: React.FC = () => {
         { text: mark("none") + "Notify: disabled", handler: () => { setDmAlertPref("none"); } },
         { text: mark("mine") + "Notify: my DMs (and mentions) only", handler: () => { setDmAlertPref("mine"); } },
         { text: mark("all") + "Notify: all DMs and mentions", handler: () => { setDmAlertPref("all"); } },
+        { text: (autoscrollEnabledFor("DM") ? "✓ " : "") + "Autoscroll to newest", handler: () => { toggleTabAutoscroll("DM"); } },
         { text: dmShowAll ? "Hide others' DMs" : "Show others' DMs (monitor)", handler: () => { toggleDmShowAll(); } },
         { text: "Cancel", role: "cancel" }
       ];

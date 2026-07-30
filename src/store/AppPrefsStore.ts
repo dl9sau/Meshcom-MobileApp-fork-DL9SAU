@@ -29,9 +29,10 @@ export interface AppPrefsState {
     // arrives while you were away (app asleep / >30s idle at the bottom) is NOT scrolled
     // past but surfaced too - so you never silently miss what came in while not looking.
     // autoscrollAll for ALL; autoscrollTGs is a CSV of talk groups with autoscroll OFF
-    // (default = not listed = ON). DMs always autoscroll (low volume).
+    // (default = not listed = ON); autoscrollDM for the DM tab. All default ON.
     autoscrollAll: boolean;
     autoscrollTGs: string;
+    autoscrollDM: boolean;
     // one-time onboarding hint ("long-press a tab") already shown?
     tabHintSeen: boolean;
     // app-local cross-reference TG number -> free-text label (memory aid), as a
@@ -73,6 +74,7 @@ const AppPrefsStore = new Store<AppPrefsState>({
     discardTGs: "",
     autoscrollAll: true,
     autoscrollTGs: "",
+    autoscrollDM: true,
     tabHintSeen: false,
     tgLabels: "{}",
     ownCall: "",

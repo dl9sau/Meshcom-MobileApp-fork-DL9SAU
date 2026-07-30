@@ -1070,6 +1070,7 @@ class DatabaseService {
                 if ('discardTGs' in prefs) s.discardTGs = prefs['discardTGs'];
                 if ('autoscrollAll' in prefs) s.autoscrollAll = prefs['autoscrollAll'] === '1';
                 if ('autoscrollTGs' in prefs) s.autoscrollTGs = prefs['autoscrollTGs'];
+                if ('autoscrollDM' in prefs) s.autoscrollDM = prefs['autoscrollDM'] === '1';
                 if ('tabHintSeen' in prefs) s.tabHintSeen = prefs['tabHintSeen'] === '1';
                 if ('tgLabels' in prefs) s.tgLabels = prefs['tgLabels'];
                 if ('ownCall' in prefs) s.ownCall = prefs['ownCall'];
