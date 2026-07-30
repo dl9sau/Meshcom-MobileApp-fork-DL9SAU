@@ -22,6 +22,16 @@ export interface AppPrefsState {
     // DMs hidden). Own DMs are always shown.
     discardAll: boolean;    // hide the ALL / broadcast channel
     discardTGs: string;     // CSV of talk-group numbers that are hidden
+    // per-channel "autoscroll to newest" (default ON). ON = a new message while you're
+    // at the bottom scrolls down to follow live; OFF = it never auto-scrolls, the new
+    // message is surfaced via the "new messages" divider + the down-counter so you catch
+    // up at your own pace (good for a firehose channel). Even when ON, a message that
+    // arrives while you were away (app asleep / >30s idle at the bottom) is NOT scrolled
+    // past but surfaced too - so you never silently miss what came in while not looking.
+    // autoscrollAll for ALL; autoscrollTGs is a CSV of talk groups with autoscroll OFF
+    // (default = not listed = ON). DMs always autoscroll (low volume).
+    autoscrollAll: boolean;
+    autoscrollTGs: string;
     // one-time onboarding hint ("long-press a tab") already shown?
     tabHintSeen: boolean;
     // app-local cross-reference TG number -> free-text label (memory aid), as a
@@ -61,6 +71,8 @@ const AppPrefsStore = new Store<AppPrefsState>({
     dmAlert: "mine",
     discardAll: false,
     discardTGs: "",
+    autoscrollAll: true,
+    autoscrollTGs: "",
     tabHintSeen: false,
     tgLabels: "{}",
     ownCall: "",
