@@ -748,7 +748,7 @@ const NodeMap = () => {
               <div className="stats-row"><span className="stats-key">calls</span>
                 <span>HF {stats.callsHf} · gw {stats.callsGw}</span></div>
               <div className="stats-row"><span className="stats-key">me</span>
-                <span>#msg {me?.msgCount ?? 0} · #pos {me?.posCount ?? 0}</span></div>
+                <span>#msg {me?.msgCount ?? 0} <span className="stats-dim">sent</span> · #pos {me?.posCount ?? 0} <span className="stats-dim">heard-back</span></span></div>
             </div>
           );
         })()}
