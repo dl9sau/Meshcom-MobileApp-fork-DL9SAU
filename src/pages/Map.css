@@ -22,38 +22,3 @@
     padding: 3px;
     border-radius: 3px;
 }
-/* MY STATS panel: compact, quickly-readable grey field over the map (tap to close).
-   Positioned top-left, below the header; the zoom control sits top-right. */
-.stats-panel{
-    position: absolute;
-    top: 12px;
-    left: 10px;
-    z-index: 400;
-    background-color: rgba(40, 40, 40, 0.86);
-    color: #eee;
-    padding: 8px 12px;
-    border-radius: 8px;
-    font-size: 0.82rem;
-    line-height: 1.5;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-    max-width: 78vw;
-}
-.stats-title{
-    font-size: 0.7rem;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: #ffb060;
-    margin-bottom: 4px;
-}
-.stats-row{
-    display: flex;
-    gap: 8px;
-}
-.stats-key{
-    display: inline-block;
-    min-width: 3em;
-    color: #9ec5ff;
-}
-.stats-dim{
-    color: #999;
-}

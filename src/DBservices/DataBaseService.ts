@@ -1098,6 +1098,36 @@ class DatabaseService {
         }
     }
 
+    // How many DISTINCT callsigns we ever heard, as far as the database still knows:
+    // everyone who sent a text message plus every node we hold a position for. Bounded
+    // by the retention settings, so it is "within the retention window", not forever.
+    //
+    // Deliberately only a TOTAL, no per-category split: the direct/hf/gw categories are a
+    // property of a single RECEPTION, not of a station - the same node can be heard
+    // directly today and arrive through a gateway tomorrow, so an all-time per-category
+    // count of stations would be arbitrary. Reception counts per category are session
+    // figures (StatsService); a database equivalent exists only for messages anyway,
+    // since Positions keeps one row per node (updated), not one per received beacon.
+    static async getStatsDb(ownCall: string): Promise<number> {
+        try {
+            if (!DatabaseService.db) return -1;
+            const own = (ownCall || "").toUpperCase().trim().replace(/'/g, "''");
+            const res = await DatabaseService.db.query(
+                `SELECT COUNT(*) AS n FROM (
+                    SELECT DISTINCT UPPER(TRIM(fromCall)) AS c FROM TextMessages
+                     WHERE TRIM(fromCall) <> '' AND UPPER(TRIM(fromCall)) <> '${own}'
+                    UNION
+                    SELECT DISTINCT UPPER(TRIM(callSign)) AS c FROM Positions
+                     WHERE TRIM(callSign) <> '' AND UPPER(TRIM(callSign)) <> '${own}'
+                 );`);
+            const n = res.values && res.values.length > 0 ? res.values[0].n : 0;
+            return typeof n === 'number' ? n : parseInt(n) || 0;
+        } catch (err) {
+            LogS.log(1, 'Error reading DB stats:' + err);
+            return -1;
+        }
+    }
+
     // persist a single UI preference (key/value)
     static async setPref(key: string, val: string) {
         try {

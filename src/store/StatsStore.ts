@@ -1,18 +1,40 @@
 import { Store } from "pullstate";
 
+// Counts per reception category. The three are DISJOINT and cover every received
+// packet, so they add up to the total:
+//   direct - heard with no relay in between (0 hops)
+//   hf     - relayed, but our globe verdict says the origin is local RF
+//   gw     - our globe verdict says the origin came from the wider network
+// Positions can never be 'gw': they are not gatewayed (bGATEWAY_NOPOS), so that
+// field staying 0 is a useful sanity check.
+export interface CatCounts { direct: number; hf: number; gw: number; }
+
 // App-wide RECEIVE statistics (from others), mirrored from StatsService for the UI.
-// Counts are unique messages/positions (the firmware dedups by msg_id) received since
-// app start; own traffic is excluded (that lives per-call in NodeRuntimeService).
+// Counts are UNIQUE packets - the firmware dedups by msg_id before handing them to us,
+// so these are messages, never airtime copies. Own traffic is excluded; it lives
+// per-call in NodeRuntimeService ("me" line).
 export interface StatsState {
-    rxMsgHf: number;   // text msgs from others, globe "local" (direct + via)
-    rxMsgGw: number;   // text msgs from others, globe "solid" (internet-origin)
-    rxPos: number;     // positions from others (all HF - never gatewayed)
-    callsHf: number;   // unique senders heard HF-local
-    callsGw: number;   // unique senders classified internet-origin
+    pos: CatCounts;   // position beacons
+    msg: CatCounts;   // channel messages (broadcast + talk groups)
+    dm: CatCounts;    // direct messages from others (addressed to me or overheard)
+    // unique senders, by the category they were heard in. A station can appear in more
+    // than one (heard directly today, via a gateway yesterday), so these do NOT add up
+    // to callsAll - that is the size of the union.
+    callsDirect: number;
+    callsHf: number;
+    callsGw: number;
+    callsAll: number;
+    // distinct callsigns in the DATABASE (message senders + nodes we hold a position
+    // for), i.e. everything we ever heard within the retention window. -1 = not loaded.
+    dbCalls: number;
 }
 
+const zero = (): CatCounts => ({ direct: 0, hf: 0, gw: 0 });
+
 const StatsStore = new Store<StatsState>({
-    rxMsgHf: 0, rxMsgGw: 0, rxPos: 0, callsHf: 0, callsGw: 0
+    pos: zero(), msg: zero(), dm: zero(),
+    callsDirect: 0, callsHf: 0, callsGw: 0, callsAll: 0,
+    dbCalls: -1
 });
 
 export default StatsStore;

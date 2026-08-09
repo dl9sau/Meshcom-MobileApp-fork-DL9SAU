@@ -19,6 +19,7 @@ import BLEconnStore from '../store/BLEconnected';
 import ConfigObject from '../utils/ConfigObject';
 import LogS from '../utils/LogService';
 import SensorSettingsS1Store from '../store/SensorSettingsS1';
+import { StatsPanel } from '../components/StatsPanel';
 
 
 
@@ -264,6 +265,17 @@ const Info: React.FC = () => {
           </IonCardContent>
         </IonCard>
 
+        {/* What OUR node received since the app connected. Sits here rather than only on
+            the map because it is information about our own station, like the boxes above.
+            Same component as the map overlay, so both can never show different figures. */}
+        <IonCard>
+          <IonCardHeader>
+            <IonCardTitle>My Stats</IonCardTitle>
+          </IonCardHeader>
+          <IonCardContent>
+            <StatsPanel ownCall={config_s.callSign} />
+          </IonCardContent>
+        </IonCard>
 
         <div className="info-box">
           <div>
