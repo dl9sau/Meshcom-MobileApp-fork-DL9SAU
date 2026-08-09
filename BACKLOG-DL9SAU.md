@@ -7,6 +7,10 @@ Reihenfolge innerhalb der Blöcke = grober Vorschlag, nicht fix.
 
 ## A · Chat / Scrollverhalten
 
+> **Status: Build 1 gebaut (6906b13)** — A1 ✅, A5 ✅, A6 ✅, A2 ✅ (als Teil von A5:
+> nach dem Entfernen des Markers wird wieder ans Ende gepinnt), A4 ✅ (Pixel-Rechnerei
+> entfernt). **A3 offen** — sollte durch A5 verschwunden sein, im Test verifizieren.
+
 **A1 — `scrollToBottom()` cached ein totes DOM-Element** *(Bug, klein)*
 `bottomRef.current` wird nur neu geholt, wenn es `null` ist. Ersetzt React den Knoten
 (z. B. nach 11 neuen Nachrichten), zeigt der Ref auf einen abgehängten Knoten →
