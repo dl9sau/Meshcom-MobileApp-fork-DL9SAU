@@ -117,6 +117,20 @@ Alternative/zusätzlich Mheard-Tab zum Vergleich mit den Direktnachbarn.
 
 ## D · Neue Auswertungen
 
+**D1b — Gateway-Erkennung über die advertised Nachbarzahl** *(Idee DL9SAU, 2026-08-02)*
+Zweiter, **unabhängiger** Detektor — und er löst genau die unbestimmte Zeile aus D1:
+Steht X als **erster Hop** im Pfad, hat X den Absender **direkt gehört** … oder ihn aus dem
+Internet eingespeist. Zähle also je Knoten X die Menge der **Absender, die unmittelbar vor
+X** im Pfad standen. X' Bake meldet mit `/N<n>` die Größe seiner **eigenen** Mheard-Liste,
+also eine **Obergrenze** seiner HF-Nachbarn.
+⇒ **beobachtete Absender-vor-X > advertised NCNT ⇒ X speist aus dem Internet ein ⇒ GW.**
+Besonders scharf bei `N1`: schon der zweite abweichende Absender beweist es.
+Konservativ (einseitig): normalerweise ist unsere Beobachtung eine **Teilmenge**, ein
+Überschreiten ist die Anomalie. Vorbehalte: NCNT wird bei X nach 12 h gepurged und ist
+eine Selbstauskunft (kann veralten) → Zeitfenster begrenzen oder einen Sicherheitsabstand
+verlangen; dann „wahrscheinlich GW" statt „sicher". Aufwand **klein** (ein Set je Knoten
+aus Pfadposition 0→1, plus Vergleich) — der Lernteil liegt schon in AdjacencyService.
+
 **D1 — Gateway-Registry (ohne Firmware-Änderung)**
 | Fall | Schluss |
 |---|---|
@@ -157,7 +171,11 @@ Ggf. erst ab einer Zoomstufe, damit es nicht zumüllt.
 
 ---
 
-## E · Firmware-Wünsche an Rainer / icssw
+## E · Firmware-Wünsche (an das FIRMWARE-Team, icssw)
+
+> Achtung, nicht verwechseln: **Rainer ist der Autor der APP** (Upstream unseres Forks) —
+> die Firmware kommt von icssw. Diese Punkte gehen an das Firmware-Team, nicht an Rainer.
+> Textentwurf macht DL9SAU bei Gelegenheit.
 
 Alle an Stellen, wo die Firmware die Information **bereits hat**:
 
