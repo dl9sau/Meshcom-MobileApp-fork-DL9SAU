@@ -91,6 +91,14 @@ Wir stehen nicht im Pfad, sind aber Nachbar direkt gehörter Knoten. Außerdem e
 
 ## C · Statistik-Ausbau (MY STATS)
 
+> **Status: Build 3 gebaut (f239bff)** — C1 ✅ C2 ✅ C4 ✅, C3 ⚠️ *eingeschränkt*.
+> „(max)" gibt es nur für **unique Calls** (aus der DB, retention-begrenzt) — bewusst
+> **ohne** Kategorie-Aufteilung, weil direct/hf/gw eine Eigenschaft **eines Empfangs**
+> ist, nicht einer Station (dieselbe Station kann heute direkt und morgen über ein
+> Gateway kommen). Für **#pos gibt es gar keinen** all-time-Wert: `Positions` hält
+> **eine Zeile je Station** (Update), nicht eine je Bake.
+> Offline verifiziert (14 Prüfungen grün).
+
 **C1 — Calls aufschlüsseln**
 `Calls: 21 (max 42), direct 5 (max 7), via HF 10 (max 11), via GW 15 (max 16)`
 Session + all-time aus DB.
