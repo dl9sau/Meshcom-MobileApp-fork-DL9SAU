@@ -176,10 +176,26 @@ desselben Absenders überein → echt HF, trotz GW-Bit. Cache pro Absender aus P
 **und** bereits als HF entschiedenen Textnachrichten (nicht nur letzte Position).
 Schneller Pfad zuerst, sonst die aufwendigere Kette.
 
-**D6 — Calls unter den Positions-Markern auf der Karte** (iOS zeigt es, Android nicht).
-Ggf. erst ab einer Zoomstufe, damit es nicht zumüllt.
+**D6 — Calls unter den Positions-Markern auf der Karte**
+*Recherchiert 2026-08-02:* **kein** Plattform-Unterschied und nichts entfernt — in dieser
+Codebasis gibt es die Beschriftung **überhaupt nicht**. Belege: keine einzige Plattform-
+Fallunterscheidung in `Map.tsx`; die Marker sind pigeon-maps `<Marker>`, die **nur `color`**
+kennen und kein Label können; das Rufzeichen erscheint ausschließlich im `MapOverlay`-Popup.
+`ios/` ist committet, `android/` wird im CI per `npx cap add android` erzeugt — die App liefe
+auf iOS identisch. ⇒ iOS-Screenshots mit Calls stammen von der **eigenständigen nativen
+iOS-MeshCom-App**, nicht von dieser. (Nur über diese Codebasis + Upstream urteilbar.)
+*Umsetzung, falls gewollt:* `<Marker>` durch ein eigenes `<Overlay anchor={[lat,lon]}>` mit
+Pin **und** Textlabel ersetzen. Offene Fragen: **ab welcher Zoomstufe** (sonst Buchstabensalat
+— vermutlich der Grund, warum Upstream es gelassen hat) und Performance bei vielen Knoten.
+Braucht Sichtprüfung am Gerät.
 
 ---
+
+## D7 · „Experimental features"-Schalter *(Idee DL9SAU, 2026-08-02 — später)*
+Diagnose-/Versuchsausgaben hinter einen Settings-Schalter legen, damit sie bei anderen
+Testern nicht das Log zumüllen. **Jetzt noch nicht** — erst wenn wir größere Dinge zum
+Testen haben. Die anstehende Diagnose für D1b/D3/D4 wird stattdessen als **separater
+Commit** geführt, den DL9SAU nur lokal einspielt, solange er das Gerät hat.
 
 ## E · Firmware-Wünsche (an das FIRMWARE-Team, icssw)
 
