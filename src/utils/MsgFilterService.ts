@@ -2,6 +2,7 @@ import { MsgType } from "./AppInterfaces";
 import ConfigObject from "./ConfigObject";
 import MsgFilterStore from "../store/MsgFilterStore";
 import AppPrefsStore from "../store/AppPrefsStore";
+import LogS from "./LogService";
 
 // Configurable filter for chat messages. Three kinds of rules:
 //   - callsign block (DENY): exact match on fromCall (full, incl. SSID)
@@ -48,9 +49,22 @@ class MsgFilterService {
     private textRules: TextRule[] = [];   // DENY text patterns
     private allowRules: TextRule[] = [];  // ALLOW (whitelist) text patterns
 
+    // Normalise text for MATCHING only (never for display or storage). Emoji arrive with
+    // or without the INVISIBLE variation selector U+FE0F depending on the sending
+    // keyboard, so a rule and a message can look byte-for-byte identical on screen and
+    // still not match - the rule then silently never fires. It bites exactly when the
+    // pattern has a character directly after the emoji (a full stop, a comma), because
+    // then the selector sits in between; a bare-emoji rule still matched, which is why it
+    // looked like "the punctuation breaks it". NFC additionally folds the umlaut variants
+    // (precomposed vs. combining accent). ZWJ is deliberately left alone: stripping it
+    // would merge family/profession emoji into different characters.
+    private normForMatch(s: string): string {
+        return (s || "").normalize("NFC").replace(/[\uFE0E\uFE0F]/g, "");
+    }
+
     // turn one user pattern into a case-insensitive RegExp (or null if empty/invalid)
     private compilePattern(raw: string): RegExp | null {
-        let pat = raw.trim();
+        let pat = this.normForMatch(raw).trim();
         if (pat === "") return null;
 
         let anchorStart = false;
@@ -82,7 +96,9 @@ class MsgFilterService {
             // 'u' = correct code-point handling for UTF-8 / emoji;
             // 's' = '.' also matches newlines, so wildcards span multi-line messages
             return new RegExp(src, "ius");
-        } catch {
+        } catch (err) {
+            // don't drop a rule in silence - the user would just see "the filter doesn't work"
+            LogS.log(1, "Filter: ignoring invalid pattern '" + raw + "': " + err);
             return null;
         }
     }
@@ -185,7 +201,8 @@ class MsgFilterService {
             if (r.call === fromUp && this.scopeApplies(r.scope, msg)) return true;
         }
 
-        const text = msg.msgTXT || "";
+        // normalised the same way the patterns were compiled (see normForMatch)
+        const text = this.normForMatch(msg.msgTXT || "");
 
         // 2) ALLOW (whitelist) gate: if this channel has ANY allow rule, the message
         //    must match one to be kept. A match wins over deny (short-circuit ALLOW,

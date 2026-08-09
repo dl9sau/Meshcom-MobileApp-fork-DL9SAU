@@ -57,15 +57,27 @@ export const splitCount = (text: string, opts: SplitOpts = {}): number =>
 
 // cut the largest word-bounded, UTF-8-safe prefix of `rest` that fits `budget` bytes.
 // returns [head, tail]: head right-trimmed (keeps leading indentation), tail left-trimmed.
-const cutOne = (rest: string, budget: number): [string, string] => {
+//
+// `atomicBudget` is what a part could hold if it were NOT squeezed (the full per-part
+// budget). When the fitting slice lies entirely inside ONE token - a URL, a long word -
+// and that token would fit into a packet of its own, we refuse to chop it and return an
+// empty head instead: the caller then gives the token the full budget. Chopping a URL
+// across two packets makes it unusable, which is far worse than an uneven split.
+// Only a token longer than a whole packet is hard-cut, because then there is no choice.
+const cutOne = (rest: string, budget: number, atomicBudget: number): [string, string] => {
   const chars = Array.from(rest);
   const cut = fitCodePoints(chars, budget);
   const fitStr = chars.slice(0, cut).join("");
-  // break between words: back up to the last whitespace inside the fitting slice; if
-  // there is none (one very long word / URL) hard-cut at the byte boundary.
+  // break between words: back up to the last whitespace inside the fitting slice
   const lastWs = Math.max(fitStr.lastIndexOf(" "), fitStr.lastIndexOf("\n"));
-  const breakAt = lastWs > 0 ? lastWs : fitStr.length;
-  return [rest.slice(0, breakAt).replace(/\s+$/, ""), rest.slice(breakAt).replace(/^\s+/, "")];
+  if (lastWs > 0) {
+    return [rest.slice(0, lastWs).replace(/\s+$/, ""), rest.slice(lastWs).replace(/^\s+/, "")];
+  }
+  // no whitespace in the fitting slice -> we are inside the leading token
+  const wsPos = rest.search(/\s/);
+  const token = wsPos < 0 ? rest : rest.slice(0, wsPos);
+  if (byteLen(token) <= atomicBudget) return ["", rest];   // caller: retry with full budget
+  return [fitStr.replace(/\s+$/, ""), rest.slice(fitStr.length).replace(/^\s+/, "")];
 };
 
 export function splitForAir(text: string, opts: SplitOpts = {}): string[] {
@@ -90,7 +102,9 @@ export function splitForAir(text: string, opts: SplitOpts = {}): string[] {
       const budget = fullBudget(greedy.length);
       if (budget <= 0) break; // pathological: prefix bigger than the packet
       if (byteLen(rest) <= budget) { greedy.push(rest); break; }
-      const [head, tail] = cutOne(rest, budget);
+      // greedy already uses the full budget, so atomicBudget == budget: a token that
+      // doesn't fit here fits nowhere and is hard-cut.
+      const [head, tail] = cutOne(rest, budget, budget);
       if (!head) break;
       greedy.push(head); rest = tail;
     }
@@ -111,10 +125,14 @@ export function splitForAir(text: string, opts: SplitOpts = {}): string[] {
       const i = balanced.length;
       if (i >= N) { ok = false; break; } // needed more than N parts -> give up
       const even = Math.ceil(byteLen(rest) / (N - i));
-      const budget = Math.min(even, fullBudget(i));
+      const full = fullBudget(i);
+      const budget = Math.min(even, full);
       if (budget <= 0) { ok = false; break; }
       if (byteLen(rest) <= budget) { balanced.push(rest); rest = ""; break; }
-      const [head, tail] = cutOne(rest, budget);
+      // the even share may be smaller than a leading URL/long word - cutOne then hands
+      // back an empty head rather than chopping it, and we give that part the full budget
+      let [head, tail] = cutOne(rest, budget, full);
+      if (!head) [head, tail] = cutOne(rest, full, full);
       if (!head) { ok = false; break; }
       balanced.push(head); rest = tail;
     }
