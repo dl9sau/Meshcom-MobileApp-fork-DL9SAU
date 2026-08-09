@@ -220,8 +220,11 @@ export function useMSG() {
                             const heard_via = route_call_arr.slice(0, route_call_cnt - 1);
                             RelayCountService.addHeardVia(neighbour, heard_via);
                             // consecutive calls in the path are mutual direct neighbours -
-                            // learn each node's direct-neighbour set (works for far nodes too)
-                            AdjacencyService.addPath(route_call_arr);
+                            // learn each node's direct-neighbour set (works for far nodes too).
+                            // WE are the neighbour of the last hop (we heard it on RF) but do
+                            // not appear in the path, so append our own call - otherwise every
+                            // direct neighbour is short by one and our own node has no set at all.
+                            AdjacencyService.addPath([...route_call_arr, node_call_ref.current]);
                         }
 
                         // record hop count + route path for the originating node
@@ -261,6 +264,9 @@ export function useMSG() {
                         node_via = from_callsign_;
                         node_path = [from_callsign_];
                         NodeRuntimeService.setPath(from_callsign_, node_hops, node_via);
+                        // heard with no relay in between -> the sender is a direct neighbour
+                        // of ours (this case produced no adjacency at all before)
+                        AdjacencyService.addPath([from_callsign_, node_call_ref.current]);
                     }
 
                     // Learn HF-local nodes from a gw=0 TEXT message (byte6 0x80 = msg_server

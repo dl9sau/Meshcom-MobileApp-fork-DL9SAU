@@ -2,6 +2,8 @@ import { IonButton, IonCard, IonContent, IonHeader, IonIcon, IonPage, IonTitle, 
 import MhStore from '../store/MheardStore';
 import ConfigStore from '../store/ConfStore';
 import RelayCountStore from '../store/RelayCountStore';
+import AdjacencyStore from '../store/AdjacencyStore';
+import { fmtNeighbours, fmtHeardVia } from '../utils/NeighbourStats';
 import NodeRuntimeStore from '../store/NodeRuntimeStore';
 import { getMheards, getConfigStore } from '../store/Selectors';
 import {ConfType, MheardType} from '../utils/AppInterfaces';
@@ -25,6 +27,9 @@ const Mheard = () => {
     const relayCounts = useStoreState(RelayCountStore, s => s.counts);
     // all-time neighbour counts (survives restart, shown as "(max N)")
     const relayMax = useStoreState(RelayCountStore, s => s.max);
+    // direct neighbours we inferred from route-path adjacency (session + all-time)
+    const adjCounts = useStoreState(AdjacencyStore, s => s.counts);
+    const adjMax = useStoreState(AdjacencyStore, s => s.max);
     // runtime per-node counters (#pos / #msg received this session)
     const nodeInfoMap = useStoreState(NodeRuntimeStore, s => s.info);
 
@@ -71,25 +76,21 @@ const Mheard = () => {
                                                         <div>Hw:</div>
                                                         <div className='value'>{mhs.mh_hw}</div>
                                                     </div>
-                                                    <div className='rowcont'>
-                                                        <div>Neighbours:</div>
-                                                        <div className='value'>{(() => {
-                                                            const key = mhs.mh_callSign?.toUpperCase();
-                                                            // firmware neighbour count: the larger of the mheard NCNT
-                                                            // and the position "N" field (2nd source)
-                                                            const fwNcnt = Math.max(mhs.mh_ncnt ?? 0, nodeInfoMap[key]?.ncnt ?? 0);
-                                                            if (fwNcnt > 0) return fwNcnt;
-                                                            // older firmware reports 0 -> fall back to our count of
-                                                            // nodes relayed via this neighbour: current session,
-                                                            // plus the all-time "(max N)" reconstructed from stored
-                                                            // positions (so a restart doesn't drop it to a low value).
-                                                            const session = relayCounts[key] ?? 0;
-                                                            const overall = relayMax[key] ?? 0;
-                                                            if (overall <= 0) return fwNcnt;                // no data -> 0
-                                                            if (overall > session) return session + " (max " + overall + ")";
-                                                            return "≈" + session;                          // all-time == session
-                                                        })()}</div>
-                                                    </div>
+                                                    {/* Two DIFFERENT things, previously conflated under one label (this
+                                                        list showed the heard-via count while the map showed the
+                                                        firmware one): the node's own direct neighbours as we inferred
+                                                        them from path adjacency (+ what it advertises), and what it
+                                                        relayed to US. Same wording and formatting as the map overlay. */}
+                                                    {(() => {
+                                                        const key = mhs.mh_callSign?.toUpperCase();
+                                                        const nb = fmtNeighbours(adjCounts[key] ?? 0, adjMax[key] ?? 0,
+                                                            Math.max(mhs.mh_ncnt ?? 0, nodeInfoMap[key]?.ncnt ?? 0));
+                                                        const hv = fmtHeardVia(relayCounts[key] ?? 0, relayMax[key] ?? 0);
+                                                        return (<>
+                                                            {nb ? <div className='rowcont'><div>Neighbours:</div><div className='value'>{nb}</div></div> : <></>}
+                                                            {hv ? <div className='rowcont'><div>Heard via:</div><div className='value'>{hv}</div></div> : <></>}
+                                                        </>);
+                                                    })()}
                                                     <div className='rowcont'>
                                                         <div>#pos:</div>
                                                         <div className='value'>{nodeInfoMap[mhs.mh_callSign?.toUpperCase()]?.posCount ?? 0}</div>

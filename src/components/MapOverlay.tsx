@@ -8,6 +8,7 @@ import MhStore from "../store/MheardStore";
 import NodeRuntimeStore from "../store/NodeRuntimeStore";
 import RelayCountStore from "../store/RelayCountStore";
 import AdjacencyStore from "../store/AdjacencyStore";
+import { fmtNeighbours, fmtHeardVia } from "../utils/NeighbourStats";
 import { useHistory } from "react-router";
 import ConfigObject from "../utils/ConfigObject";
 import { distanceKm } from "../utils/GeoUtils";
@@ -99,24 +100,15 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
     // node itself last ADVERTISED (max of its position "N" and Mheard NCNT - the LAST
     // value, overwritten on each fresh packet, so it updates after a reboot but can be
     // stale until we hear it again). Shown for ANY node we have data for.
-    const directNeighboursText = (() => {
-        const sess = (callUp ? adjCounts[callUp] : 0) ?? 0;
-        const max = (callUp ? adjMax[callUp] : 0) ?? 0;
-        const advertised = Math.max(mheard?.mh_ncnt ?? 0, nodeInfo?.ncnt ?? 0);
-        if (max <= 0 && advertised <= 0) return null;
-        let s = max > sess ? sess + " (max " + max + ")" : (max > 0 ? "" + max : "");
-        if (advertised > 0) s = (s ? s + " · " : "") + "advertised " + advertised;
-        return s;
-    })();
+    const directNeighboursText = fmtNeighbours(
+        (callUp ? adjCounts[callUp] : 0) ?? 0,
+        (callUp ? adjMax[callUp] : 0) ?? 0,
+        Math.max(mheard?.mh_ncnt ?? 0, nodeInfo?.ncnt ?? 0));
     // HEARD VIA this node: unique nodes that reached US through it as the last hop.
     // Only meaningful for our OWN direct neighbours (in the Mheard list).
-    const heardViaText = (() => {
-        if (!mheard) return null;
-        const session = (callUp ? relayCounts[callUp] : 0) ?? 0;
-        const overall = (callUp ? relayMax[callUp] : 0) ?? 0;
-        if (overall <= 0) return null;
-        return overall > session ? session + " (max " + overall + ")" : "≈" + session;
-    })();
+    const heardViaText = mheard
+        ? fmtHeardVia((callUp ? relayCounts[callUp] : 0) ?? 0, (callUp ? relayMax[callUp] : 0) ?? 0)
+        : null;
 
     // route path for display: origin dropped, wrapped after every 2 calls
     const pathLines = nodeInfo ? formatPathLines(nodeInfo.path, callSign) : [];

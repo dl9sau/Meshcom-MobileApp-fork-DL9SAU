@@ -309,8 +309,14 @@ class DatabaseService {
                             if (hops.length >= 2) {
                                 const neighbour = hops[hops.length - 1];
                                 RelayCountService.seedMax(neighbour, hops.slice(0, hops.length - 1));
-                                // seed direct-neighbour adjacency (all-time) from the path
-                                AdjacencyService.seedPath(hops);
+                            }
+                            // seed direct-neighbour adjacency (all-time) from the path, with
+                            // our own call appended: we heard the last hop on RF, so we are
+                            // its neighbour - but we never appear in a path. Also covers the
+                            // single-entry (direct) case, which contributed nothing before.
+                            if (hops.length >= 1) {
+                                const ownCall = AppPrefsStore.getRawState().ownCall;
+                                AdjacencyService.seedPath(ownCall ? [...hops, ownCall] : hops);
                             }
                             // seed the HF-heard set: a persisted position travelled over
                             // HF, so all its path nodes are HF-local (globe marker source)
