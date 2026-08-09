@@ -307,8 +307,8 @@ class DatabaseService {
                             // skipped.)
                             const hops = p.via.split(" > ").map(s => s.trim()).filter(s => s !== "");
                             if (hops.length >= 2) {
-                                const neighbour = hops[hops.length - 1];
-                                RelayCountService.seedMax(neighbour, hops.slice(0, hops.length - 1));
+                                // credit every relay in the path, not only the last hop
+                                RelayCountService.seedForwardedAlongPath(hops);
                             }
                             // seed direct-neighbour adjacency (all-time) from the path, with
                             // our own call appended: we heard the last hop on RF, so we are

@@ -216,9 +216,9 @@ export function useMSG() {
                         // last call in the route = node we heard directly (neighbour),
                         // every call before it reached us "via" that neighbour.
                         if (route_call_cnt >= 2) {
-                            const neighbour = route_call_arr[route_call_cnt - 1];
-                            const heard_via = route_call_arr.slice(0, route_call_cnt - 1);
-                            RelayCountService.addHeardVia(neighbour, heard_via);
+                            // every relay in the path forwarded what sits before it, so
+                            // credit them all - not just our own direct neighbour
+                            RelayCountService.addForwardedAlongPath(route_call_arr);
                             // consecutive calls in the path are mutual direct neighbours -
                             // learn each node's direct-neighbour set (works for far nodes too).
                             // WE are the neighbour of the last hop (we heard it on RF) but do

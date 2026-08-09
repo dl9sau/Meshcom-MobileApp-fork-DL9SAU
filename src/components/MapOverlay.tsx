@@ -104,11 +104,12 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
         (callUp ? adjCounts[callUp] : 0) ?? 0,
         (callUp ? adjMax[callUp] : 0) ?? 0,
         Math.max(mheard?.mh_ncnt ?? 0, nodeInfo?.ncnt ?? 0));
-    // HEARD VIA this node: unique nodes that reached US through it as the last hop.
-    // Only meaningful for our OWN direct neighbours (in the Mheard list).
-    const heardViaText = mheard
-        ? fmtHeardVia((callUp ? relayCounts[callUp] : 0) ?? 0, (callUp ? relayMax[callUp] : 0) ?? 0)
-        : null;
+    // HEARD VIA this node: unique nodes whose traffic it forwarded towards us - counted
+    // for EVERY position in a path now, not just our own direct neighbour, so it also
+    // says how much a remote repeater carries for others (see addForwardedAlongPath).
+    const heardViaText = fmtHeardVia(
+        (callUp ? relayCounts[callUp] : 0) ?? 0,
+        (callUp ? relayMax[callUp] : 0) ?? 0);
 
     // route path for display: origin dropped, wrapped after every 2 calls
     const pathLines = nodeInfo ? formatPathLines(nodeInfo.path, callSign) : [];

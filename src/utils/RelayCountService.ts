@@ -54,6 +54,22 @@ class RelayCountService {
         }
     }
 
+    // Credit EVERY node in a path, not just the last hop: in "ORIGIN,R1,...,LASTHOP"
+    // each entry forwarded everything that sits BEFORE it towards us. For the last hop
+    // this is exactly the old behaviour; for the relays further out it answers "how much
+    // does this node carry for others", i.e. how important it is to the RF network -
+    // which is interesting for remote repeaters too, not only for our own neighbours.
+    // Bias to keep in mind: we only ever see the paths that reach US, so this is always
+    // a lower bound on what a node really forwards.
+    addForwardedAlongPath(path: string[]) {
+        for (let i = 1; i < path.length; i++) this.addHeardVia(path[i], path.slice(0, i));
+    }
+
+    // same, but all-time only (startup seeding from persisted position paths)
+    seedForwardedAlongPath(path: string[]) {
+        for (let i = 1; i < path.length; i++) this.seedMax(path[i], path.slice(0, i));
+    }
+
     // seed the all-time set only (from persisted data on startup). Does NOT touch
     // the session set, so "counts" stays the live value while "max" reflects the
     // overall history right after a restart.
