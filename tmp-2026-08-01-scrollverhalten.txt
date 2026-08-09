@@ -1,0 +1,169 @@
+
+Scrollverhalten / New-Messages-Marker: Verbesserungen
+
+1. Intessantes Detail:
+   Habe ich "Auto-Scroll-to-Newest" eingestellt und blaettere weiter hoch und dann etwas runter,
+   muss ich auf den Scroll-Button zwei mal klicken damit er sich bewegt.
+   Habe ich "Auto-Scroll-to-Newest" abgestellt und blaettere weiter hoch und dann etwas runter,
+   muss ich auf den Scroll-Button ein mal klicken damit er sich bewegt - das ist das erwartete Verhalten.
+
+2. Wenn "Auto-Scroll-to-Newest ausgeschaltet und ich bin ganz unten:
+   es kommt eine neue Nachricht. "--New message" Marker wird eingeblendet. Scroll-
+   button mit einer 1. Die neue message hat Textzeilen Nachrichtentext. 
+   Ich druecke auf den Scrollbutton, er zeigt die Message.
+   Er scheint aber nicht ganz ans Ende zu springen; der Scrollbutton wird immernoch
+   eingeblendet, dieses Mal mit Pfeil. Ich druecke nochmals drauf, und die Messages
+   bewegen sich ein kleines Stück weit nach oben, d.h. der Platz zum Texteingabefenster
+   wird etwas groesser und der Scrollbutton verschwindet. Nochmal getestet: Ah, verstanden, liegt am "verschwidenden" "New-Message"-Marker
+
+   Hat die Nachricht nur einw Textzeile. ist nur der 'New-message'-Marker Sichtbar,
+   der Scrollbutton aber nicht die der Nachrichteninhalt.Scrollbutton verschwindet
+   nach Druck, und die Nachricht wird komplett angezeigt.
+
+   Das selbe Scenario mit einer empfagenen Nachricht mit 4-zeiligen Text.
+   Es erscheint der "New-Message-Marker", darunter Header der Nachricht und abgeschnitten in oberen Hälfte derdie Worte der ersten Textzeile.
+   -> falsche Berechnung.
+   Ich druecke auf den Scrollbutton. Die Nachricht wird vollstaendig eingeblendet,
+   ist aber offenbar auch in diesen Fall nicht ganz unten. Scrollbutton bleibt.
+   Ich druecke nochmal auf den Scrollbutton, und wie im vorherigen Beispiel scrollt
+   die Nachricht noch ein kleines Stück weit nach oben und der Scrollbutton verschwindet.
+
+   Ferner ist zu beachten, daß auch die Headerzeile mehrzeilig sein kann (groesserer
+   Path), und die Hoehe (Font-Size) eine andere ist als beim Nachrichtentext.
+
+
+   Ggf. loest sich das Problem durch das Konzept aus 3), siiehe unten, von alleine -
+   bitte beurteilen; dann waeren das ggf. nicht mehr benoetigte Code-Teile die ohnehin
+   aufgeraeumt werden sollten.
+ 
+   Noch ein Test: 11 Nachrichten kamen. Scrollbutton gedrueckt. Er scrollte. Aber
+   nicht ans Ende. Ich drueckte nochmal. Nichts passierte. Ich nehbe an zu erwarten
+   waere gewesen dass er seitewesie nach unten scroolt bis die neueste Nachricht
+   vollstaendig ganz unten erscheint. Auch hierzu stehe 3) untenstehend.
+
+
+3. Ich moechte ein leicht verändertes Verhalten. Aktuell ist es es in Fällen wo ich hochgescrolt habe zu Nachrichten über den Nachrichten die auf den Bildschirm passen und sichtbar sin gut.
+   Ich möchte aber folgende Szenrien beruecksichtigt haben:
+   Ich stehe ganz unten (jenseits der idle time, tippe also nicht). Sehe also nur "alte" Messages. Wichtig: wir betrachten im Folgenden nur genaun diesen Fall;
+   also weder das dass ich nach oben scrollte, noch jenen wo ich nach Eintreffen neuer Nachricht nach oben scrolle und bei der naechsten einen Indikatur fuer neue Nachrichten braeuchte).
+   Genau dann moechte ich folgende Scenarien:
+
+   Configuration "Auto-Scroll-to-Newest" ein:
+     Es kommen neue Nachrichten rein. Da ich nicht "aktiv" bin, setzt er den Marker
+     fuer neue Nachrichten.
+     Ich schreibe nicht aktiv (sonst hätten wir automatisch Scroll-Verhinderung und
+     unser Scroll-Button erscheit).
+     Haben wir so viele neue Nachrichten, daß die oberste neue (und ueber ihr der Marker)
+     nicht mehr sichtbar sind, dann loeschen wir den Marker (und positionieren ihn auch
+     nicht neu - wir brauchen keinen Marker auf den ich ggf. nie hochscrollen wuerde).
+     Wir sind im Auto-Mode. Wir standen ja zuvor ganz unten. Wir brauchen keinen
+     Scrollbutton eingeblendet. Referenz fuer zuletzt gelesene wird spaetesten wenn
+     die erste neue Nachricht mit ihrem Marker oben aus der Sichrbarkeit scrollt
+     entfernt.
+
+     Fazit: New-Message-Marker sichtbar so lage oben alte und unten neue sichrbar sind;
+     irrevat geworden wenn aelteste neue rausscrollen wuerde (stehen lassen so lange
+     die aelteste noch angezeigt wird)
+
+     Einen Scrollbutton (Pfeil oder Anzahl der neuen Nachrichten brauchen wir nicht);
+     er wuerde auch die Sicht auf eine der Nachrichten versperren.
+
+   Configuration "Auto-Scroll-to-Newest" aus:
+     Es kommen neue Nachrichten rein. Da ich nicht "aktiv" bin, setzt er den Marker
+     fuer neue Nachrichten.
+     Ich schreibe nicht aktiv (sonst hätten wir automatisch Scroll-Verhinderung und
+     unser Scroll-Button erscheit).
+     Haben wir so viele neue Nachrichten, daß die oberste neue (und ueber ihr der Marker)
+     nicht mehr sichtbar sind, bleibt der Marker ganz oben, wir hoeren auf zu
+     scrollen (haben ja ken Auto-Scroll-to-Newest gesetzt) und unser Scroll-Marker
+     zeigt die Zahl der neuen Messages (wie viele? Die die wir noch nicht sehen weil
+     noch unterhalb unseres Sichtbereichs, oder die genaue Anzahl?).
+     Hier unterscheidet sich also unser Verhalten gegenueber Fall "Auto-Scroll-to-Newest eingeschaltet".
+
+     Wir brauchen den Marker (also Sichrbarkeit noch ganz oben).
+     Wir sind nicht im Auto-scoll-Mode. Wir standen ja zuvor gann unten. Wir brauchen 
+     den Scrollbutton eingeblendet. Referenz fuer zuletzt gelesene bleibt beim auto
+     Scroll innerhalb des Sichtbereichs bei Eintreffen neuer Nachricten bei der
+     ersten neuen Nachricht.
+
+     Fazit: New-Message-Marker immer sichtbar;
+     bleibt wenn aelteste neue rausscrollen wuerde; hier halten wir das Hochscrollen
+     an. Marker bleibt ueber der Nachricht stehen. Scrollbutton zeigt wie viele neue
+     Nahrichten da sind.
+     Scrollbutton muß eigentlich erst angezeigt werden bei der naechsten Nachricht die
+     nicht mehr auf den Bildschirm paßt (wir also nur neue Nachrichten sehen);
+     am Scrollbuttow erkennen wir dann, daß es unterhalb des Anzeigebereichs neue
+     NAchrichten gibt und wie viele.
+
+
+     Nebst den oben beschriebenen Eigenschaften des Scrollbuttons waere folgendes Verhalten
+     wünschenswert (dies betrifft v.a. die nicht-autoscroll-to-newest Einstellung, bzw. die autoscroll-to-newest Einstellung wenn man hochgescrollt hat und beim Lesen
+     neuer Nachrichten durch neu eintreffende nicht unterbrochen werden will):
+       - steht man über der neuen message, scrollt er auf Kopfdruck hin. Neue message
+         (wenn es mehr neue Messages gibt als angezeigt werden, incl. dem Marker
+i         selbst) steht ganz oben der New-Message-Marker.
+       - Drueckt man nochmal drauf, scrollt er eine Bildschirmseite weiter nach unten;
+         die angezeigte Zahl bleibt (verhindert Falschberechnungen) und auch der
+         jetzt nicht sichtbare New-Message-Marker gennzeichnet nach wie vor die
+         neueste Nachricht, damit beim wieder Hochscrollen der Context sichtbar bleibt.
+       - Drueckt man nochmal drauf, gilt obiges.
+       - Ist man durch Button oder Scrollen bei der neuesten Nachricht angelagt,
+         gelten unsere bisherigen timings und Regeln entsprechend der "Autoscroll-to-newest"-Einstellung.
+
+
+- DM: hat man ein Call eingegebe, wird es im "DM"-Menu gelb hinterlegt.
+      Was ist nun, wenn eine neue Message eintrfft? Die sieht man dann nicht.
+      Vorschlag: gruen ist normalerweise unser Message-Indikator. Also
+      entweder dunkleres Gruen, oder Blinken des gelben Hintergrundes. Mal schauen
+      was besser ausschaut, gruen-gelb blinken im 1s Takt (nicht zu hektisch
+      flackern..), oder gelb-weiss blinken.
+
+Naechstes Thema:
+- Angeblich zeigt die IOS App Calls unter den Positionen. Weshalb die android-Version nicht?
+
+Naechstes Thema:
+- Zur Erwaegug ob HF:
+  wenn letzter bekannte Positionsbake (immer HF) den selben Weg nahmn wie die gerade reinkommende Textnachricht, dann wissen wir, dass die Nachricht rein über HF ging - also auch wenn GW-bit gesetzt, der erste und einzige Hop im Path wie db0fri-12 ja "auch" ein GW ist - oder auch wenn erste Hop im Path bekannte GW Funktion hat (implementierter Abschaetzfaktor) [da Gateway beim Gatewayen immer mit leerem Path beginnen und sich da rein schreiben, ist logischerweise nur der erste Hop im Path zu betrachten fuer die Abwaegung).
+  Was passiert nun bei einer zweiten message? Das letzte Paket war vermutlich nicht wieder eine Position sondern die letzte textmessage. Ich glaube wir machen dann den lookup von zuvor - oder schaun wir in der DB nach den letzten Paket (nicht nur nach der letzten Position? -- dann haben wir das ja sicher als "echt HF" markiert, und wenn der Path gleich ist ist die Entscheidun schell getroffen - ansonsten steht wieder eine aufwaendigere Abwegungskette an.
+
+Naechstes Thema:
+- Nachrichten mit URL: unser Feature dass wir Nachrichten in am beste zwei gleiche Teile versagte, als ich einen Link zum Changelog auf github pastete mit anschliessendem Text. Der URL wurde unterbrochen in erster Teil erste Nachricht, zweiter Teil 2te Nachricht. Das Zerhacken von URLs (sprich: langen Worten bis 150 Zeichnen) sollte unbndingt vermieden werden. Also so senden, daß das "lange Wort" nicht abgeschnitten wird; ggf. fallback auf den "alten Modus", aber auch hier dafuer sorgen, dass es möglichst 
+ unzerhackt an kommt (sofern es <= 150 Zeichen ist).
+ Also "Hallo hier der URL: esFolgen130Zeichen - erbitte Feedback" ->
+       Paket1: "Hallo hier der URL: esFolgen116Zeichen - (1/2 xy)"
+       Paket2: "erbitte Feedback (2/2 xx)"
+ Also "Hallo hier der URL: esFolgen128Zeichen - erbitte Feedback" ->
+       Paket1: "Hallo hier der URL: (1/2 xx)"
+       Paket2: "esFolgen128Zeichen erbitte Feedback (2/2xx)"
+       Paket2: "erbitte Feedback (2/2 xx)"
+ Also "esFolgen140Zeichen - erbitte Feedback" ->
+       Paket1: "esFolgen140Zeichen - (1/2 xx)"
+       Paket2: "erbitte Feedback (2/2 xx)"
+ Also "URL: esFolgen140Zeichen"  ->
+       Paket1: "URL: (1/2 xx)"
+       Paket1: "esFolgen140Zeichen (2/2 xx)"
+
+
+Naechstes Thema:
+Message-Filter:
+versagte, selten. Pruefen. Beispiele mit UTF8-Zeichen.
+Meine Beobachtung: immer jene wo ein Satzzeichen dem UTF8-Symbol folgte:
+"xxxx <Sonne>. vy73"
+"Guten Morgen <Kaffeetasse>, schönen Sonntag"
+Sehr seltsam dass das am Satzzeichen liegt.
+Übrigens, zwei UTF8-Zeichen hintereinnder bereiten keine Probleme.
+
+
+
+
+Naechstes Thema:
+Hat die direkte Bake eines Gateways auch das GW bit gesetzt?
+Das waerevpraktisch weil man sofort und gesichert einblenden kann, welche der direkten Nachbarn Gateways in Richtung Internet sind.
+Und beim Aktivieren eines eigenen kann man einblenden dass es bereits x Gateways (x direkte, y mit via-hop) in der Region gibt.
+
+Naechstes Thema:
+Zu last-heard / mheard
+Was sind die fixed beacon Intervalle?
+Man koennte errechnen und anzeigen wie viele der erwarteten Positionsbaken man bei den last-heard direct Partnern empfangen hat (n/m = %).
+Auch koennte man das bei den heard Nodes zur Ansicht bringen. So kann man die Zuverlaessigkeit einer Pfadstrecke anzeigen.
+

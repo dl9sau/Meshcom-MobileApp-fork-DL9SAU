@@ -182,6 +182,18 @@ ion-textarea.customTextAreaInput{
     --color-checked: #000;
     --color: #000;
 }
+/* both at once: a filter is active on this tab AND a new message arrived. The yellow
+   rule sits later in the file, so it used to simply cover the green - the new-message
+   signal was lost. A DARKER green wins the background (new messages are the more urgent
+   signal) while the yellow indicator bar stays, so "filter is on" is still visible.
+   Deliberately no blinking: the two colours side by side carry both facts calmly. */
+.tab-filtered.segmentbutton_green{
+    --background: #0a6b0a;
+    --background-checked: #0a6b0a;
+    --indicator-color: #f0ad4e;
+    --color: #fff;
+    --color-checked: #fff;
+}
 .textarea_field{
     margin-top: 5px;
 }

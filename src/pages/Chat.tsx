@@ -120,7 +120,8 @@ const Tab3: React.FC = () => {
   const keyBopen = useRef<boolean>(false);
 
   // reference to bottom of chat
-  const bottomRef = useRef<HTMLDivElement | null>(null);
+  // (the former #bottomRefID sentinel is gone - we scroll the container directly, see
+  // scrollToBottom; the empty div at the end of the list is kept only as a spacer)
 
   // auto-scroll only when you're already at the bottom. If you've scrolled up to
   // read, a new message must NOT yank you down - instead a "jump to latest" button
@@ -189,6 +190,13 @@ const Tab3: React.FC = () => {
   // if you were already at the bottom. Scrolled up (referencing messages while composing)
   // -> stay put; being yanked down would force you to scroll back up.
   const pendingOwnScrollRef = useRef<boolean>(false);
+  // our OWN scrolling (follow / restore) also fires onIonScroll. Without this guard a
+  // follow-to-bottom would instantly clear the boundary marker we just set. Timestamp
+  // until which scroll events count as "ours". Deliberately NOT used for the ↓ button:
+  // reaching the bottom by tapping it SHOULD clear.
+  const progScrollUntilRef = useRef<number>(0);
+  const markProgScroll = () => { progScrollUntilRef.current = Date.now() + 400; };
+  const DIVIDER_TOP_PAD = 8;   // small gap so the marker isn't flush against the edge
 
   // short in-app beep (Web Audio) - used when you're viewing the very channel a
   // message arrives on and have been idle >= 30s: a sound to catch your eye WITHOUT
@@ -498,8 +506,6 @@ const Tab3: React.FC = () => {
     LogS.log(0,"Chat window did enter");
     thisPageActive.current = true;
     stampActivity(); // entering the chat counts as looking at it
-    // set the bottom reference
-    if(bottomRef.current === null) bottomRef.current = document.getElementById('bottomRefID') as HTMLDivElement;
     // cache the scroll element, then RESTORE the position we left the chat with (per
     // segment) instead of forcing the bottom - returning from another tab should keep
     // your place; the ↓ counter signals anything new. First-ever enter has no saved
@@ -581,10 +587,11 @@ const Tab3: React.FC = () => {
         const near = (el.scrollHeight - el.scrollTop - el.clientHeight) < 24;
         atBottomRef.current = near;
         setShowJump(!near);
-        // this channel's unseen count -> ↓ badge; clear only if we're at the bottom
-        const seg = segmentFilterRef.current;
-        if (near) segUnreadRef.current[seg] = 0;
-        setNewBelow(segUnreadRef.current[seg] || 0);
+        // Do NOT clear the unseen count here even when we're at the bottom: waking up is
+        // not reading. Messages buffered during a light sleep are delivered right after
+        // this, and their boundary marker is exactly what tells you what you missed.
+        // It clears when YOU scroll to the bottom (onContentScroll).
+        setNewBelow(segUnreadRef.current[segmentFilterRef.current] || 0);
       }
     }
   }, [isAppActive]);
@@ -599,64 +606,105 @@ const Tab3: React.FC = () => {
 
 
 
-  // always show last message in chat
-  const scrollToBottom= async () => {
-    if(bottomRef.current === null)
-    bottomRef.current = document.getElementById('bottomRefID') as HTMLDivElement;
-    if (bottomRef.current) {
-      for (let i = 0; i < 3; i++) {
-        await new Promise(r => setTimeout(r, 200));
-        if (bottomRef.current) {
-          bottomRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      }
+  // always show last message in chat.
+  // Scrolls the CONTAINER, not a sentinel element: the old version cached
+  // #bottomRefID in a ref and only ever re-fetched it when null - once React had
+  // replaced that node (e.g. after a batch of new messages) the ref pointed at a
+  // detached node and scrollIntoView silently did nothing ("pressed the button,
+  // nothing happened"). scrollTop/scrollHeight can't go stale. Several passes
+  // because late layout (wrapping, images) can still grow the content.
+  const scrollToBottom = async (behavior: ScrollBehavior = 'auto') => {
+    const el = scrollElRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior });
+    for (let i = 0; i < 3; i++) {
+      await new Promise(r => setTimeout(r, 80));
+      if (!scrollElRef.current) return;
+      const e = scrollElRef.current;
+      if ((e.scrollHeight - e.scrollTop - e.clientHeight) > 2) e.scrollTop = e.scrollHeight;
     }
   }
 
-  // restore a segment's scroll: its saved position (or a small peek if you were caught
-  // up, or the bottom if never opened), then recompute atBottom + the ↓ button, and
-  // surface any messages that arrived while you were away as the ↓ count (if you land
-  // scrolled up). Shared by segment switch AND Chat re-enter, so both behave the same.
-  const applyRestore = (seg: string, unread: number) => {
+  // scrollTop value that would put the "new messages" divider at the very top of the
+  // viewport, or null if there is no divider on screen. Measured from the real element
+  // (getBoundingClientRect) - never from assumed row heights: a header can wrap to
+  // several lines and the fonts differ, so any pixel arithmetic on message heights is
+  // wrong by construction.
+  const dividerScrollTop = (): number | null => {
+    const el = scrollElRef.current;
+    const d = document.getElementById('new-divider-anchor');
+    if (!el || !d) return null;
+    return el.scrollTop + (d.getBoundingClientRect().top - el.getBoundingClientRect().top);
+  }
+
+  // You are (or were) standing at the BOTTOM and new messages came in. Position the view
+  // per the channel's autoscroll setting - the two modes differ only here:
+  //   ON  -> follow to the newest. Once the boundary marker has scrolled off the top it
+  //          is irrelevant (you'd never scroll up to it), so drop it. No ↓ button: you
+  //          are at the bottom and it would only cover a message.
+  //   OFF -> scroll along only until the marker reaches the TOP, then stop. The marker
+  //          stays there as your "this is where I left off" anchor and the ↓ button
+  //          shows how many are new.
+  // Must run AFTER the divider has rendered (it is measured, never computed from row
+  // heights - headers wrap and font sizes differ).
+  const settleAtBottomBoundary = (seg: string) => {
     const el = scrollElRef.current;
     if (!el) return;
-    const saved = segScrollRef.current[seg];
-    const wasAtBottom = segAtBottomRef.current[seg];
-    if (saved === undefined) {
-      el.scrollTop = el.scrollHeight;                 // never opened -> bottom
-    } else if (wasAtBottom) {
-      const PEEK = 48;                                // caught up -> peek boundary near top
-      el.scrollTop = saved + el.clientHeight - PEEK;
+    markProgScroll();
+    const maxTop = el.scrollHeight - el.clientHeight;
+    const dTop = dividerScrollTop();
+    if (autoscrollEnabledFor(seg)) {
+      el.scrollTop = maxTop;
+      if (dTop !== null && dTop < el.scrollTop) dropBoundaryMarker(seg);
     } else {
-      el.scrollTop = saved;                           // scrolled up -> exact position
+      el.scrollTop = dTop === null ? maxTop : Math.min(maxTop, Math.max(0, dTop - DIVIDER_TOP_PAD));
     }
     const near = (el.scrollHeight - el.scrollTop - el.clientHeight) < 24;
     atBottomRef.current = near;
-    // Use the count the CALLER captured before this ran: during a segment content-swap
-    // a transient onIonScroll (position clamps to the bottom for a moment) can fire and
-    // clear segUnreadRef before this 80ms restore, which would drop the ↓ count to 0.
-    // So we (re)set it authoritatively here. Normally landing at the bottom = caught up
-    // -> 0. BUT with autoscroll OFF you chose to catch up yourself, so keep the unseen
-    // count (and thus the "new messages" divider + ↓ badge) even when the few new msgs
-    // fit on screen and the peek clamps you to the bottom - else switching in silently
-    // wipes the marker (the reported bug: no "1", no divider). Clear it by scrolling to
-    // the bottom or tapping the button.
-    const count = (near && autoscrollEnabledFor(seg)) ? 0 : unread;
-    segUnreadRef.current[seg] = count;
-    setNewBelow(count);
-    setShowJump(!near || count > 0);
-    // You were caught up and several msgs arrived that don't all fit (near=false): land
-    // exactly ON the "new messages" divider once it has rendered, rather than the peek
-    // math's ~48px of the old message above it (which pushed the divider partly off the
-    // top). The divider IS the boundary; scroll up for old context. scroll-margin-top
-    // keeps it off the very edge. Only when scrolled up, so the few-msgs-fit case (near)
-    // is untouched.
-    if (wasAtBottom && count > 0 && !near) {
-      setTimeout(() => {
-        const d = document.getElementById('new-divider-anchor');
-        if (d) d.scrollIntoView({ block: 'start' });
-      }, 40);
+    setShowJump(!near);
+  }
+
+  // drop the boundary marker outright (autoscroll ON, marker scrolled off the top).
+  // Skips the linger/fade - it is off-screen, holding it would only keep its height in
+  // the layout. Removing it shrinks the content, so re-pin to the bottom afterwards;
+  // that is the layout compensation that used to cause "not quite at the bottom".
+  const dropBoundaryMarker = (seg: string) => {
+    segUnreadRef.current[seg] = 0;
+    prevNewBelowRef.current = 0;      // so the linger effect does not see a >0 -> 0 edge
+    setNewBelow(0);
+    pauseDividerHide();
+    setHeldBelow(0); heldBelowRef.current = 0;
+    setTimeout(() => {
+      const e = scrollElRef.current;
+      if (e) { markProgScroll(); e.scrollTop = e.scrollHeight; }
+    }, 0);
+  }
+
+  // restore a segment's scroll on switch/re-enter: the exact position if you had scrolled
+  // up, otherwise the bottom - and if messages arrived meanwhile, the same boundary rule
+  // as a live arrival (see settleAtBottomBoundary). The caller passes the unread count it
+  // captured beforehand, because a transient onIonScroll during the content swap can
+  // clear it; we re-assert it authoritatively here.
+  const applyRestore = (seg: string, unread: number) => {
+    const el = scrollElRef.current;
+    if (!el) return;
+    markProgScroll();
+    const saved = segScrollRef.current[seg];
+    const wasAtBottom = segAtBottomRef.current[seg];
+    segUnreadRef.current[seg] = unread;
+    setNewBelow(unread);
+    if (saved === undefined || wasAtBottom) {
+      el.scrollTop = el.scrollHeight;               // never opened / was caught up
+      if (unread > 0) {                             // let the divider render, then settle
+        requestAnimationFrame(() => requestAnimationFrame(() => settleAtBottomBoundary(seg)));
+        return;
+      }
+    } else {
+      el.scrollTop = saved;                         // scrolled up -> exact position
     }
+    const near = (el.scrollHeight - el.scrollTop - el.clientHeight) < 24;
+    atBottomRef.current = near;
+    setShowJump(!near);
   }
 
   // track whether we're (near) the bottom, so a new message doesn't yank you down
@@ -669,12 +717,14 @@ const Tab3: React.FC = () => {
     const near = (el.scrollHeight - el.scrollTop - el.clientHeight) < 24;
     atBottomRef.current = near;
     setShowJump(!near); // button visible whenever you're scrolled up
-    if (near) {
+    // only YOUR scrolling counts as "caught up" - our own follow-to-bottom must not wipe
+    // the boundary marker it just set (see progScrollUntilRef)
+    if (near && Date.now() >= progScrollUntilRef.current) {
       segUnreadRef.current[segmentFilterRef.current] = 0; setNewBelow(0); // caught up -> clear
       // arrived at the bottom while a divider is held -> (re)start its fade. Only on the
       // TRANSITION into "near", so jitter at the bottom doesn't keep resetting the timer.
       if (!prevNear && heldBelowRef.current > 0) armDividerHide();
-    } else if (prevNear) {
+    } else if (!near && prevNear) {
       // just left the bottom while a divider was fading -> pause the fade and keep the
       // marker solid for orientation; it restarts when you settle at the bottom again.
       pauseDividerHide();
@@ -687,25 +737,27 @@ const Tab3: React.FC = () => {
     atBottomRef.current = true;
     segUnreadRef.current[segmentFilterRef.current] = 0; // going to the bottom -> seen them
     setNewBelow(0);
-    scrollToBottom();
+    scrollToBottom('smooth');
   }
 
-  // the ↓ button when it shows a COUNT: one rule from your position vs the divider.
-  // Divider still BELOW you (you haven't reached the new block) -> jump down to it
-  // (first new message at the top, read top-to-bottom); count stays, you're not at the
-  // bottom yet. Divider AT or ABOVE you (you're at the first new, or already reading
-  // past it) -> go to the newest. So: 1st tap -> start of the new block, 2nd tap (now at
-  // the divider) -> bottom; scroll back up above the divider and a tap targets it again.
+  // the ↓ button when it shows a COUNT. Boundary still below you -> go there first, so
+  // you read the new block top-to-bottom with the marker at the top. Otherwise page down
+  // ONE screen per tap (with a little overlap for context) instead of jumping to the end:
+  // with a long block you want to read through it, not skip it. The count deliberately
+  // stays put while paging (no recalculation, no flicker) and the marker keeps sitting at
+  // the boundary even once it is above the viewport, so scrolling back up still shows the
+  // context. Reaching the bottom clears both (onContentScroll).
   const jumpToNewOrBottom = () => {
     const el = scrollElRef.current;
-    const divider = document.getElementById('new-divider-anchor');
-    if (!el || !divider) { jumpToLatest(); return; } // e.g. during search (no divider)
-    const rel = divider.getBoundingClientRect().top - el.getBoundingClientRect().top;
-    if (rel > 8) {
-      divider.scrollIntoView({ behavior: 'smooth', block: 'start' }); // don't clear - not at bottom
-    } else {
-      jumpToLatest();
+    if (!el) { jumpToLatest(); return; }
+    const maxTop = el.scrollHeight - el.clientHeight;
+    const dTop = dividerScrollTop();
+    if (dTop !== null && dTop > el.scrollTop + 8) {
+      el.scrollTo({ top: Math.min(maxTop, Math.max(0, dTop - DIVIDER_TOP_PAD)), behavior: 'smooth' });
+      return;
     }
+    const next = Math.min(maxTop, el.scrollTop + Math.max(120, el.clientHeight - 48));
+    el.scrollTo({ top: next, behavior: 'smooth' });
   }
 
   // a resend got folded into an existing message (writeTxtMsg): if that message's
@@ -984,10 +1036,11 @@ const Tab3: React.FC = () => {
   }
 
 
-  // new message arrived: scroll to bottom ONLY if you're already there. If you've
-  // scrolled up to read, keep your place (the ↓ button is shown by onIonScroll).
-  // A SEGMENT SWITCH also changes msgArr_s - don't treat that as a new message
-  // (the [segmentFilter] restore effect below handles scrolling for switches).
+  // new messages arrived. Two cases, and ONLY the first one depends on the autoscroll
+  // setting: standing at the bottom -> settleAtBottomBoundary (follow, or clamp at the
+  // marker); scrolled up to read -> keep your place either way, the ↓ counter and the
+  // divider surface what came in. A SEGMENT SWITCH also changes msgArr_s - don't treat
+  // that as an arrival (the [segmentFilter] restore effect handles switches).
   useEffect(() => {
     if (!msgArr_s || msgArr_s.length === 0) { prevMsgLenRef.current = 0; return; }
     const delta = msgArr_s.length - prevMsgLenRef.current;
@@ -996,12 +1049,6 @@ const Tab3: React.FC = () => {
       prevSegForMsgRef.current = segmentFilterRef.current; // segment switch, not a new msg
       return;
     }
-    // follow the conversation live when you're at the bottom AND this channel
-    // autoscrolls - a simple binary: autoscroll ON = live monitor (glance any time and
-    // see the newest), OFF = never chase, surface everything via the ↓ counter + divider.
-    // (No idle/away exception: parking at the bottom to watch every few minutes must keep
-    // following; you'd otherwise have to swipe down just to check for new messages.)
-    // If you're scrolled up OR autoscroll is OFF, keep your position and mark it new.
     const seg = segmentFilterRef.current;
     // your own just-sent message echoing back -> always jump to it (see pendingOwnScrollRef)
     if (pendingOwnScrollRef.current && delta > 0) {
@@ -1011,13 +1058,18 @@ const Tab3: React.FC = () => {
       scrollToBottom();
       return;
     }
-    if (atBottomRef.current && autoscrollEnabledFor(seg)) {
-      scrollToBottom();
-    } else if (delta > 0) {
-      atBottomRef.current = false; // no longer pinned to the bottom (unseen msgs below)
+    if (delta <= 0) return;   // refresh/delete, not an arrival
+    const count = (segUnreadRef.current[seg] || 0) + delta;
+    segUnreadRef.current[seg] = count;
+    setNewBelow(count);
+    if (atBottomRef.current) {
+      // standing at the bottom: mark the boundary, then position per the channel's
+      // autoscroll setting - once the divider has actually rendered (two frames), since
+      // settleAtBottomBoundary measures it. That is the ONLY place the two modes differ.
+      requestAnimationFrame(() => requestAnimationFrame(() => settleAtBottomBoundary(seg)));
+    } else {
+      // scrolled up to read: keep your place in both modes, surface it via ↓ + divider
       setShowJump(true);
-      segUnreadRef.current[seg] = (segUnreadRef.current[seg] || 0) + delta;
-      setNewBelow(segUnreadRef.current[seg]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [msgArr_s]);
@@ -1997,7 +2049,7 @@ const Tab3: React.FC = () => {
 
         </div>
         <div id="bottom" style={{ height: chatBoxPadding }}/>
-        <div ref={bottomRef} id="bottomRefID"/>
+        <div id="bottomRefID"/>
       </IonContent>
 
       <IonFooter>
