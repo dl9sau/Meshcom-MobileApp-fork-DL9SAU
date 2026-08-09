@@ -64,7 +64,11 @@ export const StatsPanel: React.FC<{ ownCall: string, onClose?: () => void }> = (
                 <div className="stats-row">
                     <span className="stats-key"></span>
                     <span className="stats-num">{s.dbCalls}</span>
-                    <span className="stats-dim">in database (all we ever heard)</span>
+                    {/* NOT "everything ever": the database is pruned by the retention
+                        settings (2 days for ALL, 7 for groups/positions, 90 for my DMs),
+                        so this is "as far back as we still keep" - which is the useful
+                        horizon anyway. */}
+                    <span className="stats-dim">in database (retention window)</span>
                 </div>}
             <div className="stats-sep" />
             <div className="stats-row">
