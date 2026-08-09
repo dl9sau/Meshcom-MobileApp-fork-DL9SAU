@@ -30,8 +30,6 @@ export interface SplitOpts {
 }
 
 const DEFAULT_MAX = 150;
-// reserve room for the biggest marker we'd realistically add: " (99/99 Xx)"
-const MARKER_RESERVE = byteLen(" (99/99 Xx)");
 
 // number of leading code points of `chars` whose UTF-8 length is <= budget (never
 // splits a code point). At least 1 so we always make progress.
@@ -92,51 +90,73 @@ export function splitForAir(text: string, opts: SplitOpts = {}): string[] {
 
   const tag = opts.tag ?? rand2();
   const prefixFor = (i: number) => (i === 0 ? prefixFirst : prefixCont);
-  const fullBudget = (i: number) => maxBytes - byteLen(prefixFor(i)) - MARKER_RESERVE;
 
-  // GREEDY pass - fill each part to the max; this also fixes the minimal part count N
-  const greedy: string[] = [];
-  {
-    let rest = t;
-    while (rest.length > 0 && greedy.length <= 99) {
-      const budget = fullBudget(greedy.length);
-      if (budget <= 0) break; // pathological: prefix bigger than the packet
-      if (byteLen(rest) <= budget) { greedy.push(rest); break; }
-      // greedy already uses the full budget, so atomicBudget == budget: a token that
-      // doesn't fit here fits nowhere and is hard-cut.
-      const [head, tail] = cutOne(rest, budget, budget);
-      if (!head) break;
-      greedy.push(head); rest = tail;
+  // EXACT marker width for a run of n parts. Reserving the worst case (" (99/99 Xx)")
+  // for every message wastes 2 bytes on the ~all of them that need fewer than 10 parts -
+  // and because we only break at word boundaries, those 2 bytes usually cost a whole
+  // WORD, not 2 characters, and can push a tail into a packet of its own. So compute it
+  // from the actual part count instead. `i` is never wider than `n`, so n/n is the widest
+  // the marker can get within one run.
+  const markerBytes = (n: number) => byteLen(` (${n}/${n} ${tag})`);
+
+  const buildChunks = (reserve: number): string[] => {
+    const fullBudget = (i: number) => maxBytes - byteLen(prefixFor(i)) - reserve;
+
+    // GREEDY pass - fill each part to the max; this also fixes the minimal part count N
+    const greedy: string[] = [];
+    {
+      let rest = t;
+      while (rest.length > 0 && greedy.length <= 99) {
+        const budget = fullBudget(greedy.length);
+        if (budget <= 0) break; // pathological: prefix bigger than the packet
+        if (byteLen(rest) <= budget) { greedy.push(rest); break; }
+        // greedy already uses the full budget, so atomicBudget == budget: a token that
+        // doesn't fit here fits nowhere and is hard-cut.
+        const [head, tail] = cutOne(rest, budget, budget);
+        if (!head) break;
+        greedy.push(head); rest = tail;
+      }
     }
-  }
 
-  let chunks = greedy;
-
-  // BALANCED pass - spread the content evenly over the SAME number of parts, so no
-  // part sits at the risky maximum. Each part takes an even share of what's left
-  // (capped at its hard budget). Only accepted if it still fits in <= N parts;
-  // otherwise (word boundaries pile up on the tail) we keep the greedy result.
-  if (method === 'balanced' && greedy.length > 1) {
-    const N = greedy.length;
-    const balanced: string[] = [];
-    let rest = t;
-    let ok = true;
-    while (rest.length > 0) {
-      const i = balanced.length;
-      if (i >= N) { ok = false; break; } // needed more than N parts -> give up
-      const even = Math.ceil(byteLen(rest) / (N - i));
-      const full = fullBudget(i);
-      const budget = Math.min(even, full);
-      if (budget <= 0) { ok = false; break; }
-      if (byteLen(rest) <= budget) { balanced.push(rest); rest = ""; break; }
-      // the even share may be smaller than a leading URL/long word - cutOne then hands
-      // back an empty head rather than chopping it, and we give that part the full budget
-      let [head, tail] = cutOne(rest, budget, full);
-      if (!head) [head, tail] = cutOne(rest, full, full);
-      if (!head) { ok = false; break; }
-      balanced.push(head); rest = tail;
+    // BALANCED pass - spread the content evenly over the SAME number of parts, so no
+    // part sits at the risky maximum. Each part takes an even share of what's left
+    // (capped at its hard budget). Only accepted if it still fits in <= N parts;
+    // otherwise (word boundaries pile up on the tail) we keep the greedy result.
+    if (method === 'balanced' && greedy.length > 1) {
+      const N = greedy.length;
+      const balanced: string[] = [];
+      let rest = t;
+      let ok = true;
+      while (rest.length > 0) {
+        const i = balanced.length;
+        if (i >= N) { ok = false; break; } // needed more than N parts -> give up
+        const even = Math.ceil(byteLen(rest) / (N - i));
+        const full = fullBudget(i);
+        const budget = Math.min(even, full);
+        if (budget <= 0) { ok = false; break; }
+        if (byteLen(rest) <= budget) { balanced.push(rest); rest = ""; break; }
+        // the even share may be smaller than a leading URL/long word - cutOne then hands
+        // back an empty head rather than chopping it, and we give that part the full budget
+        let [head, tail] = cutOne(rest, budget, full);
+        if (!head) [head, tail] = cutOne(rest, full, full);
+        if (!head) { ok = false; break; }
+        balanced.push(head); rest = tail;
+      }
+      if (ok && rest === "") return balanced;
     }
-    if (ok && rest === "") chunks = balanced;
+    return greedy;
+  };
+
+  // The reserve depends on the part count and the part count depends on the reserve, so
+  // start optimistic (a 2-part run) and only widen if the result actually needs more
+  // digits. Monotone - the reserve only grows - so this settles after a pass or two.
+  let reserve = markerBytes(2);
+  let chunks = buildChunks(reserve);
+  for (let pass = 0; pass < 4; pass++) {
+    const need = markerBytes(chunks.length);
+    if (need <= reserve) break;
+    reserve = need;
+    chunks = buildChunks(reserve);
   }
 
   const n = chunks.length;
