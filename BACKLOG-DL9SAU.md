@@ -56,6 +56,12 @@ Vorschlag: erst dunkleres Grün probieren; sonst Blinken gelb↔grün ~1 s (nich
 
 ## B · Korrektheits-Fixes (klein, isoliert)
 
+> **Status: Build 2 gebaut** — B1 ✅ B2 ✅ (a71f6ba), B3 ✅ B4 ✅ B5 ✅ (c633483).
+> Beide Commits sind **offline gegen den echten Code verifiziert** (Typen mechanisch
+> gestrippt, auf blankem node laufen lassen — nichts installiert): 25 + 14 Prüfungen grün.
+> Offen aus B2: Rückfrage zu Beispiel 1 (`130` → `116` Zeichen) — Regel ist unabhängig
+> davon umgesetzt („ein Token, das in ein Paket passt, wird nie zerschnitten").
+
 **B1 — Filter: unsichtbarer Variation-Selector U+FE0F** *(Bug, verifiziert reproduziert)*
 Regel mit `☀️` (VS16) matcht Nachricht mit `☀` (ohne) **nicht**. Umgekehrt schon.
 Satzzeichen-Bezug: sobald im Muster direkt hinter dem Emoji ein Zeichen steht (`.` `,`),
