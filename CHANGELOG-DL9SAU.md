@@ -55,19 +55,26 @@ changes of this fork relative to upstream. The in-app version shows
   fold, **not** silent de-duplication: the same text sent deliberately later, or to a
   different channel, still stands on its own. Counts the window from the **first**
   send. (Works per channel and, for DMs, per exact sender+recipient.)
-- **"── new messages ──" divider.** A line marks the boundary between what you'd
-  already seen and what's new, so you can orient at a glance. It **stays while you
-  scroll up and down** and only clears once you actually reach the bottom (a quick
-  glance doesn't wipe it); after catching up it **lingers ~5 s** and fades. When the
-  ↓ button shows a **count**, tapping it now jumps to the **first new message** (read
-  top-to-bottom); a second tap takes you to the newest.
-- **Autoscroll on/off per channel — and never miss what arrived while away.**
-  Long-press a channel tab → **Autoscroll to newest** (default on). Turn it **off**
-  for a busy channel (like ALL) and new messages no longer chase you to the bottom —
-  they surface via the divider + ↓ count so you catch up at your own pace. Even with
-  autoscroll **on**, a message that arrives while you'd **stepped away** (app asleep,
-  or ~30 s untouched at the bottom) is **not** silently scrolled past — it's marked
-  new, so returning you can see what you missed.
+- **"── new messages ──" divider, and a ↓ button that reads the block with you.**
+  A line marks the boundary between what you'd already seen and what's new, so you can
+  orient at a glance — including after the app was asleep.
+  If you've **scrolled up** to read, your position always wins: new messages never chase
+  you down, they're surfaced by the divider and the ↓ count.
+  If you're standing **at the bottom**, the channel's autoscroll setting decides — and
+  that is the *only* thing it changes. Long-press a channel tab → **Autoscroll to
+  newest** (default on):
+  **on** = the view follows the conversation live and the marker simply expires once it
+  has scrolled off the top (you'd never scroll back up to it anyway), so a glance any
+  time shows the newest.
+  **off** = the view scrolls along only until the marker reaches the **top**, then stops.
+  The marker stays as your "this is where I left off" anchor and the ↓ button shows how
+  many are new — good for a busy channel like ALL, where you want to catch up at your
+  own pace.
+  The ↓ button first jumps to the **start of the new block**, then **pages down one
+  screen per tap** so you can read through it. The count stays put while you page and the
+  marker keeps marking the boundary even once it's above the viewport, so scrolling back
+  up still shows the context. Reaching the bottom clears both; after catching up the
+  marker **lingers ~5 s** and fades.
 - **Composing while scrolled up stays put.** Opening the keyboard (tap the input,
   *To*-callsign, or **Reply**), dismissing it, or closing a dialog no longer yanks you
   to the bottom — so you can keep a message you're **referring to** in view while you
