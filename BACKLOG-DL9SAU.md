@@ -142,7 +142,7 @@ Ergebnis: `GW x (max y)` (direkt / via-hop); speist auch die Weltkugel.
 Grundlage: Server **strippt** den Pfad (Feldbeobachtung DL9SAU) → vorderer Pfadteil
 `quelle,digi1,digi2` enthält **nur HF-Digis**.
 
-**D2 — „Heard via" für **alle** Knoten verallgemeinern**
+**D2 — ✅ GEBAUT (f6f9f10)** — „Heard via" für **alle** Knoten verallgemeinert
 Bisher nur Last-Hop. Im Pfad `ORIGIN,…,X,…,LASTHOP` gilt: alles **vor** X kam durch X.
 Ergibt „wie wichtig ist der Knoten fürs HF-Netz" (z. B. dn9whv-11).
 Vorbehalt dokumentieren: Bias — wir sehen nur Pfade, die **uns** erreichen.
@@ -160,7 +160,17 @@ Nicht den 30-min-Default annehmen, sondern das **tatsächliche Intervall pro Kno
 den Abständen schätzen (niedriges Perzentil — verpasste Baken verlängern Lücken nur).
 Bei hoher Streuung (Smart-Beaconing, GPS-Jitter) statt Prozentzahl „unregelmäßig" zeigen.
 
-**D5 — HF-Erkennung über Pfadvergleich**
+**D5 — HF-Erkennung über Pfadvergleich** — ❌ **NICHT bauen, bereits abgedeckt** (geprüft
+2026-08-02). Der „bekannte HF-Pfad" kann nur aus einer Position **oder** einer gw=0-Text-
+nachricht stammen. In beiden Fällen ruft der Empfangspfad schon `HfHeardService.mark(pfad)`,
+und der Pfad **enthält den Absender** → Absender ist 24 h als HF-lokal markiert → `senderLocal`
+wahr → Weltkugel steht bereits auf `dim`. Der Vergleich könnte also **kein** Urteil ändern.
+Einzige verbleibende „Lücke": abgelaufenes 24-h-Fenster bei noch erinnertem Pfad — das würde
+ein **veraltetes** Urteil wiederbeleben, also genau die Drift, die wir mit dem eingefrorenen
+`gwState` beseitigt haben. Auch die Anschlussfrage („zweite Message: DB-Lookup?") entfällt:
+gelernt wird beim Empfang, festgeschrieben im `gwState`, kein Lookup nötig.
+*(Ursprüngliche Idee unten, zur Nachvollziehbarkeit.)*
+**D5 (Original) — HF-Erkennung über Pfadvergleich**
 Stimmt der Pfad einer eingehenden Textnachricht mit dem letzten **bekannten HF-Pfad**
 desselben Absenders überein → echt HF, trotz GW-Bit. Cache pro Absender aus Positionen
 **und** bereits als HF entschiedenen Textnachrichten (nicht nur letzte Position).
