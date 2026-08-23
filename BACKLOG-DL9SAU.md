@@ -131,7 +131,7 @@ Zwei Stolpersteine, beide im Test aufgetreten:
   wurde, steht in `direct` **und** in `hf`. `direct+hf+gw = calls` ist also Zufall und
   keine Invariante — Aufgehen der Summe darf nicht als Prüfkriterium benutzt werden.
 *Gebaut:* die calls-Zeile sagt jetzt „**unique** stations · direct … · hf … · gw …",
-darunter „a station can be in more than one column". Die Paketzeilen bleiben wie sie sind
+darunter „direct and hf may overlap" (DL9SAU). Die Paketzeilen bleiben wie sie sind
 — „rx … **packets**, deduplicated" steht direkt darüber und trägt den Gegenbegriff.
 *Nachgeschärft 2026-08-23 (DL9SAU):* die erste Fassung der Unterzeile („counted in every
 way they were heard") sprach nur über den **zweiten**, nachrangigen Punkt (Überlappung

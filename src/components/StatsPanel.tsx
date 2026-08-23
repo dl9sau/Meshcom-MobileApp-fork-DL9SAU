@@ -75,13 +75,17 @@ export const StatsPanel: React.FC<{ ownCall: string, onClose?: () => void }> = (
                     "#pos direct 2" next to "calls direct 1" is two beacons of the same
                     station, not a contradiction. That is what "packets" up at `rx` and
                     "unique stations" here are for.
-                (2) the three station columns OVERLAP: whoever was heard both directly and
-                    through a relay is in `direct` AND in `hf`, so their sum can exceed the
-                    total. Hence the caption below. */}
+                (2) the station columns OVERLAP: whoever was heard both directly and through
+                    a relay is in `direct` AND in `hf`, so their sum can exceed the total.
+                    Hence the caption below. It names direct/hf because that is the case
+                    that actually occurs: the category is a property of a single RECEPTION,
+                    so `gw` can overlap too in principle - but only once a station's 12h/24h
+                    HF evidence has lapsed WITHIN the same session, which needs the app to
+                    run for half a day. Not worth the words in a panel this narrow. */}
             <div className="stats-row">
                 <span className="stats-key"></span>
                 <span className="stats-num"></span>
-                <span className="stats-dim">a station can be in more than one column</span>
+                <span className="stats-dim">direct and hf may overlap</span>
             </div>
             {s.dbCalls >= 0 &&
                 <div className="stats-row">
