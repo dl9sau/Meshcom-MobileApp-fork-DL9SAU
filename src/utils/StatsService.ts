@@ -61,19 +61,50 @@ class StatsService {
         });
     }
 
+    // File `call` under `cat` if that is a BETTER path than anything seen before. Never
+    // demotes - a station heard directly once stays direct, however it arrives later.
+    private promote(call: string, cat: RxCat): boolean {
+        const c = this.norm(call);
+        if (c === "") return false;
+        const r = RANK[cat];
+        const prev = this.callRank.get(c) ?? 0;
+        if (r <= prev) return false;
+        if (prev > 0) this.byRank[prev]--;
+        this.byRank[r]++;
+        this.callRank.set(c, r);
+        return true;
+    }
+
     private note(from: string, cat: RxCat, bucket: CatCounts): boolean {
         const c = this.norm(from);
         if (c === "") return false;
         bucket[cat]++;
-        // promote the station if this reception was on a better path than anything before
-        const r = RANK[cat];
-        const prev = this.callRank.get(c) ?? 0;
-        if (r > prev) {
-            if (prev > 0) this.byRank[prev]--;
-            this.byRank[r]++;
-            this.callRank.set(c, r);
-        }
+        this.promote(c, cat);   // own traffic is already filtered out by the callers
         return true;
+    }
+
+    // Stations that were on the air without SENDING anything to us: the relays in a route
+    // path. What `calls` answers is "how many unique stations were on the air", not "how
+    // many beaconed" - a node we heard forwarding someone else's packet is proven to be on
+    // HF, beacon or no beacon (DL9SAU, 2026-08-23; his db0fri sat in Last-Heard as a direct
+    // neighbour while `calls direct` still read 0, because it had not beaconed yet).
+    //   LAST element    - we received ITS transmission, so it is a direct neighbour. That
+    //                     holds for every path, gatewayed or not: the last hop is the one
+    //                     whose RF reached us. It is exactly what the firmware files under
+    //                     the mheard CALL.
+    //   everything else - only counted when the packet type proves the whole path is
+    //                     HF-local: positions always (HF-only by firmware design), text
+    //                     only with the gw bit clear. The same trust rule HfHeardService
+    //                     uses - a gw=1 text may carry relays that never touched our air.
+    notePath(path: string[], ownCall: string, hfTrusted: boolean) {
+        if (!path || path.length < 2) return;   // no relay: countPos/countMsg has the sender
+        const own = this.ownOf(ownCall);
+        const take = (c: string, cat: RxCat): boolean =>
+            this.norm(c) !== own && this.promote(c, cat);
+        let changed = take(path[path.length - 1], 'direct');
+        if (hfTrusted)
+            for (let i = 0; i < path.length - 1; i++) changed = take(path[i], 'hf') || changed;
+        if (changed) this.mirror();
     }
 
     // a received TEXT message. `globe` is our frozen gwState ('none'|'dim'|'solid'|

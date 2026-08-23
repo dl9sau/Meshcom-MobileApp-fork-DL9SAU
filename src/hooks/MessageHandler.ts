@@ -227,6 +227,13 @@ export function useMSG() {
                             AdjacencyService.addPath([...route_call_arr, node_call_ref.current]);
                         }
 
+                        // every station in this path was on the air, and the LAST hop is one
+                        // whose RF we received ourselves - it counts for the "unique stations"
+                        // figure even if it never beaconed (see StatsService.notePath). The
+                        // relays further out are only trusted where the path is provably
+                        // HF-local, which is the two `true` calls below.
+                        StatsService.notePath(route_call_arr, node_call_ref.current, false);
+
                         // record hop count + route path for the originating node
                         node_hops = route_call_cnt - 1;
                         node_via = via_str;
@@ -243,6 +250,8 @@ export function useMSG() {
                             // these path nodes are now confirmed HF-local -> ratchet any
                             // earlier 'solid' messages from them to 'dim' (globe ratchet)
                             DatabaseService.ratchetGlobeToLocal(route_call_arr);
+                            // ... and every relay in it counts as an HF station on the air
+                            StatsService.notePath(route_call_arr, node_call_ref.current, true);
                         }
 
                         // the last 4 bytes are the unix timestamp from node
@@ -281,6 +290,7 @@ export function useMSG() {
                     if (msg_type === 58 && (msg.getUint8(6) & 0x80) === 0 && node_path.length > 0) {
                         HfHeardService.mark(node_path, Date.now());
                         DatabaseService.ratchetGlobeToLocal(node_path);
+                        StatsService.notePath(node_path, node_call_ref.current, true);
                     }
 
                     /**

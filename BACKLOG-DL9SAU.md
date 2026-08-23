@@ -146,6 +146,19 @@ darunter „direct and hf may overlap" (DL9SAU). Die Paketzeilen bleiben wie sie
    den hf-Zähler in Ruhe. Nebeneffekt: die drei **gehen jetzt auf** (= `calls`).
    Kein Herabstufen — ein späterer schlechterer Weg ändert nichts.
    **Paketzeilen bleiben pro Empfang** kategorisiert; dort ist die Zuordnung ohnehin eindeutig.
+4. **`calls` zählt jetzt Stationen auf der Luft, nicht Absender** *(Entscheidung DL9SAU)*.
+   Auslöser: db0fri stand als direkter Nachbar in Last-Heard, `calls direct` aber auf 0 —
+   er hatte nur **repeatet**, noch nicht gebakt. Ein Knoten, den wir beim Weiterreichen
+   gehört haben, ist aber definitiv auf HF. Also zählt **Bake ODER Via-Pfad**:
+   - **letztes Pfadelement → `direct`**, immer. Dessen HF haben wir empfangen — genau das,
+     was die Firmware unter dem Mheard-`CALL` führt. Gilt auch für gw=1-Texte.
+   - **alle davor → `hf`**, aber **nur** wo der Pfad beweisbar HF-lokal ist: Positionen
+     immer, Texte nur mit **gelöschtem gw-Bit**. Dieselbe Vertrauensregel wie bei
+     `HfHeardService.mark()` — ein gw=1-Text kann Relays tragen, die nie auf unserer Luft
+     waren.
+   **Nebenwirkung, bewusst:** die DB-Zeile darunter ist damit **eine andere Grundgesamtheit**
+   — sie kann nur **Absender** zählen, weil die gespeicherten Pfade Freitext sind. Deshalb
+   heißt sie jetzt „senders in database (retention window)".
 
 *Überschrift:* „MY STATS · since connect" wiederholte im Info-Tab den Kartentitel und
 war zudem falsch — `reset()` wird **nie** aufgerufen, die Zähler laufen ab **App-Start**

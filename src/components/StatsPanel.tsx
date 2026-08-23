@@ -74,10 +74,14 @@ export const StatsPanel: React.FC<{ ownCall: string, onClose?: () => void, showT
                 not a contradiction. Misread in the field test on 2026-08-23, which is what
                 the two section headers are for. */}
             <div className="stats-title">by call</div>
-            {/* Each station is filed under the BEST path it was ever heard on, so the three
+            {/* UNIQUE STATIONS ON THE AIR - senders AND the relays in their route paths: a
+                node we heard forwarding someone else is proven to be on HF before it ever
+                beacons. Each is filed under the BEST path it was ever heard on, so the three
                 are disjoint and add up: `direct` = heard directly at least once, `hf` = ONLY
                 ever relayed, `gw` = ONLY ever from the wider network. Hearing a direct
-                station repeated afterwards is not interesting and leaves its count alone. */}
+                station repeated afterwards is not interesting and leaves its count alone.
+                The database row below is NOT the same population: it can only count SENDERS,
+                because the stored route paths are free text and not indexable. */}
             <div className="stats-row">
                 <span className="stats-key">calls</span>
                 <span className="stats-num">{s.callsAll}</span>
@@ -88,7 +92,7 @@ export const StatsPanel: React.FC<{ ownCall: string, onClose?: () => void, showT
             <div className="stats-row">
                 <span className="stats-key"></span>
                 <span className="stats-num"></span>
-                <span className="stats-dim">each by its best path</span>
+                <span className="stats-dim">senders and relays, best path each</span>
             </div>
             {s.dbCalls >= 0 &&
                 <div className="stats-row">
@@ -98,7 +102,7 @@ export const StatsPanel: React.FC<{ ownCall: string, onClose?: () => void, showT
                         settings (2 days for ALL, 7 for groups/positions, 90 for my DMs),
                         so this is "as far back as we still keep" - which is the useful
                         horizon anyway. */}
-                    <span className="stats-dim">in database (retention window)</span>
+                    <span className="stats-dim">senders in database (retention window)</span>
                 </div>}
             <div className="stats-sep" />
             <div className="stats-row">
