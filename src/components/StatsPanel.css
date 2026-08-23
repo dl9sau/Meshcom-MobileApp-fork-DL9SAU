@@ -9,12 +9,18 @@
     font-size: 0.82rem;
     line-height: 1.5;
 }
+/* Panel name and section headers ("totals since app start", "by call") share this:
+   the sections are what keep the packet counts and the per-station counts apart. */
 .stats-title{
     font-size: 0.7rem;
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: #ffb060;
     margin-bottom: 4px;
+}
+/* a section header right after the separator sits too tight without this */
+.stats-sep + .stats-title{
+    margin-top: 2px;
 }
 .stats-row{
     display: grid;

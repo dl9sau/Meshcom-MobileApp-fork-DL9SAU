@@ -133,10 +133,24 @@ Zwei Stolpersteine, beide im Test aufgetreten:
 *Gebaut:* die calls-Zeile sagt jetzt „**unique** stations · direct … · hf … · gw …",
 darunter „direct and hf may overlap" (DL9SAU). Die Paketzeilen bleiben wie sie sind
 — „rx … **packets**, deduplicated" steht direkt darüber und trägt den Gegenbegriff.
-*Nachgeschärft 2026-08-23 (DL9SAU):* die erste Fassung der Unterzeile („counted in every
-way they were heard") sprach nur über den **zweiten**, nachrangigen Punkt (Überlappung
-der drei Spalten) und tat das unverständlich. Der **Hauptpunkt** ist Summe gegen unique —
-der gehört in die Zeile selbst, nicht in eine Fußnote.
+*Nachgeschärft 2026-08-23 (DL9SAU), in drei Schritten:*
+1. Die erste Unterzeile („counted in every way they were heard") sprach nur über den
+   **nachrangigen** Punkt (Überlappung) und tat das unverständlich.
+2. Der **Hauptpunkt** ist Summe gegen unique — der gehört in die Zeile, nicht in eine
+   Fußnote. Statt einer Fußnote jetzt **zwei Abschnittsüberschriften** in Orange:
+   „totals since app start" und „by call".
+3. **Die Überlappung wurde ganz abgeschafft** *(Entscheidung DL9SAU)*: eine Station wird
+   unter dem **besten** Weg geführt, auf dem wir sie je gehört haben. `direct` = mindestens
+   einmal direkt, `hf` = **nur** je repeated, `gw` = **nur** je aus dem Netz. „Ich hörte
+   den direkten Nachbarn auch mal repeated" ist keine interessante Information und lässt
+   den hf-Zähler in Ruhe. Nebeneffekt: die drei **gehen jetzt auf** (= `calls`).
+   Kein Herabstufen — ein späterer schlechterer Weg ändert nichts.
+   **Paketzeilen bleiben pro Empfang** kategorisiert; dort ist die Zuordnung ohnehin eindeutig.
+
+*Überschrift:* „MY STATS · since connect" wiederholte im Info-Tab den Kartentitel und
+war zudem falsch — `reset()` wird **nie** aufgerufen, die Zähler laufen ab **App-Start**
+und überleben einen BLE-Ab- und Wiederaufbau. Jetzt „totals since app start"; der Name
+„MY STATS" erscheint nur noch über der schwebenden Karten-Variante (`showTitle`).
 
 **C6 — ✅ GEBAUT** — „n in database (retention window)" wurde nur EINMAL gemessen
 *(Feldtest 2026-08-23)*

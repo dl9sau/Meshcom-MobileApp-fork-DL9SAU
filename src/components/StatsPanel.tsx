@@ -12,7 +12,9 @@ import './StatsPanel.css';
 // All counts are UNIQUE packets: the firmware dedups by msg_id before handing anything
 // to the app, so these are messages - not airtime. That also means the app can never
 // show "packets on air" or retransmissions; those would need firmware counters.
-export const StatsPanel: React.FC<{ ownCall: string, onClose?: () => void }> = ({ ownCall, onClose }) => {
+// `showTitle` names the panel. The Info tab does not need it - the card it sits in is
+// already headed "My Stats" - but the floating panel on the map has no such frame.
+export const StatsPanel: React.FC<{ ownCall: string, onClose?: () => void, showTitle?: boolean }> = ({ ownCall, onClose, showTitle }) => {
     const s = StatsStore.useState(x => x);
     const nodeInfoMap = NodeRuntimeStore.useState(x => x.info);
     // "me" comes from NodeRuntimeService for our own callsign - the very same numbers as
@@ -53,7 +55,11 @@ export const StatsPanel: React.FC<{ ownCall: string, onClose?: () => void }> = (
 
     return (
         <div className="stats-panel" onClick={onClose}>
-            <div className="stats-title">MY STATS · since connect</div>
+            {showTitle && <div className="stats-title">MY STATS</div>}
+            {/* "since app start", not "since connect": reset() is never called, so the
+                counters survive a BLE drop and reconnect and keep running as long as the
+                app process lives. */}
+            <div className="stats-title">totals since app start</div>
             <div className="stats-row">
                 <span className="stats-key">rx</span>
                 <span className="stats-num">{total}</span>
@@ -63,29 +69,26 @@ export const StatsPanel: React.FC<{ ownCall: string, onClose?: () => void }> = (
             <Row label="#msg" c={s.msg} />
             <Row label="#dm" c={s.dm} />
             <div className="stats-sep" />
+            {/* The rows above are TOTALS (packets), this section is BY CALL (stations):
+                "#pos direct 2" next to "calls direct 1" is two beacons of the same station,
+                not a contradiction. Misread in the field test on 2026-08-23, which is what
+                the two section headers are for. */}
+            <div className="stats-title">by call</div>
+            {/* Each station is filed under the BEST path it was ever heard on, so the three
+                are disjoint and add up: `direct` = heard directly at least once, `hf` = ONLY
+                ever relayed, `gw` = ONLY ever from the wider network. Hearing a direct
+                station repeated afterwards is not interesting and leaves its count alone. */}
             <div className="stats-row">
                 <span className="stats-key">calls</span>
                 <span className="stats-num">{s.callsAll}</span>
                 <span className="stats-dim">
-                    unique stations · direct {s.callsDirect} · hf {s.callsHf} · gw {s.callsGw}
+                    direct {s.callsDirect} · hf {s.callsHf} · gw {s.callsGw}
                 </span>
             </div>
-            {/* Two different readings, both misread in the field test on 2026-08-23:
-                (1) the rows above are TOTALS (packets), this one is UNIQUE (stations) -
-                    "#pos direct 2" next to "calls direct 1" is two beacons of the same
-                    station, not a contradiction. That is what "packets" up at `rx` and
-                    "unique stations" here are for.
-                (2) the station columns OVERLAP: whoever was heard both directly and through
-                    a relay is in `direct` AND in `hf`, so their sum can exceed the total.
-                    Hence the caption below. It names direct/hf because that is the case
-                    that actually occurs: the category is a property of a single RECEPTION,
-                    so `gw` can overlap too in principle - but only once a station's 12h/24h
-                    HF evidence has lapsed WITHIN the same session, which needs the app to
-                    run for half a day. Not worth the words in a panel this narrow. */}
             <div className="stats-row">
                 <span className="stats-key"></span>
                 <span className="stats-num"></span>
-                <span className="stats-dim">direct and hf may overlap</span>
+                <span className="stats-dim">each by its best path</span>
             </div>
             {s.dbCalls >= 0 &&
                 <div className="stats-row">

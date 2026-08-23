@@ -734,7 +734,7 @@ const NodeMap = () => {
 
         {shStats &&
           <div className="stats-float">
-            <StatsPanel ownCall={currConfig.callSign} onClose={() => setShStats(false)} />
+            <StatsPanel ownCall={currConfig.callSign} onClose={() => setShStats(false)} showTitle />
           </div>}
 
       </IonContent>

@@ -11,6 +11,10 @@ export type RxCat = 'direct' | 'hf' | 'gw';
 export const rxCatOf = (hops: number, globe: string): RxCat =>
     globe === 'solid' ? 'gw' : (hops <= 0 ? 'direct' : 'hf');
 
+// How GOOD a path is, for filing a STATION under the best one we ever heard it on.
+// Direct beats relayed-but-local beats from-the-network.
+const RANK: Record<RxCat, number> = { direct: 3, hf: 2, gw: 1 };
+
 // App-wide RECEIVE statistics since app start (RAM). Counts UNIQUE packets FROM OTHERS
 // (the firmware dedups by msg_id before forwarding, so we never see airtime copies) and
 // sorts them by packet type and by how they reached us - which is what makes "user
@@ -20,10 +24,15 @@ class StatsService {
     private pos: CatCounts = { direct: 0, hf: 0, gw: 0 };
     private msg: CatCounts = { direct: 0, hf: 0, gw: 0 };
     private dm: CatCounts = { direct: 0, hf: 0, gw: 0 };
-    private callsDirect = new Set<string>();
-    private callsHf = new Set<string>();
-    private callsGw = new Set<string>();
-    private callsAll = new Set<string>();
+    // Stations are filed under the BEST path we ever heard them on, NOT under every path
+    // they ever used. The question worth answering is "how many did I hear directly, how
+    // many ONLY relayed, how many ONLY through the network" - a station we once heard
+    // directly stays a direct one, even when the same call later arrives repeated. Nice
+    // side effect: the three add up to the total instead of overlapping.
+    // (PACKET counts above are per reception and stay as they are - there each packet has
+    // exactly one category by definition.)
+    private callRank = new Map<string, number>();  // call -> best RANK seen
+    private byRank = [0, 0, 0, 0];                 // how many calls sit at each rank
     private dbCalls = -1;
 
     private norm(c: string): string { return (c || "").toUpperCase().trim(); }
@@ -44,10 +53,10 @@ class StatsService {
             s.pos = { ...this.pos };
             s.msg = { ...this.msg };
             s.dm = { ...this.dm };
-            s.callsDirect = this.callsDirect.size;
-            s.callsHf = this.callsHf.size;
-            s.callsGw = this.callsGw.size;
-            s.callsAll = this.callsAll.size;
+            s.callsDirect = this.byRank[RANK.direct];
+            s.callsHf = this.byRank[RANK.hf];
+            s.callsGw = this.byRank[RANK.gw];
+            s.callsAll = this.callRank.size;
             s.dbCalls = this.dbCalls;
         });
     }
@@ -56,8 +65,14 @@ class StatsService {
         const c = this.norm(from);
         if (c === "") return false;
         bucket[cat]++;
-        this.callsAll.add(c);
-        (cat === 'gw' ? this.callsGw : cat === 'hf' ? this.callsHf : this.callsDirect).add(c);
+        // promote the station if this reception was on a better path than anything before
+        const r = RANK[cat];
+        const prev = this.callRank.get(c) ?? 0;
+        if (r > prev) {
+            if (prev > 0) this.byRank[prev]--;
+            this.byRank[r]++;
+            this.callRank.set(c, r);
+        }
         return true;
     }
 
@@ -83,7 +98,8 @@ class StatsService {
         this.pos = { direct: 0, hf: 0, gw: 0 };
         this.msg = { direct: 0, hf: 0, gw: 0 };
         this.dm = { direct: 0, hf: 0, gw: 0 };
-        this.callsDirect.clear(); this.callsHf.clear(); this.callsGw.clear(); this.callsAll.clear();
+        this.callRank.clear();
+        this.byRank = [0, 0, 0, 0];
         this.mirror();
     }
 }
