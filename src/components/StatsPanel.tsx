@@ -67,18 +67,21 @@ export const StatsPanel: React.FC<{ ownCall: string, onClose?: () => void }> = (
                 <span className="stats-key">calls</span>
                 <span className="stats-num">{s.callsAll}</span>
                 <span className="stats-dim">
-                    stations · direct {s.callsDirect} · hf {s.callsHf} · gw {s.callsGw}
+                    unique stations · direct {s.callsDirect} · hf {s.callsHf} · gw {s.callsGw}
                 </span>
             </div>
-            {/* The rows above count PACKETS, this one counts STATIONS - "#pos direct 2"
-                next to "calls direct 1" is two beacons of the same station, not a
-                contradiction. And the three station sets OVERLAP: whoever was heard both
-                directly and through a relay is in `direct` AND in `hf`, so their sum is
-                not the total. Both were misread in the field test on 2026-08-23. */}
+            {/* Two different readings, both misread in the field test on 2026-08-23:
+                (1) the rows above are TOTALS (packets), this one is UNIQUE (stations) -
+                    "#pos direct 2" next to "calls direct 1" is two beacons of the same
+                    station, not a contradiction. That is what "packets" up at `rx` and
+                    "unique stations" here are for.
+                (2) the three station columns OVERLAP: whoever was heard both directly and
+                    through a relay is in `direct` AND in `hf`, so their sum can exceed the
+                    total. Hence the caption below. */}
             <div className="stats-row">
                 <span className="stats-key"></span>
                 <span className="stats-num"></span>
-                <span className="stats-dim">counted in every way they were heard</span>
+                <span className="stats-dim">a station can be in more than one column</span>
             </div>
             {s.dbCalls >= 0 &&
                 <div className="stats-row">

@@ -130,9 +130,13 @@ Zwei Stolpersteine, beide im Test aufgetreten:
 - Die drei Call-Mengen **überschneiden sich**: wer direkt *und* über einen Relay gehört
   wurde, steht in `direct` **und** in `hf`. `direct+hf+gw = calls` ist also Zufall und
   keine Invariante — Aufgehen der Summe darf nicht als Prüfkriterium benutzt werden.
-*Gebaut:* die calls-Zeile sagt jetzt „stations · direct … · hf … · gw …", darunter
-„counted in every way they were heard". Die Paketzeilen bleiben wie sie sind — „rx …
-packets, deduplicated" steht direkt darüber.
+*Gebaut:* die calls-Zeile sagt jetzt „**unique** stations · direct … · hf … · gw …",
+darunter „a station can be in more than one column". Die Paketzeilen bleiben wie sie sind
+— „rx … **packets**, deduplicated" steht direkt darüber und trägt den Gegenbegriff.
+*Nachgeschärft 2026-08-23 (DL9SAU):* die erste Fassung der Unterzeile („counted in every
+way they were heard") sprach nur über den **zweiten**, nachrangigen Punkt (Überlappung
+der drei Spalten) und tat das unverständlich. Der **Hauptpunkt** ist Summe gegen unique —
+der gehört in die Zeile selbst, nicht in eine Fußnote.
 
 **C6 — ✅ GEBAUT** — „n in database (retention window)" wurde nur EINMAL gemessen
 *(Feldtest 2026-08-23)*
