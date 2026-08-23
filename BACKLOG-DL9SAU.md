@@ -247,9 +247,10 @@ Relay **ist** Gateway) plus **D1b** als zweiter, schwächerer Detektor („wahrs
 ⇒ **D8 hängt an D1**; ohne Registry keine Farbe.
 
 *Offene Punkte vor dem Bauen:*
-1. **Hellgrün neben Grün** ist genau die Verwechslung, die wir vermeiden wollen — grün ist
-   schon „direkter Nachbar". Entweder ein deutlich anderer Ton (Orange/Amber) oder erst am
-   Gerät gegenprüfen. Sichtprüfung nötig, keine Schreibtischentscheidung.
+1. **Farbe: Orange** *(entschieden 2026-08-23)*. Hellgrün fällt weg — grün ist schon
+   „direkter Nachbar", das wäre genau die Verwechslung, die wir vermeiden wollen.
+   **Lila fällt ebenfalls weg**: das ist bereits das **eigene** Rufzeichen
+   (`markerColor_own`). Bleibt Orange; Sichtprüfung am Gerät steht noch aus.
 2. Ein Knoten kann **beides** sein (direkter Nachbar **und** Gateway). `<Marker>` kennt nur
    **eine** `color` → entweder eine Vorrangregel oder der `<Overlay>`-Umbau aus **D6**, der
    zwei Merkmale gleichzeitig zeigen kann (Pin + Symbol/Label).
