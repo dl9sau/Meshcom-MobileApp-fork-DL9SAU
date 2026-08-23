@@ -87,6 +87,14 @@ Sonst ist `advertised 9` nicht mit `2` vergleichbar (dn9whv-11).
 Wir stehen nicht im Pfad, sind aber Nachbar direkt gehörter Knoten. Außerdem erzeugen
 0-Hop-Empfänge gar keine Adjazenz. Erklärt zu niedrige Zahlen.
 
+**B6 — Eigenes Rufzeichen in den Statistiken erst ab NodeInfo bekannt** *(offen, klein,
+gefunden 2026-08-23)*
+`StatsService.countPos/countMsg` filtern die eigenen Pakete über `node_call_ref.current`.
+Das wird erst beim NodeInfo-Paket („I") gesetzt. Trifft davor eine **wiederholt gehörte
+eigene Bake** ein, zählt sie als fremdes `#pos hf` und landet im calls-Set. Fenster ist
+klein (nur direkt nach dem Connect), der Fix auch: auf die persistierte Pref `ownCall`
+zurückfallen, die es beim Start ohnehin schon gibt.
+
 ---
 
 ## C · Statistik-Ausbau (MY STATS)
@@ -109,6 +117,31 @@ Summe `direct / via HF / via GW`, dazu **#pos** und **#msg** getrennt, plus
 Sanity-Check: `#pos via GW` muss 0 bleiben (Positionen sind HF-only).
 
 **C3 — Session + „(max n)" aus DB** überall wo sinnvoll.
+
+**C5 — Die Zahlen sind missverständlich lesbar** *(offen, klein; Feldtest 2026-08-23)*
+Zwei Stolpersteine, beide im Test aufgetreten:
+- `#pos` / `#msg` / `#dm` zählen **Pakete**, die Zeile `calls` zählt **Stationen**.
+  „#pos direct 2" neben „calls direct 1" ist deshalb **kein** Widerspruch — zwei Baken
+  derselben Station (Beispiel: 2× db0fri, das einzige Rufzeichen in LastHeard).
+- Die drei Call-Mengen **überschneiden sich**: wer direkt *und* über einen Relay gehört
+  wurde, steht in `direct` **und** in `hf`. `direct+hf+gw = calls` ist also Zufall und
+  keine Invariante — Aufgehen der Summe darf nicht als Prüfkriterium benutzt werden.
+Vorschlag: Einheit an die Zeilen („packets" / „stations") und ein Hinweis, dass die
+Call-Mengen überlappen.
+
+**C6 — „n in database (retention window)" wird nur EINMAL gemessen** *(offen, klein;
+Feldtest 2026-08-23)*
+`StatsPanel` holt `getStatsDb()` in einem `useEffect([ownCall])`. Im Info-Tab feuert der
+beim Mount und dann noch einmal, wenn `config_s.callSign` vom NodeInfo-Paket gesetzt wird
+— also **Sekunden nach dem Connect**, direkt nach dem Housekeeping und **bevor** der
+Empfang der Session in der DB steht. Danach nie wieder. Ergebnis: die Zahl steht auf dem
+Rest, der die Retention überlebt hat, während `calls` daneben live hochläuft — im Test
+„3 in database" gegen „calls 10" nach 14 Tagen Abwesenheit.
+Kontext dazu (nicht als Fehler zu lesen): die Zahl ist `DISTINCT fromCall` aus
+`TextMessages` **∪** `DISTINCT callSign` aus `Positions`. Nach 14 Tagen Pause ist bei
+Retention 2/7/30/2/7/2 alles weg außer den Partnern **eigener** DMs (30 Tage).
+Fix: bei Änderung von `callsAll` neu abfragen (durch die Zahl der Stationen begrenzt,
+also billig) — oder beim Sichtbarwerden des Tabs.
 
 **C4 — Platzierung**: MY STATS in **Info**, Kasten unter „Sensors" (thematisch stimmig).
 Alternative/zusätzlich Mheard-Tab zum Vergleich mit den Direktnachbarn.
@@ -184,10 +217,38 @@ kennen und kein Label können; das Rufzeichen erscheint ausschließlich im `MapO
 `ios/` ist committet, `android/` wird im CI per `npx cap add android` erzeugt — die App liefe
 auf iOS identisch. ⇒ iOS-Screenshots mit Calls stammen von der **eigenständigen nativen
 iOS-MeshCom-App**, nicht von dieser. (Nur über diese Codebasis + Upstream urteilbar.)
+*Nachtrag 2026-08-23 (Feldbeobachtung DL9SAU):* die **native iOS-App angeschaut — auch dort
+tragen die Knoten kein Textlabel.* Damit ist die obige Vermutung („die Screenshots stammen
+von der nativen iOS-App") **widerlegt**: die Pseudo-Screenshots in der Doku sind Mockups,
+kein reales UI. Es gibt die Beschriftung also **nirgends** — wenn wir sie wollen, sind wir
+die Ersten.
 *Umsetzung, falls gewollt:* `<Marker>` durch ein eigenes `<Overlay anchor={[lat,lon]}>` mit
 Pin **und** Textlabel ersetzen. Offene Fragen: **ab welcher Zoomstufe** (sonst Buchstabensalat
 — vermutlich der Grund, warum Upstream es gelassen hat) und Performance bei vielen Knoten.
-Braucht Sichtprüfung am Gerät.
+Braucht Sichtprüfung am Gerät. **Teilt sich die Umbaukosten mit D8** — beide brauchen den
+Wechsel von `<Marker>` auf `<Overlay>`.
+
+**D8 — Gateways auf der Karte farblich markieren** *(Idee DL9SAU, 2026-08-23)*
+Heute kennt `setMarkerColor()` vier Fälle: **purple** = eigenes Rufzeichen, **green** =
+in der Mheard-Liste (direkter HF-Nachbar), **hellblau** `#3ba6db` = österreichische
+Club-/Relais-Rufzeichen per Regex `^OE[1-9]X[A-Z]{1,2}-\d{1,2}$`, sonst **blau** `#3578e5`.
+Gewünscht: „sicher Gateway" in einer eigenen Farbe (Vorschlag DL9SAU: hellgrün).
+
+*Datenquelle:* **nicht** über `Grp` — siehe Block F, `R=` sind die **selbst gebuchten**
+Talkgroups und werden von **jedem** Knoten gesendet, auch von Usern. Kein GW-Indikator.
+Es bleibt die **GW-Registry aus D1** (sicher: GW-Bit + genau ein Relay im Pfad ⇒ dieses
+Relay **ist** Gateway) plus **D1b** als zweiter, schwächerer Detektor („wahrscheinlich").
+⇒ **D8 hängt an D1**; ohne Registry keine Farbe.
+
+*Offene Punkte vor dem Bauen:*
+1. **Hellgrün neben Grün** ist genau die Verwechslung, die wir vermeiden wollen — grün ist
+   schon „direkter Nachbar". Entweder ein deutlich anderer Ton (Orange/Amber) oder erst am
+   Gerät gegenprüfen. Sichtprüfung nötig, keine Schreibtischentscheidung.
+2. Ein Knoten kann **beides** sein (direkter Nachbar **und** Gateway). `<Marker>` kennt nur
+   **eine** `color` → entweder eine Vorrangregel oder der `<Overlay>`-Umbau aus **D6**, der
+   zwei Merkmale gleichzeitig zeigen kann (Pin + Symbol/Label).
+3. Nur Knoten **mit Position** erscheinen überhaupt auf der Karte — ein Gateway ohne
+   Positionsbake bleibt unsichtbar, egal wie sicher wir uns sind.
 
 ---
 
@@ -237,5 +298,8 @@ Alle an Stellen, wo die Firmware die Information **bereits hat**:
 - **Nachrichten sind im Knoten nur RAM** (`ringBuffer[MAX_RING]`, 10–30 Slots), kein Flash.
   Persistiert werden nur Mheard (SD), Zeit (SPIFFS), Settings (NVS). Das Archiv ist die App-DB.
 - **Baken-Intervalle**: `POSINFO_INTERVAL` 30 min, `HEYINFO_INTERVAL` 15 min.
+- **`R=` in der Positionsbake = die vom Knoten SELBST gebuchten Talkgroups**
+  (";"-getrennt, z. B. `232;2321;2323;`), gesendet von **jedem** Knoten — User wie Digi.
+  **Kein Gateway-Indikator** (geprüft 2026-08-23, siehe D8).
 - **Server ist Blackbox** (closed source) — er **strippt den Pfad** beim Verteilen
   (Feldbeobachtung). Der hintere Teil `>xxx,DEST` behält dagegen den HF-Teil vor dem Gatewayen.
