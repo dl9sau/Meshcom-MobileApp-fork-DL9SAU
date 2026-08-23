@@ -19,12 +19,22 @@ export const StatsPanel: React.FC<{ ownCall: string, onClose?: () => void }> = (
     // our own node overlay, so the two can never disagree
     const me = nodeInfoMap[(ownCall || "").toUpperCase()];
 
-    // distinct callsigns known to the database (retention-bounded), loaded once on open
+    // Distinct callsigns known to the database (retention-bounded). This is a SNAPSHOT and
+    // has to be re-read: in the Info tab the panel mounts once and the effect used to fire
+    // only on mount and when the NodeInfo packet fills in the callsign - i.e. seconds after
+    // the connect, right after the retention purge and BEFORE this session's traffic is in
+    // the database. The figure then froze on the purge leftovers while `calls` next to it
+    // ran up (field test 2026-08-23: "3 in database" against "calls 10" after a 14-day gap).
+    // So: re-read whenever a new station appears, debounced - the row is written to the
+    // database a moment AFTER the counter, so an immediate query would be one station short,
+    // and a burst of new stations would otherwise trigger a burst of queries.
     useEffect(() => {
         let alive = true;
-        DatabaseService.getStatsDb(ownCall).then(n => { if (alive && n >= 0) StatsService.setDbCalls(n); }).catch(() => {});
-        return () => { alive = false; };
-    }, [ownCall]);
+        const t = setTimeout(() => {
+            DatabaseService.getStatsDb(ownCall).then(n => { if (alive && n >= 0) StatsService.setDbCalls(n); }).catch(() => {});
+        }, 1500);
+        return () => { alive = false; clearTimeout(t); };
+    }, [ownCall, s.callsAll]);
 
     const sum = (c: { direct: number, hf: number, gw: number }) => c.direct + c.hf + c.gw;
     const total = sum(s.pos) + sum(s.msg) + sum(s.dm);
@@ -57,8 +67,18 @@ export const StatsPanel: React.FC<{ ownCall: string, onClose?: () => void }> = (
                 <span className="stats-key">calls</span>
                 <span className="stats-num">{s.callsAll}</span>
                 <span className="stats-dim">
-                    direct {s.callsDirect} · hf {s.callsHf} · gw {s.callsGw}
+                    stations · direct {s.callsDirect} · hf {s.callsHf} · gw {s.callsGw}
                 </span>
+            </div>
+            {/* The rows above count PACKETS, this one counts STATIONS - "#pos direct 2"
+                next to "calls direct 1" is two beacons of the same station, not a
+                contradiction. And the three station sets OVERLAP: whoever was heard both
+                directly and through a relay is in `direct` AND in `hf`, so their sum is
+                not the total. Both were misread in the field test on 2026-08-23. */}
+            <div className="stats-row">
+                <span className="stats-key"></span>
+                <span className="stats-num"></span>
+                <span className="stats-dim">counted in every way they were heard</span>
             </div>
             {s.dbCalls >= 0 &&
                 <div className="stats-row">

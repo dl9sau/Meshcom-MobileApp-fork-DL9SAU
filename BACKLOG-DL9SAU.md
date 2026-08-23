@@ -56,7 +56,8 @@ Vorschlag: erst dunkleres Grün probieren; sonst Blinken gelb↔grün ~1 s (nich
 
 ## B · Korrektheits-Fixes (klein, isoliert)
 
-> **Status: Build 2 gebaut** — B1 ✅ B2 ✅ (a71f6ba), B3 ✅ B4 ✅ B5 ✅ (c633483).
+> **Status: Build 2 gebaut** — B1 ✅ B2 ✅ (a71f6ba), B3 ✅ B4 ✅ B5 ✅ (c633483),
+> B6 ✅ (Build 4, zusammen mit C5/C6).
 > Beide Commits sind **offline gegen den echten Code verifiziert** (Typen mechanisch
 > gestrippt, auf blankem node laufen lassen — nichts installiert): 25 + 14 Prüfungen grün.
 > Offen aus B2: Rückfrage zu Beispiel 1 (`130` → `116` Zeichen) — Regel ist unabhängig
@@ -87,19 +88,22 @@ Sonst ist `advertised 9` nicht mit `2` vergleichbar (dn9whv-11).
 Wir stehen nicht im Pfad, sind aber Nachbar direkt gehörter Knoten. Außerdem erzeugen
 0-Hop-Empfänge gar keine Adjazenz. Erklärt zu niedrige Zahlen.
 
-**B6 — Eigenes Rufzeichen in den Statistiken erst ab NodeInfo bekannt** *(offen, klein,
-gefunden 2026-08-23)*
+**B6 — ✅ GEBAUT** — Eigenes Rufzeichen in den Statistiken erst ab NodeInfo bekannt
+*(gefunden 2026-08-23)*
 `StatsService.countPos/countMsg` filtern die eigenen Pakete über `node_call_ref.current`.
 Das wird erst beim NodeInfo-Paket („I") gesetzt. Trifft davor eine **wiederholt gehörte
 eigene Bake** ein, zählt sie als fremdes `#pos hf` und landet im calls-Set. Fenster ist
 klein (nur direkt nach dem Connect), der Fix auch: auf die persistierte Pref `ownCall`
 zurückfallen, die es beim Start ohnehin schon gibt.
+*Gebaut:* `StatsService.ownOf()` — Live-Call schlägt Pref, exakter Vergleich statt Basis-
+Call (ein **zweiter eigener Knoten** ist von hier aus eine fremde Station und soll zählen).
 
 ---
 
 ## C · Statistik-Ausbau (MY STATS)
 
 > **Status: Build 3 gebaut (f239bff)** — C1 ✅ C2 ✅ C4 ✅, C3 ⚠️ *eingeschränkt*.
+> **Build 4** (Feldtest 2026-08-23): C5 ✅ C6 ✅, dazu B6 — offline verifiziert (10 Prüfungen grün).
 > „(max)" gibt es nur für **unique Calls** (aus der DB, retention-begrenzt) — bewusst
 > **ohne** Kategorie-Aufteilung, weil direct/hf/gw eine Eigenschaft **eines Empfangs**
 > ist, nicht einer Station (dieselbe Station kann heute direkt und morgen über ein
@@ -118,7 +122,7 @@ Sanity-Check: `#pos via GW` muss 0 bleiben (Positionen sind HF-only).
 
 **C3 — Session + „(max n)" aus DB** überall wo sinnvoll.
 
-**C5 — Die Zahlen sind missverständlich lesbar** *(offen, klein; Feldtest 2026-08-23)*
+**C5 — ✅ GEBAUT** — Die Zahlen sind missverständlich lesbar *(Feldtest 2026-08-23)*
 Zwei Stolpersteine, beide im Test aufgetreten:
 - `#pos` / `#msg` / `#dm` zählen **Pakete**, die Zeile `calls` zählt **Stationen**.
   „#pos direct 2" neben „calls direct 1" ist deshalb **kein** Widerspruch — zwei Baken
@@ -126,11 +130,12 @@ Zwei Stolpersteine, beide im Test aufgetreten:
 - Die drei Call-Mengen **überschneiden sich**: wer direkt *und* über einen Relay gehört
   wurde, steht in `direct` **und** in `hf`. `direct+hf+gw = calls` ist also Zufall und
   keine Invariante — Aufgehen der Summe darf nicht als Prüfkriterium benutzt werden.
-Vorschlag: Einheit an die Zeilen („packets" / „stations") und ein Hinweis, dass die
-Call-Mengen überlappen.
+*Gebaut:* die calls-Zeile sagt jetzt „stations · direct … · hf … · gw …", darunter
+„counted in every way they were heard". Die Paketzeilen bleiben wie sie sind — „rx …
+packets, deduplicated" steht direkt darüber.
 
-**C6 — „n in database (retention window)" wird nur EINMAL gemessen** *(offen, klein;
-Feldtest 2026-08-23)*
+**C6 — ✅ GEBAUT** — „n in database (retention window)" wurde nur EINMAL gemessen
+*(Feldtest 2026-08-23)*
 `StatsPanel` holt `getStatsDb()` in einem `useEffect([ownCall])`. Im Info-Tab feuert der
 beim Mount und dann noch einmal, wenn `config_s.callSign` vom NodeInfo-Paket gesetzt wird
 — also **Sekunden nach dem Connect**, direkt nach dem Housekeeping und **bevor** der
@@ -140,8 +145,9 @@ Rest, der die Retention überlebt hat, während `calls` daneben live hochläuft 
 Kontext dazu (nicht als Fehler zu lesen): die Zahl ist `DISTINCT fromCall` aus
 `TextMessages` **∪** `DISTINCT callSign` aus `Positions`. Nach 14 Tagen Pause ist bei
 Retention 2/7/30/2/7/2 alles weg außer den Partnern **eigener** DMs (30 Tage).
-Fix: bei Änderung von `callsAll` neu abfragen (durch die Zahl der Stationen begrenzt,
-also billig) — oder beim Sichtbarwerden des Tabs.
+*Gebaut:* Neuabfrage bei Änderung von `callsAll`, **1,5 s entprellt** — die DB-Zeile wird
+erst kurz **nach** dem Zähler geschrieben, eine sofortige Abfrage wäre dauerhaft eine
+Station im Rückstand; die Entprellung fasst außerdem Bursts zusammen.
 
 **C4 — Platzierung**: MY STATS in **Info**, Kasten unter „Sensors" (thematisch stimmig).
 Alternative/zusätzlich Mheard-Tab zum Vergleich mit den Direktnachbarn.

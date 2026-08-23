@@ -1,4 +1,5 @@
 import StatsStore, { CatCounts } from "../store/StatsStore";
+import AppPrefsStore from "../store/AppPrefsStore";
 
 export type RxCat = 'direct' | 'hf' | 'gw';
 
@@ -27,6 +28,17 @@ class StatsService {
 
     private norm(c: string): string { return (c || "").toUpperCase().trim(); }
 
+    // Our own callsign, for skipping our own traffic. The caller reads it from the node's
+    // NodeInfo packet, which only arrives a moment AFTER the connect - until then it is ""
+    // and our own repeated beacons would be counted as a foreign station. Fall back to the
+    // callsign persisted on the last run, which is already loaded at that point.
+    // Exact match on purpose (not the base call): a SECOND node of ours is, seen from this
+    // one, a foreign station on the air and should be counted.
+    private ownOf(ownCall: string): string {
+        const c = this.norm(ownCall);
+        return c !== "" ? c : this.norm(AppPrefsStore.getRawState().ownCall);
+    }
+
     private mirror() {
         StatsStore.update(s => {
             s.pos = { ...this.pos };
@@ -53,14 +65,14 @@ class StatsService {
     // 'faint'; typed as string because MsgType.gwState is). `isDM` separates a real
     // direct message from a channel/talk-group message (group messages carry isDM=1 too).
     countMsg(from: string, hops: number, globe: string, isDM: boolean, ownCall: string) {
-        if (this.norm(from) === this.norm(ownCall)) return;
+        if (this.norm(from) === this.ownOf(ownCall)) return;
         if (this.note(from, rxCatOf(hops, globe), isDM ? this.dm : this.msg)) this.mirror();
     }
 
     // a received POSITION beacon. Positions are HF-only (never gatewayed), so the globe
     // verdict does not apply - only direct vs. relayed.
     countPos(from: string, hops: number, ownCall: string) {
-        if (this.norm(from) === this.norm(ownCall)) return;
+        if (this.norm(from) === this.ownOf(ownCall)) return;
         if (this.note(from, hops <= 0 ? 'direct' : 'hf', this.pos)) this.mirror();
     }
 

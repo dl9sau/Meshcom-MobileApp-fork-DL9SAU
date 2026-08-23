@@ -208,7 +208,8 @@ changes of this fork relative to upstream. The in-app version shows
   bit set and path not confirmable as local; no globe = definitely local (bit unset).
 
 **Map & Heard**
-- **"MY STATS" panel on the map** (📊 button). A quick, at-a-glance summary of what
+- **"MY STATS" panel** — in the **Info** tab and as a floating panel on the map
+  (📊 button). A quick, at-a-glance summary of what
   you've received **since connecting**: **`#msg`** (text messages from others,
   de-duplicated, split into **hf** = local RF vs **gw** = reached you from the wider
   network) and **`#pos`** (position beacons — always RF), so you can compare *user
