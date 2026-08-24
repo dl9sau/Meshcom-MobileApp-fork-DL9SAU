@@ -45,11 +45,13 @@ const MAX_GAPS = 64;
 const HEY_MIN_SPACING = 0.6;
 // positions: the interval is estimated, so the test is on SPREAD instead
 const POS_SPREAD_MAX = 2.5;
-// The one thing the code cannot prove about the firmware: whether a DIRECTLY heard packet
-// carries path length 0 or 1. Everything here rests on "0 = the node sent it itself", so
-// the first few raw values are logged - if they turn out to be 1, every neighbour would
-// show up as a pure forwarder and this line says why within a minute of a field test.
+// how many raw path lengths to log at the start, so a field test can see what the firmware
+// actually sends without having to trust the calibration below
 const PL_SAMPLES = 5;
+// A node's OWN transmission carries either an empty path or just itself - 0 or 1, nothing
+// else is possible. Capping the learned floor at 1 keeps a single forwarded beacon seen
+// early from being mistaken for the floor.
+const OWN_PL_MAX = 1;
 
 interface Track {
     n: number;
@@ -65,8 +67,44 @@ class LinkRateService {
     private heyOwnTotal = 0;
     private heyFwdTotal = 0;
     private plSamples = 0;
+    // The shortest HEY path length we have ever seen. -1 = nothing seen yet. See calibrate().
+    private ownPl = -1;
 
     private norm(c: string): string { return (c || "").toUpperCase().trim(); }
+
+    // WHICH PATH LENGTH MEANS "the node sent this itself"? The firmware might count the
+    // originator or only the relays - 0 or 1 - and the code cannot prove which. It does not
+    // have to: every Mheard record is a DIRECT reception, and among all HEYs we hear, the
+    // SHORTEST path is by definition one that its sender originated. So we learn the floor
+    // from the traffic instead of assuming it, capped at 1 because nothing else can be a
+    // node's own transmission. Read only over HEY records, never mixed with other packet
+    // types, so a per-type convention could not mislead it.
+    //
+    // The floor can only ever FALL. When it does, everything counted before rested on a
+    // wrong floor - forwarded beacons were filed as somebody's own - so the HEY tally starts
+    // over rather than carrying a wrong figure forward. That costs minutes, not more.
+    private calibrate(pathLen: number) {
+        const pl = Math.min(pathLen, OWN_PL_MAX);
+        if (this.ownPl >= 0 && pl >= this.ownPl) return;
+        const prev = this.ownPl;
+        this.ownPl = pl;
+        if (prev < 0) {
+            LogS.log(0, `HEY path length floor: ${pl} = a node's own beacon`);
+            return;
+        }
+        LogS.log(0, `HEY path length floor drops ${prev} -> ${pl}: ${prev} was not a node's ` +
+            `own beacon after all, HEY figures restarted`);
+        this.hey.clear();
+        this.heyFwd.clear();
+        this.heyOwnTotal = 0;
+        this.heyFwdTotal = 0;
+        LinkRateStore.update(s => { s.hey = {}; s.heyOwn = 0; s.heyRelayed = 0; });
+    }
+
+    // did this node send the beacon itself, or forward a foreign one?
+    private isOwnBeacon(pathLen: number): boolean {
+        return pathLen <= (this.ownPl < 0 ? 0 : this.ownPl);
+    }
 
     // record one reception at `ts`; returns false when it was not usable
     private add(map: Map<string, Track>, call: string, ts: number): boolean {
@@ -106,16 +144,18 @@ class LinkRateService {
         return { got: t.n, expected, intervalMs: interval, irregular };
     }
 
-    // D3: one HEY seen in an Mheard record. `pathLen` decides whose beacon it was: 0 means
-    // the node we heard sent it itself, anything else means it forwarded a foreign one.
+    // D3: one HEY seen in an Mheard record. `pathLen` decides whose beacon it was - against
+    // the floor learned in calibrate(), not against a hard-coded 0.
     noteHey(call: string, ts: number, pathLen: number, ownCall: string) {
         const c = this.norm(call);
-        if (c === "" || c === this.norm(ownCall)) return;
+        if (c === "" || c === this.norm(ownCall) || !(pathLen >= 0)) return;
+        this.calibrate(pathLen);
+        const own = this.isOwnBeacon(pathLen);
         if (this.plSamples < PL_SAMPLES) {
             this.plSamples++;
-            LogS.log(0, `HEY from ${c}: path length ${pathLen} -> ${pathLen <= 0 ? "its own beacon" : "forwarded"}`);
+            LogS.log(0, `HEY from ${c}: path length ${pathLen} -> ${own ? "its own beacon" : "forwarded"}`);
         }
-        if (pathLen > 0) {
+        if (!own) {
             this.heyFwd.set(c, (this.heyFwd.get(c) ?? 0) + 1);
             this.heyFwdTotal++;
             this.mirrorHey(c);
@@ -156,6 +196,8 @@ class LinkRateService {
     getPos(call: string): RateInfo | undefined { return LinkRateStore.getRawState().pos[this.norm(call)]; }
 
     clear() {
+        this.ownPl = -1;
+        this.plSamples = 0;
         this.hey.clear();
         this.heyFwd.clear();
         this.pos.clear();

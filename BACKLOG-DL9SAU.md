@@ -278,6 +278,17 @@ erwartete Zahl über die Zeitspanne ⇒ Quote. Anzeige `HEY: 11/12 (92%) · rela
 beim Connect kommt die Mheard-Liste am Stück, nur die Knoten-Stempel legen die Sätze richtig
 ab; unplausible Uhr ⇒ übersprungen statt gemischt (zwei Uhren in einer Reihe erfänden
 Lücken).
+*Pfadlängen-Konvention wird GELERNT, nicht angenommen* (nach Feldprobe 2026-08-24):
+ob die Firmware bei einem direkt gehörten Paket `0` oder `1` meldet, ist aus dem Code nicht
+beweisbar — die ersten Proben (`3`, `1`, `3`, alle von **db0fri-12**, dessen Positionen die
+App gleichzeitig als „(direct)" loggt) entscheiden es **nicht**: die `1` kann seine eigene
+Bake sein oder eine einmal weitergeleitete. Also lernt der Service den **Boden** selbst: der
+**kürzeste** je gesehene HEY-Pfad ist per Definition eine selbst gesendete Bake. Gedeckelt
+bei **1**, weil nichts anderes eine eigene Aussendung sein kann (leerer Pfad oder nur man
+selbst) — damit ist schon der allererste Satz richtig einsortiert. Der Boden kann nur
+**fallen**; fällt er, waren die bisherigen Zahlen auf falschem Grund gebaut ⇒ HEY-Zähler
+starten neu (kostet Minuten). Nur über HEY-Sätze gelesen, nie mit anderen Pakettypen
+gemischt, damit eine typabhängige Konvention nicht in die Irre führt.
 *Die Asymmetrie, auf der alles steht:* Verlust macht Abstände nur **länger**, nie kürzer.
 Eine Quote gilt deshalb auch bei starkem Verlust weiter — das **ist** die Messung. Nur
 Abstände **kürzer** als die Konstante (< 0,6×) heißen „unsere Annahme stimmt nicht" ⇒ dann

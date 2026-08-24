@@ -1637,18 +1637,21 @@ export function useMSG() {
                                 // which is what makes it the clean link measure - see
                                 // LinkRateService. It never reaches the app as a packet, but
                                 // the firmware writes an Mheard record for EVERY RF reception
-                                // and names the packet type there: PLT 64 = '@' = HEY. Path
-                                // length 0 = this node sent it itself, >0 = it forwarded a
-                                // foreign one. We take the NODE's timestamp, not our receive
+                                // and names the packet type there: PLT 64 = '@' = HEY, plus the
+                                // path length that tells whether this node sent the beacon
+                                // itself or forwarded a foreign one - which of 0 or 1 the
+                                // firmware calls "own" is LEARNED from the traffic rather than
+                                // assumed, see LinkRateService.calibrate.
+                                // We take the NODE's timestamp, not our receive
                                 // time: the mheard list is re-sent in bulk on a connect, and
                                 // only the node's own stamps put those records back where they
                                 // belong. An implausible clock is skipped rather than mixed in
                                 // - two clocks in one series would invent gaps.
-                                if (mheard.PLT === 64) {
+                                if (mheard.PLT === 64 && typeof mheard.PL === "number") {
                                     const hey_ts = Date.parse((mheard.DATE || "") + "T" + (mheard.TIME || ""));
                                     if (isAfter(hey_ts, new Date(2024,1,1)) && isBefore(hey_ts, now_timestamp + 86400000))
                                         LinkRateService.noteHey(mheard.CALL, hey_ts,
-                                            mheard.PL ?? 0, node_call_ref.current);
+                                            mheard.PL, node_call_ref.current);
                                 }
 
                                 const new_mheard:MheardType = {
