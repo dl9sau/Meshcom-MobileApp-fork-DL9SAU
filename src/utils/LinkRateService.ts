@@ -33,9 +33,11 @@ import LogS from "./LogService";
 
 // HEYINFO_INTERVAL - fixed for every node, see the verified firmware facts
 const HEY_INTERVAL_MS = 15 * 60 * 1000;
-// how many gaps before we say anything. HEY needs fewer: its interval is known, we are only
-// counting. For positions the interval itself has to be estimated first.
-const MIN_GAPS_HEY = 2;
+// how many gaps before we say anything. HEY needs only ONE: its 15-min interval is a
+// verified firmware constant, not an estimate, so two beacons already span a measurable
+// stretch - "2 of 4 in the last 45 minutes" is a real statement. For positions the interval
+// itself has to be estimated first, which needs several gaps before it means anything.
+const MIN_GAPS_HEY = 1;
 const MIN_GAPS_POS = 4;
 // keep the recent gaps only - the estimate should follow a node that changes its beaconing
 const MAX_GAPS = 64;

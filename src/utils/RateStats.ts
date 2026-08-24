@@ -25,8 +25,12 @@ export const fmtRate = (r: RateInfo | undefined, showInterval?: boolean): string
 // HEY carries a second figure: foreign beacons this node forwarded for others - how much it
 // carries for the mesh, next to how well WE hear it. A node we only ever caught relaying
 // has no rate of its own, but the relay count is still worth showing.
+//
+// A single own beacon is NOT enough for a quota - but saying nothing about it while printing
+// "relayed 1" next to it reads as "this node only forwards", which is wrong. So an own
+// beacon we cannot yet judge is still counted out loud: "1 heard".
 export const fmtHeyRate = (r: RateInfo | undefined): string | null => {
-    const base = fmtRate(r);
+    const base = fmtRate(r) ?? ((r && r.got > 0) ? r.got + " heard" : null);
     const rel = r?.relayed ?? 0;
     if (base === null) return rel > 0 ? "relayed " + rel : null;
     return rel > 0 ? base + " · relayed " + rel : base;
