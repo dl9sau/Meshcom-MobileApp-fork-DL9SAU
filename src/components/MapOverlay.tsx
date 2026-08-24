@@ -131,9 +131,9 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
     const gwInjMax = useStoreState(GatewayStore, s => s.injMax);
     const gwInjected = Math.max((callUp ? gwInj[callUp] : 0) ?? 0, (callUp ? gwInjMax[callUp] : 0) ?? 0);
     // ONE line for the traffic through this node: what it forwarded at all, and how much of
-    // that it handled as a gateway. The gateway share used to be a line of its own, which
-    // left a plain repeater with no figure at all - it never sets the gw bit (DL9SAU).
-    const relayedText = fmtRelayed((callUp ? relayPkts[callUp] : 0) ?? 0, gwSession, gwAll, gwInjected);
+    // that did not come off the air. A plain repeater has a figure here too - it never sets
+    // the gw bit, so the gateway registry alone left it blank (DL9SAU).
+    const relayedText = fmtRelayed((callUp ? relayPkts[callUp] : 0) ?? 0, gwInjected);
     // D1b: no proof, but this node put more DIFFERENT senders on our air than it claims to
     // hear itself - so at least one of them never reached it over RF. Shown with both raw
     // numbers, and only while D1 has nothing: a proof beats a heuristic.

@@ -38,9 +38,7 @@ const Mheard = () => {
     const adjMax = useStoreState(AdjacencyStore, s => s.max);
     // runtime per-node counters (#pos / #msg received this session)
     const nodeInfoMap = useStoreState(NodeRuntimeStore, s => s.info);
-    // gateway share of the traffic a node relayed to us (D1)
-    const gwCounts = useStoreState(GatewayStore, s => s.counts);
-    const gwMax = useStoreState(GatewayStore, s => s.max);
+    // of the traffic a node relayed to us, the share it fed in from the internet (D1)
     const gwInj = useStoreState(GatewayStore, s => s.inj);
     const gwInjMax = useStoreState(GatewayStore, s => s.injMax);
     // how much of what a node sends we actually hear (D3 HEY / D4 positions)
@@ -100,9 +98,8 @@ const Mheard = () => {
                                                         const nb = fmtNeighbours(adjCounts[key] ?? 0, adjMax[key] ?? 0,
                                                             Math.max(mhs.mh_ncnt ?? 0, nodeInfoMap[key]?.ncnt ?? 0));
                                                         const hv = fmtHeardVia(relayCounts[key] ?? 0, relayMax[key] ?? 0);
-                                                        // traffic through this node incl. the gateway share
-                                                        const rel = fmtRelayed(relayPkts[key] ?? 0, gwCounts[key] ?? 0,
-                                                            gwMax[key] ?? 0,
+                                                        // traffic through this node, and how much of it was injected
+                                                        const rel = fmtRelayed(relayPkts[key] ?? 0,
                                                             Math.max(gwInj[key] ?? 0, gwInjMax[key] ?? 0));
                                                         return (<>
                                                             {nb ? <div className='rowcont'><div>Neighbours:</div><div className='value'>{nb}</div></div> : <></>}

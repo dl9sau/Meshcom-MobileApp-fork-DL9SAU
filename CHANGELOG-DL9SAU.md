@@ -234,10 +234,10 @@ changes of this fork relative to upstream. The in-app version shows
   (local sender, several relays) deliberately is not. Gateways get a **darkorange marker**
   — own station stays purple, direct neighbours green — and the node overlay gains a
   **`Relayed:`** line that says how much traffic a node carried for you — **`128 pkts`** for
-  *any* relay, not just gateways, plus **`gatewayed 45`** and **`12 from internet`** where
-  the `gw` bit applies. The three nest: everything it forwarded, the part it handled as a
-  gateway, and the part it fed in from the internet rather than passing on air traffic (the
-  `gw` bit alone does not tell those two apart). Next to it, **`Heard via`** keeps counting
+  *any* relay, not just gateways, and **`12 from internet`**: the ones it fed in rather than
+  picked up off the air. (The count of packets carrying the `gw` bit is deliberately not
+  shown: the firmware sets that bit both for injecting and for merely repeating, so the
+  number mixes the two and explains nothing.) Next to it, **`Heard via`** keeps counting
   unique *stations* — both units are now spelled out, because the two lines look alike. The all-time figure
   is rebuilt on startup from the stored messages, so it is there right after a restart.
   A **second, weaker detector** fills the gap the first one leaves open: whoever stands

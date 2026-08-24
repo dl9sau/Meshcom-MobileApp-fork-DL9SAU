@@ -272,14 +272,21 @@ weiterreicht oder einspeist. Jede gezählte Nachricht **beweist** damit zwar die
 Gateway-Eigenschaft, aber der gewöhnliche Repeater hatte gar keine Verkehrszahl (Einwand
 DL9SAU). *Gelöst 2026-08-24 in seiner Form* — **eine** Zeile über den Verkehr durch den
 Knoten, der Gateway-Anteil als Zusatz:
-`Relayed: 128 pkts, gatewayed 45 (max 60), 12 from internet`
+`Relayed: 128 pkts, 12 from internet`
 - **`pkts`** — alles, was er uns weitergereicht hat, Gateway oder nicht. Neuer Zähler in
   `RelayCountService` (je Relay im Pfad ein Paket), **session-only**: die DB hält eine Zeile
   je Station, es gibt keine Paket-Historie zum Nachspielen, ein „(max)" wäre erfunden.
   Positionen zählen mit ⇒ `pkts`, nicht `msgs`.
-- **`gatewayed`** — davon die mit gw-Bit; jede Zahl > 0 beweist die Gateway-Eigenschaft.
-  `(max n)` nur, wenn der all-time-Wert den Session-Wert übersteigt.
-- **`from internet`** — davon die eingespeisten (`gwState === 'solid'`).
+- **`from internet`** — davon die, die dieser Knoten **eingespeist** hat (`gwState 'solid'`:
+  der Absender war nicht auf unserer Luft bestätigt). Dasselbe Urteil, das die Weltkugel an
+  einer einzelnen Nachricht fällt — also ein Begriff, den der Nutzer schon kennt.
+- **Bewusst NICHT mehr angezeigt: die Zahl der Pakete mit gw-Bit** (vorher „gatewayed 45").
+  *Prüfstein DL9SAU 2026-08-24: „Ich könnte einem Nutzer den Unterschied zwischen den 45
+  gatewayten Paketen und den 12 aus dem Internet nicht erklären."* Genau — die 45 mischen
+  Einspeisungen und bloß wiederholten HF-Verkehr, weil die Firmware dasselbe Bit für beides
+  setzt. Sie ist ein Artefakt unserer Erkennungsmethode, keine Größe, die jemanden
+  interessiert. Die Registry zählt sie weiter (sie entscheidet die Kartenfarbe), sie ist nur
+  nichts zum Ablesen.
 `Heard via` bleibt daneben stehen und zählt weiterhin **Stationen** — jetzt mit
 ausgeschriebener Einheit, damit die beiden Zeilen nicht verwechselt werden.
 

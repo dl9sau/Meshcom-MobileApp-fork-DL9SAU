@@ -33,32 +33,25 @@ export const fmtNeighbours = (session: number, max: number, advertised: number):
 export const fmtHeardVia = (session: number, max: number): string | null =>
     (session > 0 || max > 0) ? fmtCount(session, max) + " stations" : null;
 
-// "128 pkts, gatewayed 45, 12 from internet" - how much traffic this node carried for us,
-// and how much of it it handled AS A GATEWAY.
+// "128 pkts, 12 from internet" - how much traffic this node carried for us, and how much of
+// it did not come off the air at all.
+//   pkts     - everything it forwarded towards us, gateway or not. This is the figure a
+//              PLAIN REPEATER has, and it used to exist nowhere: the gateway count only ever
+//              fires on a set gw bit, which a normal node never sets. Positions count too,
+//              hence "pkts" and not "msgs".
+//   internet - of those, the ones this node fed in: the sender was not confirmed on our air,
+//              which is the same judgement the globe marker makes on a single message.
 //
-// Two figures, deliberately in one line (idea DL9SAU 2026-08-24), because the second is a
-// subset of the first and reading them apart invites the wrong conclusion:
-//   pkts      - everything it forwarded towards us, gateway or not. This is the figure a
-//               PLAIN REPEATER has, and it used to exist nowhere: the gateway count only
-//               ever fires on a set gw bit, which a normal node never sets. Positions count
-//               too, hence "pkts" and not "msgs".
-//   gatewayed - of those, the ones carrying the gw bit, i.e. where this node was the
-//               gatewaying hop. Any number above zero PROVES the node is a gateway.
-//   internet  - of those again, the ones whose origin was not HF-confirmed, so this node
-//               fed them in rather than passing on air traffic. The gw bit alone does not
-//               separate the two - see the gateway registry.
-// "(max n)" appears on the gateway figure only when it exceeds the session count: it is
-// replayed from the database on startup, while the packet count is session-only (the
-// database keeps one row per station, so there is no packet history to replay).
-export const fmtRelayed = (pkts: number, gwSession: number, gwMax: number,
-                           injected: number): string | null => {
-    const gw = Math.max(gwSession, 0);
-    if (pkts <= 0 && gw <= 0 && gwMax <= 0) return null;
+// What is deliberately NOT shown any more is the count of packets carrying the gw bit (was:
+// "gatewayed 45"). It looks like a third quantity but is an artefact of how we detect
+// gateways: the firmware sets that bit BOTH when a gateway injects and when it merely
+// repeats air traffic, so the number mixes the two and cannot be explained to anyone in one
+// sentence - which is exactly the test it failed (DL9SAU, 2026-08-24). The registry still
+// counts it internally; it decides the map colour, it just is not a figure to read.
+export const fmtRelayed = (pkts: number, injected: number): string | null => {
+    if (pkts <= 0 && injected <= 0) return null;
     const parts: string[] = [];
     if (pkts > 0) parts.push(pkts + " pkts");
-    if (gw > 0 || gwMax > 0) {
-        parts.push("gatewayed " + gw + (gwMax > gw ? " (max " + gwMax + ")" : ""));
-        if (injected > 0) parts.push(injected + " from internet");
-    }
+    if (injected > 0) parts.push(injected + " from internet");
     return parts.join(", ");
 };
