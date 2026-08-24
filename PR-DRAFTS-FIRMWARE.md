@@ -5,7 +5,17 @@ der Fix zuerst, dann die kleinen Ergänzungen, das Längenthema zuletzt.
 
 Hausordnung des Repos (`CLAUDE.md` dort): gegen `dev`, vorher rebasen, **minimale
 Änderungen ohne Refactorings**, Beschreibung **auf Deutsch** und **vor** dem Absenden
-verfasst. Vor jedem Absenden einmal `pio run`.
+verfasst. Vor jedem Absenden einmal bauen:
+
+```bash
+pio run -e ttgo_tbeam        # ~3 min, espressif32 6.13.0 ist lokal vorhanden
+```
+
+Der Clone braucht dafür `src`, `variants`, `lib` und `boards` im sparse-checkout
+(`git sparse-checkout set src variants lib boards`) — die Board-Umgebungen kommen über
+`extra_configs = variants/*/platformio.ini`, sonst kennt PlatformIO nur die safeboot-Envs.
+**Ihre CI baut nur bei Tag-Pushes** (`on: push: tags`), ein PR wird dort *nicht*
+automatisch kompiliert — der lokale Build ist also der einzige Nachweis.
 
 Ablauf je PR (kein `gh` nötig):
 ```bash
@@ -79,11 +89,10 @@ damit die gespeicherte Liste nicht anders serialisiert als der Live-Pfad.
 
 ---
 
-### Offen vor dem Absenden
-- **Nicht kompiliert/geflasht** — hier ist kein Build-Setup vorhanden. Vor dem PR einmal
-  `pio run -e <env>` (DL9SAU hat RAK4631/Heltec) laufen lassen.
-- Vorher auf aktuellen `dev` rebasen (Regel aus der `CLAUDE.md` des Firmware-Repos).
-- Ziel-Branch ist **`dev`**, nicht `main`.
+### Status
+**Kompiliert** gegen `dev`: `pio run -e ttgo_tbeam` (espressif32 6.13.0, ArduinoJson 7.4.3)
+— SUCCESS, keine neuen Warnungen. Diese Zeile gehört in den PR-Text.
+Eingereicht 2026-08-24.
 
 
 ---
