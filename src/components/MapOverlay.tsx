@@ -8,6 +8,7 @@ import MhStore from "../store/MheardStore";
 import NodeRuntimeStore from "../store/NodeRuntimeStore";
 import RelayCountStore from "../store/RelayCountStore";
 import AdjacencyStore from "../store/AdjacencyStore";
+import GatewayStore from "../store/GatewayStore";
 import { fmtNeighbours, fmtHeardVia } from "../utils/NeighbourStats";
 import { useHistory } from "react-router";
 import ConfigObject from "../utils/ConfigObject";
@@ -110,6 +111,15 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
     const heardViaText = fmtHeardVia(
         (callUp ? relayCounts[callUp] : 0) ?? 0,
         (callUp ? relayMax[callUp] : 0) ?? 0);
+
+    // GATEWAY (D1): messages we could attribute to this node as the gatewaying hop.
+    // Only ever grows - a node that gatewayed once is a gateway - so the figure says how
+    // busy it is, not whether it still is one. null when we never saw it gateway anything.
+    const gwCounts = useStoreState(GatewayStore, s => s.counts);
+    const gwMax = useStoreState(GatewayStore, s => s.max);
+    const gatewayText = fmtHeardVia(
+        (callUp ? gwCounts[callUp] : 0) ?? 0,
+        (callUp ? gwMax[callUp] : 0) ?? 0);
 
     // route path for display: origin dropped, wrapped after every 2 calls
     const pathLines = nodeInfo ? formatPathLines(nodeInfo.path, callSign) : [];
@@ -215,6 +225,9 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
                                     {directNeighboursText !== null ? <><IonText>Neighbours: {directNeighboursText}</IonText><br /></> : <></>}
                                     {/* Heard via this node - only for our own direct neighbours */}
                                     {heardViaText !== null ? <><IonText>Heard via: {heardViaText}</IonText><br /></> : <></>}
+                                    {/* Gateway (D1): shown only for nodes we could prove gatewayed
+                                        something. The number is how many messages, not a confidence. */}
+                                    {gatewayText !== null ? <><IonText>GW: {gatewayText}</IonText><br /></> : <></>}
                                     {/* booked talk groups (R= field), if the node reports any */}
                                     {nodeInfo?.groups ? <><IonText>Grp: {nodeInfo.groups.split(",").sort((a, b) => (parseInt(a) || 0) - (parseInt(b) || 0)).join(", ")}</IonText><br /></> : <></>}
                                     {/* sensor values: hidden when empty (0 = no sensor; temp uses 999 as n.a.) */}

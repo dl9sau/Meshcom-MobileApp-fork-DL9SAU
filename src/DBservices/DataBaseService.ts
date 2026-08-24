@@ -10,6 +10,7 @@ import NodeRuntimeService from "../utils/NodeRuntimeService";
 import RelayCountService from "../utils/RelayCountService";
 import AdjacencyService from "../utils/AdjacencyService";
 import HfHeardService from "../utils/HfHeardService";
+import GatewayService from "../utils/GatewayService";
 import { msgDiscarded, baseCall, isChannelMention } from "../utils/NotifyPrefs";
 import { computeGlobeState } from "../utils/GlobeState";
 import PosiStore from "../store/PosiStore";
@@ -287,6 +288,17 @@ class DatabaseService {
                 if (txtMsgs.length > 0) {
                     //apply filters, updates the store then
                     DatabaseService.applyFilters(escTxtMsgs);
+
+                    // rebuild the gateway registry (D1) from the stored messages: gw bit,
+                    // frozen gwState and route path are all persisted, so the "(max N)"
+                    // figure is there right after a restart instead of starting at zero.
+                    // Bounded by the retention settings, like every other DB-derived count.
+                    // Uses the RAW rows, not escTxtMsgs - the escaping is for display.
+                    const ownCall = AppPrefsStore.getRawState().ownCall;
+                    for (const m of txtMsgs as MsgType[]) {
+                        if (m.gw === 1 && m.via) GatewayService.seed(m.gw, m.gwState ?? '', m.via, ownCall);
+                    }
+                    GatewayService.seedDone();
                 }
 
                 // update the store with positions

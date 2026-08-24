@@ -53,6 +53,7 @@ import RelayCountService from '../utils/RelayCountService';
 import AdjacencyService from '../utils/AdjacencyService';
 import NodeRuntimeService from '../utils/NodeRuntimeService';
 import StatsService from '../utils/StatsService';
+import GatewayService from '../utils/GatewayService';
 import HfHeardService from '../utils/HfHeardService';
 import { computeGlobeState } from '../utils/GlobeState';
 import { distanceKm } from '../utils/GeoUtils';
@@ -696,6 +697,15 @@ export function useMSG() {
                         // could dim mid-session but show its frozen (undimmed) DB value
                         // after a restart. Freezing here keeps in-memory == persisted.
                         newMsgDB.gwState = computeGlobeState(newMsgDB);
+
+                        // gateway registry (D1): the gw bit plus the route path tell us
+                        // WHICH node gatewayed this - see GatewayService for the three
+                        // cases. Needs the frozen gwState, so it has to sit after the line
+                        // above. Command echoes ("--") never carry a foreign path.
+                        if (!msg_text_.startsWith("--")) {
+                            GatewayService.note(newMsgDB.gw ?? 0, newMsgDB.gwState, node_path,
+                                node_call_ref.current);
+                        }
 
                         // app-wide receive stats (from others, skip -- command echoes):
                         // sorted by how it reached us (direct / relayed-HF / gateway) and

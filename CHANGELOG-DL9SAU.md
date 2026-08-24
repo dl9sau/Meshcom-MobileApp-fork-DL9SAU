@@ -219,6 +219,16 @@ changes of this fork relative to upstream. The in-app version shows
   first copy of each packet), so they're *unique* messages, not airtime. (What the
   firmware doesn't expose — packets you relayed, gateway throughput, airtime — isn't
   shown; noted as a firmware wishlist.)
+- **Gateways are identified and marked orange on the map.** MeshCom never says which
+  node is an MQTT gateway, but the `gw` bit plus the route path give it away: the bit is
+  set only by a node that relays *as* a gateway or injects a message from the internet,
+  never by a node for its own traffic. So a gatewayed message with **exactly one relay**
+  proves that relay is a gateway, and one whose **sender is not confirmed local** was
+  injected by the first relay in its path. Both cases are recorded; the ambiguous one
+  (local sender, several relays) deliberately is not. Gateways get a **darkorange marker**
+  — own station stays purple, direct neighbours green — and the node overlay gains a
+  **`GW: n (max m)`** line counting the messages attributed to them. The all-time figure
+  is rebuilt on startup from the stored messages, so it is there right after a restart.
 - **Booked talk groups per node** (`Grp: 232, 2321`) — the talk groups a node has
   subscribed to (from the firmware `R=` field) are shown in the **map node overlay**
   and the **Mheard list**, and persist across restarts (ported from upstream: a

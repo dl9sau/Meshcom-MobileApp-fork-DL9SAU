@@ -12,6 +12,7 @@ import { ConfType, PosType, MheardType } from '../utils/AppInterfaces';
 import { MapOverlay } from '../components/MapOverlay';
 import {compass, chevronUpCircle, search, swapHorizontal, contract, statsChart} from 'ionicons/icons';
 import MhStore from '../store/MheardStore';
+import GatewayStore from '../store/GatewayStore';
 import NodeRuntimeStore from '../store/NodeRuntimeStore';
 import { StatsPanel } from '../components/StatsPanel';
 import AppActiveState from '../store/AppActive';
@@ -56,6 +57,10 @@ const NodeMap = () => {
   const markerColor_mh = "green";
   const markerColor_own = "purple";
   const markerColor_xcall = "#3ba6db";
+  // D8: proven gateways. Orange, because green is taken by "direct neighbour" (a light
+  // green next to it is exactly the confusion we want to avoid) and purple by our own
+  // station. Darkorange rather than plain orange - it holds up better on a light map.
+  const markerColor_gw = "#ff8c00";
 
 
   const [ showCurrentPointInfo, setShowCurrentPointInfo ] = useState(false);
@@ -76,6 +81,10 @@ const NodeMap = () => {
   // mheards to set color of points
   const mheard_calls = useRef<string []>([]);
   const mharr_s = MhStore.useState(m => m.mhArr);
+  // proven gateways (D1), for the orange markers - subscribed so a newly learned gateway
+  // recolours its marker without waiting for the next position
+  const gwCounts_s = GatewayStore.useState(s => s.counts);
+  const gwMax_s = GatewayStore.useState(s => s.max);
   const curr_nodecall = useRef<string>("");
 
   // svg lines from own node to heard nodes
@@ -602,7 +611,14 @@ const NodeMap = () => {
     pos_call = pos_call.toUpperCase();
     const regex = /^OE[1-9]X[A-Z]{1,2}-\d{1,2}$/; // Austrian Club Station or Repeater site
 
+    // D8: a proven gateway (see GatewayService) outranks "direct neighbour". A node can be
+    // both, and a marker has exactly one colour - but that it is a direct neighbour is
+    // already in the Heard list, while "this one bridges to the wider network" is shown
+    // nowhere else. Own station still wins over everything.
+    const isGateway = (gwMax_s[pos_call] ?? 0) > 0 || (gwCounts_s[pos_call] ?? 0) > 0;
+
     if(currConfig.callSign === pos_call) color = markerColor_own;
+    else if (isGateway) color = markerColor_gw;
     else if (mheard_calls.current.includes(pos_call)) color = markerColor_mh;
     else if (regex.test(pos_call) && !(mheard_calls.current.includes(pos_call))) color = markerColor_xcall;
     else color = markerColor;

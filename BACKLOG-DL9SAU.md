@@ -201,7 +201,20 @@ eine Selbstauskunft (kann veralten) → Zeitfenster begrenzen oder einen Sicherh
 verlangen; dann „wahrscheinlich GW" statt „sicher". Aufwand **klein** (ein Set je Knoten
 aus Pfadposition 0→1, plus Vergleich) — der Lernteil liegt schon in AdjacencyService.
 
-**D1 — Gateway-Registry (ohne Firmware-Änderung)**
+**D1 — ✅ GEBAUT** — Gateway-Registry (ohne Firmware-Änderung)
+*Gebaut 2026-08-24 zusammen mit D8:* `GatewayService` + `GatewayStore`, Regeln 1:1 nach
+der Tabelle unten. Live beim Empfang (nach dem Einfrieren von `gwState`), plus **Replay
+beim Start** aus den gespeicherten Nachrichten — `gw`, `gwState` und `via` sind alle
+persistiert, also steht „(max n)" sofort nach einem Neustart da statt bei 0 anzufangen
+(retention-begrenzt wie alles DB-Abgeleitete). Anzeige: Zeile **`GW: n (max m)`** im
+Knoten-Overlay, nur bei Knoten, denen wir etwas nachweisen konnten. Einseitig: wir
+**setzen** Gateways, nehmen sie nie zurück — die Zahl sagt, wie viel es trägt, nicht ob
+es heute noch eines ist. Offline gegen 19 Fälle geprüft.
+*Offen bleibt Zeile 4 der Tabelle* (Quelle HF-bestätigt, mehrere Relays) — dafür ist D1b da.
+*Diagnose nebenbei:* gw-Bit **ohne** jedes Relay im Pfad wird gezählt und geloggt. Träte
+das auf, hängt ein einspeisendes Gateway sich **nicht** selbst in den Pfad — dann wäre
+auch die Weltkugel-Annahme „0 Hops = wir hörten die eigene HF des Absenders" zu prüfen.
+
 | Fall | Schluss |
 |---|---|
 | kein GW-Bit | reines HF — sicher |
@@ -265,7 +278,13 @@ Pin **und** Textlabel ersetzen. Offene Fragen: **ab welcher Zoomstufe** (sonst B
 Braucht Sichtprüfung am Gerät. **Teilt sich die Umbaukosten mit D8** — beide brauchen den
 Wechsel von `<Marker>` auf `<Overlay>`.
 
-**D8 — Gateways auf der Karte farblich markieren** *(Idee DL9SAU, 2026-08-23)*
+**D8 — ✅ GEBAUT** — Gateways auf der Karte farblich markieren *(Idee DL9SAU, 2026-08-23)*
+*Gebaut 2026-08-24:* `#ff8c00` (darkorange, hält sich besser auf heller Karte als reines
+Orange). **Vorrang: eigenes Rufzeichen > Gateway > Mheard > OE-Regex > Standard.** Ein
+Knoten kann beides sein, ein Marker hat aber eine Farbe — und „direkter Nachbar" steht
+schon in der Heard-Liste, „das hier brückt ins Netz" nirgends sonst. Der `<Overlay>`-Umbau
+(D6) war dafür **nicht** nötig; er bleibt offen, falls beides gleichzeitig sichtbar sein soll.
+
 Heute kennt `setMarkerColor()` vier Fälle: **purple** = eigenes Rufzeichen, **green** =
 in der Mheard-Liste (direkter HF-Nachbar), **hellblau** `#3ba6db` = österreichische
 Club-/Relais-Rufzeichen per Regex `^OE[1-9]X[A-Z]{1,2}-\d{1,2}$`, sonst **blau** `#3578e5`.
