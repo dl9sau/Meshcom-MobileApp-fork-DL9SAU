@@ -401,6 +401,12 @@ werden nur nicht serialisiert. ⇒ Als **PR im Aufwasch**, nicht als Bitte.
    bestätigen wir HF über **4 Hops** (HEY-Reichweite) statt 2 (Positions-Reichweite).
    *Liegt bereit:* `lora_functions.cpp` füllt `mheardLine.mh_sourcecallsign = aprsmsg.msg_source_call;`
    ⇒ `mhdoc["SRC"] = mheardLine.mh_sourcecallsign.c_str();`
+   *Gemessene Begründung* (Feldtest DL9SAU, 2026-08-24, ~75 min an einem Standort mit
+   **einem** direkten Nachbarn): 16 HEY-Beobachtungen, davon **5 zuordenbar** (die eigenen
+   Baken des Nachbarn) und **11 nicht** — weitergeleitete HEYs fremder Knoten, deren
+   Ursprung die Firmware kennt und nicht mitschickt. Mit `SRC` wären das 11 HF-Bestätigungen
+   für entfernte Knoten, und D3 könnte auch für Stationen eine Quote führen, die wir nie
+   direkt hören. Ohne `SRC` bleibt D3 auf die Handvoll direkter Nachbarn beschränkt.
 2. **`"GW"` ins MH-JSON** — die Firmware **wertet `HG` schon aus**:
    `mheard_functions.cpp:537 if(mheardLine.mh_destinationpath == "HG") mheardPathLen[ipos] = ... | 0x80;`
    — sie merkt sich das Gateway-Bit für ihre eigene Pfadtabelle, schickt es aber nicht.
