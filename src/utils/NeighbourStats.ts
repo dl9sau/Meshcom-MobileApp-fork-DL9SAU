@@ -33,8 +33,11 @@ export const fmtNeighbours = (session: number, max: number, advertised: number):
 export const fmtHeardVia = (session: number, max: number): string | null =>
     (session > 0 || max > 0) ? fmtCount(session, max) + " stations" : null;
 
-// "128 pkts, 12 from internet" - how much traffic this node carried for us, and how much of
-// it did not come off the air at all.
+// "128 pkts (12 from internet)" - how much traffic this node carried for us, and how much of
+// it did not come off the air at all. The second figure is a SUBSET of the first, which is
+// why it sits in brackets: with a comma it read like a second, separate quantity (asked in
+// the field, DL9SAU 2026-08-24). Both count the same event - one packet that reached us
+// through this node.
 //   pkts     - everything it forwarded towards us, gateway or not. This is the figure a
 //              PLAIN REPEATER has, and it used to exist nowhere: the gateway count only ever
 //              fires on a set gw bit, which a normal node never sets. Positions count too,
@@ -51,9 +54,6 @@ export const fmtHeardVia = (session: number, max: number): string | null =>
 // sentence - which is exactly the test it failed (DL9SAU, 2026-08-24). The registry still
 // counts it internally; it decides the map colour, it just is not a figure to read.
 export const fmtRelayed = (pkts: number, injected: number): string | null => {
-    if (pkts <= 0 && injected <= 0) return null;
-    const parts: string[] = [];
-    if (pkts > 0) parts.push(pkts + " pkts");
-    if (injected > 0) parts.push(injected + " from internet");
-    return parts.join(", ");
+    if (pkts <= 0) return null;
+    return pkts + " pkts" + (injected > 0 ? " (" + injected + " from internet)" : "");
 };

@@ -272,7 +272,9 @@ weiterreicht oder einspeist. Jede gezählte Nachricht **beweist** damit zwar die
 Gateway-Eigenschaft, aber der gewöhnliche Repeater hatte gar keine Verkehrszahl (Einwand
 DL9SAU). *Gelöst 2026-08-24 in seiner Form* — **eine** Zeile über den Verkehr durch den
 Knoten, der Gateway-Anteil als Zusatz:
-`Relayed: 128 pkts, 12 from internet`
+`Relayed: 128 pkts (12 from internet)` — die Klammer, weil die zweite Zahl eine
+**Teilmenge** der ersten ist; mit Komma las sie sich wie eine zweite, eigene Größe
+(Rückfrage DL9SAU: „128 beinhaltet die 12?").
 - **`pkts`** — alles, was er uns weitergereicht hat, Gateway oder nicht. Neuer Zähler in
   `RelayCountService` (je Relay im Pfad ein Paket), **session-only**: die DB hält eine Zeile
   je Station, es gibt keine Paket-Historie zum Nachspielen, ein „(max)" wäre erfunden.
