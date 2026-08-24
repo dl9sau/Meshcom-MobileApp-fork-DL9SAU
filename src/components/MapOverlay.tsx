@@ -122,10 +122,11 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
     const gatewayText = fmtHeardVia(
         (callUp ? gwCounts[callUp] : 0) ?? 0,
         (callUp ? gwMax[callUp] : 0) ?? 0);
-    // Of those messages, the ones this node fed IN from the network - the rest it merely
-    // passed on after hearing it on the air. The gw bit is set for both, so without this
-    // split the figure says "how much passes through here", not "how much comes from the
-    // network through here".
+    // Of those messages, the ones this node fed in FROM THE INTERNET - the rest it merely
+    // passed on after hearing them on the air. The gw bit is set for both, so without the
+    // split the figure says "how much passes through here", not "how much of it did this
+    // node inject". Wording: "from internet", not "from the network" - on a mesh the RF side
+    // is a network too, so that word decides nothing (DL9SAU).
     const gwInj = useStoreState(GatewayStore, s => s.inj);
     const gwInjMax = useStoreState(GatewayStore, s => s.injMax);
     const gwInjected = Math.max((callUp ? gwInj[callUp] : 0) ?? 0, (callUp ? gwInjMax[callUp] : 0) ?? 0);
@@ -258,7 +259,7 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
                                         this is MESSAGES - and both are formatted "n (max m)", which is
                                         exactly how you misread one for the other (asked in the field,
                                         DL9SAU 2026-08-24). */}
-                                    {gatewayText !== null ? <><IonText>GW: {gatewayText} msgs{gwInjected > 0 ? ", " + gwInjected + " from the network" : ""}</IonText><br /></> : <></>}
+                                    {gatewayText !== null ? <><IonText>GW: {gatewayText} msgs{gwInjected > 0 ? ", " + gwInjected + " from internet" : ""}</IonText><br /></> : <></>}
                                     {/* Gateway (D1b): the weaker detector - more senders seen
                                         in front of this node than it advertises neighbours. */}
                                     {gatewayProbablyText !== null ? <><IonText>GW: {gatewayProbablyText}</IonText><br /></> : <></>}
