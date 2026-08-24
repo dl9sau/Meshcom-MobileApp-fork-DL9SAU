@@ -113,7 +113,7 @@ Eingereicht 2026-08-24.
 
 ---
 
-# PR 2 — `feat/mh-json-src-gw`
+# PR 2 — `feat/mh-json-src-gw`  *(Branch + Commit `c04ed7b` liegen vor, gebaut)*
 
 **Titel:** MH-JSON: Ursprungsrufzeichen und Gateway-Kennung mitsenden
 
@@ -166,7 +166,14 @@ Längenwirkung gering (~26 Zeichen), Puffer ist 300 groß, ein Datensatz liegt b
 
 ---
 
-# PR 3 — `feat/mh-json-hey-path`
+# PR 3 — `feat/mh-json-hey-path`  *(Branch + Commit `fff4010` liegen vor, gebaut)*
+
+> **Beim Bauen gefunden — der Einzeiler reichte nicht:** `mh_path_payload` wird in
+> `lora_functions.cpp` erst **nach** dem Aufruf von `updateMheard()` gesetzt. Zum Zeitpunkt
+> der JSON-Erzeugung ist das Feld also leer, ein `mhdoc["PP"]` wäre immer leer geblieben.
+> Der Patch verschiebt die Zuweisung deshalb in den Block, in dem ohnehin alle Felder aus
+> `aprsmsg` übernommen werden. Die spätere Zuweisung für `updateHeyPath()` bleibt
+> unberührt — sie ist jetzt redundant, aber sie anzufassen wäre über den Anlass hinaus.
 
 **Titel:** MH-JSON: HEY-Pfad-Payload mitsenden (RSSI/SNR je Hop)
 
@@ -200,7 +207,7 @@ Sinnvoll **nach** dem Puffer-PR, der die fehlende Längenprüfung nachrüstet.
 
 ---
 
-# PR 4 — `feat/info-json-flash-version`
+# PR 4 — `feat/info-json-flash-version`  *(Branch + Commit `ae15bb7` liegen vor, gebaut)*
 
 **Titel:** Info-JSON: Build-Datum (`FLASH_VERSION`) mitsenden
 
@@ -232,3 +239,28 @@ Eingriff in den Build und nicht Teil dieses PRs.
 ## Umfang
 
 Eine Zeile, ein zusätzlicher Schlüssel, keine Änderung an bestehenden Feldern.
+Das Info-JSON liegt damit bei grob 260 Zeichen; die vorhandene Begrenzung greift bei
+`MAX_MSG_LEN_PHONE - 2` = 298. Hier ist der Hinweis wichtiger als beim Mheard-Pfad, weil
+eine Überschreitung das JSON **abschneiden** und damit unbrauchbar machen würde.
+
+---
+
+# Stand
+
+| PR | Branch | Commit | Gebaut | Eingereicht |
+|---|---|---|---|---|
+| 1 | `fix/mheard-ble-buffer-guard` | `a0d2475` | ✅ | ✅ 2026-08-24 |
+| 2 | `feat/mh-json-src-gw` | `c04ed7b` | ✅ | offen |
+| 3 | `feat/mh-json-hey-path` | `fff4010` | ✅ | offen |
+| 4 | `feat/info-json-flash-version` | `ae15bb7` | ✅ | offen |
+
+Alle vier von `origin/dev` abgezweigt, keiner baut auf einem anderen auf. Je PR:
+
+```bash
+git push -u fork <branch>
+```
+dann `https://github.com/icssw-org/MeshCom-Firmware/compare/dev...dl9sau:MeshCom-Firmware:<branch>?expand=1`
+
+Titel und Beschreibung füllt GitHub aus der Commit-Nachricht — nichts zu kopieren.
+Wird einer gemergt, brauchen die anderen `git fetch origin dev && git rebase origin/dev`
+(PR 2 und 3 fassen denselben `mhdoc`-Block an).
