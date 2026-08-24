@@ -229,6 +229,14 @@ changes of this fork relative to upstream. The in-app version shows
   — own station stays purple, direct neighbours green — and the node overlay gains a
   **`GW: n (max m)`** line counting the messages attributed to them. The all-time figure
   is rebuilt on startup from the stored messages, so it is there right after a restart.
+  A **second, weaker detector** fills the gap the first one leaves open: whoever stands
+  directly in front of a relay in a path was heard by it on RF — so a node that puts
+  **more different senders on our air than the number of neighbours it advertises itself**
+  (`/N` field, Mheard `NCNT`) must have fed some of them in from the internet. Sharpest at
+  `N1`, where the second differing sender already gives it away; compared only inside the
+  12 h its own list covers. That is a heuristic, not a proof, so it is kept out of the
+  count and off the map colour — the overlay just says
+  **`GW: probably (7 senders relayed, advertises 5)`**.
 - **Booked talk groups per node** (`Grp: 232, 2321`) — the talk groups a node has
   subscribed to (from the firmware `R=` field) are shown in the **map node overlay**
   and the **Mheard list**, and persist across restarts (ported from upstream: a

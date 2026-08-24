@@ -120,6 +120,14 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
     const gatewayText = fmtHeardVia(
         (callUp ? gwCounts[callUp] : 0) ?? 0,
         (callUp ? gwMax[callUp] : 0) ?? 0);
+    // D1b: no proof, but this node put more DIFFERENT senders on our air than it claims to
+    // hear itself - so at least one of them never reached it over RF. Shown with both raw
+    // numbers, and only while D1 has nothing: a proof beats a heuristic.
+    const gwProbable = useStoreState(GatewayStore, s => s.probable);
+    const gwProb = callUp ? gwProbable[callUp] : undefined;
+    const gatewayProbablyText = (gatewayText === null && gwProb)
+        ? "probably (" + gwProb.seen + " senders relayed, advertises " + gwProb.advertised + ")"
+        : null;
 
     // route path for display: origin dropped, wrapped after every 2 calls
     const pathLines = nodeInfo ? formatPathLines(nodeInfo.path, callSign) : [];
@@ -228,6 +236,9 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
                                     {/* Gateway (D1): shown only for nodes we could prove gatewayed
                                         something. The number is how many messages, not a confidence. */}
                                     {gatewayText !== null ? <><IonText>GW: {gatewayText}</IonText><br /></> : <></>}
+                                    {/* Gateway (D1b): the weaker detector - more senders seen
+                                        in front of this node than it advertises neighbours. */}
+                                    {gatewayProbablyText !== null ? <><IonText>GW: {gatewayProbablyText}</IonText><br /></> : <></>}
                                     {/* booked talk groups (R= field), if the node reports any */}
                                     {nodeInfo?.groups ? <><IonText>Grp: {nodeInfo.groups.split(",").sort((a, b) => (parseInt(a) || 0) - (parseInt(b) || 0)).join(", ")}</IonText><br /></> : <></>}
                                     {/* sensor values: hidden when empty (0 = no sensor; temp uses 999 as n.a.) */}

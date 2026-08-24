@@ -10,7 +10,7 @@ import NodeRuntimeService from "../utils/NodeRuntimeService";
 import RelayCountService from "../utils/RelayCountService";
 import AdjacencyService from "../utils/AdjacencyService";
 import HfHeardService from "../utils/HfHeardService";
-import GatewayService from "../utils/GatewayService";
+import GatewayInference from "../utils/GatewayInferenceService";
 import { msgDiscarded, baseCall, isChannelMention } from "../utils/NotifyPrefs";
 import { computeGlobeState } from "../utils/GlobeState";
 import PosiStore from "../store/PosiStore";
@@ -285,6 +285,9 @@ class DatabaseService {
                 const txtMsgs = await DatabaseService.getTextMessages();
                 const escTxtMsgs = DatabaseService.escapeQuotesInArr(txtMsgs);
 
+                // needed by the gateway/adjacency replays below
+                const ownCall = AppPrefsStore.getRawState().ownCall;
+
                 if (txtMsgs.length > 0) {
                     //apply filters, updates the store then
                     DatabaseService.applyFilters(escTxtMsgs);
@@ -294,11 +297,14 @@ class DatabaseService {
                     // figure is there right after a restart instead of starting at zero.
                     // Bounded by the retention settings, like every other DB-derived count.
                     // Uses the RAW rows, not escTxtMsgs - the escaping is for display.
-                    const ownCall = AppPrefsStore.getRawState().ownCall;
                     for (const m of txtMsgs as MsgType[]) {
-                        if (m.gw === 1 && m.via) GatewayService.seed(m.gw, m.gwState ?? '', m.via, ownCall);
+                        if (!m.via) continue;
+                        if (m.gw === 1) GatewayInference.seed(m.gw, m.gwState ?? '', m.via, ownCall);
+                        // D1b: the same stored path also says which sender a first relay
+                        // put on our air, and the row carries the time it was heard - so
+                        // the 12 h window of the replayed observations is honest.
+                        GatewayInference.observeVia(m.via, m.timestamp, ownCall);
                     }
-                    GatewayService.seedDone();
                 }
 
                 // update the store with positions
@@ -327,17 +333,32 @@ class DatabaseService {
                             // its neighbour - but we never appear in a path. Also covers the
                             // single-entry (direct) case, which contributed nothing before.
                             if (hops.length >= 1) {
-                                const ownCall = AppPrefsStore.getRawState().ownCall;
                                 AdjacencyService.seedPath(ownCall ? [...hops, ownCall] : hops);
                             }
                             // seed the HF-heard set: a persisted position travelled over
                             // HF, so all its path nodes are HF-local (globe marker source)
                             HfHeardService.mark(hops, p.timestamp);
+                            // D1b: positions carry paths too, and they are the bulk of what
+                            // fills a relay's observed-sender set
+                            GatewayInference.observeVia(p.via, p.timestamp, ownCall);
                         }
                         // seed booked groups too (Mheard list / map overlay / GW-TG list)
                         if (p.groups) NodeRuntimeService.setGroups(p.callSign, p.groups);
                     }
                 }
+
+                // D1b needs the other half: what the nodes themselves said about how many
+                // stations they hear. The persisted Mheard rows carry that (NCNT). Their
+                // timestamp is when the NODE heard that station, so it is no later than the
+                // report itself - near enough to place the 12 h window, and the first live
+                // beacon after the start replaces it with an exact one anyway.
+                for (const mh of MheardStaticStore.getMhArr()) {
+                    if ((mh.mh_ncnt ?? 0) > 0)
+                        GatewayInference.noteAdvertised(mh.mh_callSign, mh.mh_ncnt, mh.mh_timestamp);
+                }
+                // paths and advertised counts are both replayed now -> publish D1's figures
+                // and let D1b judge the whole replay in one go
+                GatewayInference.seedDone();
 
                 DatabaseService.isInit = true;
             }

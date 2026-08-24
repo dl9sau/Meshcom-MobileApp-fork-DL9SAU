@@ -611,10 +611,12 @@ const NodeMap = () => {
     pos_call = pos_call.toUpperCase();
     const regex = /^OE[1-9]X[A-Z]{1,2}-\d{1,2}$/; // Austrian Club Station or Repeater site
 
-    // D8: a proven gateway (see GatewayService) outranks "direct neighbour". A node can be
-    // both, and a marker has exactly one colour - but that it is a direct neighbour is
-    // already in the Heard list, while "this one bridges to the wider network" is shown
-    // nowhere else. Own station still wins over everything.
+    // D8: a PROVEN gateway (D1, see GatewayInferenceService) outranks "direct neighbour". A
+    // node can be both, and a marker has exactly one colour - but that it is a direct
+    // neighbour is already in the Heard list, while "this one bridges to the wider network"
+    // is shown nowhere else. Own station still wins over everything. Nodes that only D1b
+    // suspects keep their normal colour: the map says what we proved, the node overlay is
+    // where the weaker "probably" belongs.
     const isGateway = (gwMax_s[pos_call] ?? 0) > 0 || (gwCounts_s[pos_call] ?? 0) > 0;
 
     if(currConfig.callSign === pos_call) color = markerColor_own;

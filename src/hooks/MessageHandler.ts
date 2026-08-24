@@ -53,7 +53,7 @@ import RelayCountService from '../utils/RelayCountService';
 import AdjacencyService from '../utils/AdjacencyService';
 import NodeRuntimeService from '../utils/NodeRuntimeService';
 import StatsService from '../utils/StatsService';
-import GatewayService from '../utils/GatewayService';
+import GatewayInference from '../utils/GatewayInferenceService';
 import HfHeardService from '../utils/HfHeardService';
 import { computeGlobeState } from '../utils/GlobeState';
 import { distanceKm } from '../utils/GeoUtils';
@@ -278,6 +278,13 @@ export function useMSG() {
                         // of ours (this case produced no adjacency at all before)
                         AdjacencyService.addPath([from_callsign_, node_call_ref.current]);
                     }
+
+                    // D1b: whoever stands directly in FRONT of the first relay was heard by
+                    // that relay on RF - unless it fed the message in from the internet. We
+                    // collect those senders per first hop here, for positions and messages
+                    // alike (this sits before the two type branches on purpose); the node's
+                    // own advertised neighbour count decides later, see the service.
+                    GatewayInference.observePath(node_path, Date.now(), node_call_ref.current);
 
                     // Learn HF-local nodes from a gw=0 TEXT message (byte6 0x80 = msg_server
                     // clear). msg_server is the network-wide gateway/loop-protection flag:
@@ -699,11 +706,11 @@ export function useMSG() {
                         newMsgDB.gwState = computeGlobeState(newMsgDB);
 
                         // gateway registry (D1): the gw bit plus the route path tell us
-                        // WHICH node gatewayed this - see GatewayService for the three
-                        // cases. Needs the frozen gwState, so it has to sit after the line
-                        // above. Command echoes ("--") never carry a foreign path.
+                        // WHICH node gatewayed this - see GatewayInferenceService for the
+                        // three cases. Needs the frozen gwState, so it has to sit after the
+                        // line above. Command echoes ("--") never carry a foreign path.
                         if (!msg_text_.startsWith("--")) {
-                            GatewayService.note(newMsgDB.gw ?? 0, newMsgDB.gwState, node_path,
+                            GatewayInference.note(newMsgDB.gw ?? 0, newMsgDB.gwState, node_path,
                                 node_call_ref.current);
                         }
 
@@ -1071,7 +1078,12 @@ export function useMSG() {
                         if (groups_str !== "") NodeRuntimeService.setGroups(from_callsign_, groups_str);
                         // neighbour count from the position N field (2nd source; the display
                         // takes the max of this and the mheard NCNT)
-                        if (ncnt_ > 0) NodeRuntimeService.setNcnt(from_callsign_, ncnt_);
+                        if (ncnt_ > 0) {
+                            NodeRuntimeService.setNcnt(from_callsign_, ncnt_);
+                            // D1b: this is the node's own upper bound for how many stations
+                            // it hears - the number the observed senders are held against
+                            GatewayInference.noteAdvertised(from_callsign_, ncnt_, Date.now());
+                        }
                         return (newPosDB);
 
                     } else {
@@ -1608,6 +1620,11 @@ export function useMSG() {
                                 if(mheard.NCNT === undefined || mheard.NCNT === null){
                                     mheard.NCNT = 0;
                                 }
+
+                                // D1b: same self-reported neighbour count, second source
+                                // (the Mheard list our own node keeps about this station)
+                                if (mheard.NCNT > 0)
+                                    GatewayInference.noteAdvertised(mheard.CALL, mheard.NCNT, now_timestamp);
 
                                 const new_mheard:MheardType = {
                                     mh_timestamp:now_timestamp,

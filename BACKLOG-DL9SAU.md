@@ -60,8 +60,7 @@ Vorschlag: erst dunkleres Grün probieren; sonst Blinken gelb↔grün ~1 s (nich
 > B6 ✅ (Build 4, zusammen mit C5/C6).
 > Beide Commits sind **offline gegen den echten Code verifiziert** (Typen mechanisch
 > gestrippt, auf blankem node laufen lassen — nichts installiert): 25 + 14 Prüfungen grün.
-> Offen aus B2: Rückfrage zu Beispiel 1 (`130` → `116` Zeichen) — Regel ist unabhängig
-> davon umgesetzt („ein Token, das in ein Paket passt, wird nie zerschnitten").
+> **Damit ist B komplett — nichts offen.**
 
 **B1 — Filter: unsichtbarer Variation-Selector U+FE0F** *(Bug, verifiziert reproduziert)*
 Regel mit `☀️` (VS16) matcht Nachricht mit `☀` (ohne) **nicht**. Umgekehrt schon.
@@ -71,11 +70,11 @@ Fix: vor dem Vergleich **beide Seiten** `normalize("NFC")` + `︎️` entfernen
 (nur fürs Matching). ZWJ **nicht** anfassen (Familien-Emoji).
 Dazu: `compilePattern` verwirft bei Regex-Fehler die Regel **still** → Log-Zeile.
 
-**B2 — Auto-Split zerhackt lange Wörter (URLs)** *(Bug)*
+**B2 — ✅ GEBAUT** — Auto-Split zerhackt lange Wörter (URLs) *(Bug)*
 Regel: **ein Token, das in ein Paket passt (≤ 150 − Tag), wird nie zerschnitten** —
 schlägt „balanced". Notfalls unbalanciert oder Token allein in ein Paket.
-(Rückfrage zu Beispiel 1 in den Notizen: `esFolgen130Zeichen` → `esFolgen116Zeichen` —
-Tippfehler oder beabsichtigtes Kürzen?)
+(Die Zahlen in Beispiel 1 der Notizen — `130` → `116` — waren beispielhaft und
+verzählt, kein Hinweis auf eine Kürzungsregel. Geklärt, nichts offen.)
 
 **B3 — Mheard-Tab zeigt weiter die alte, vermischte „Neighbours"-Zeile** *(Inkonsistenz)*
 Dort steht in Wahrheit unser **Heard-via**. Die Trennung aus `MapOverlay` (033d90b)
@@ -187,19 +186,33 @@ Alternative/zusätzlich Mheard-Tab zum Vergleich mit den Direktnachbarn.
 
 ## D · Neue Auswertungen
 
-**D1b — Gateway-Erkennung über die advertised Nachbarzahl** *(Idee DL9SAU, 2026-08-02)*
-Zweiter, **unabhängiger** Detektor — und er löst genau die unbestimmte Zeile aus D1:
-Steht X als **erster Hop** im Pfad, hat X den Absender **direkt gehört** … oder ihn aus dem
-Internet eingespeist. Zähle also je Knoten X die Menge der **Absender, die unmittelbar vor
-X** im Pfad standen. X' Bake meldet mit `/N<n>` die Größe seiner **eigenen** Mheard-Liste,
-also eine **Obergrenze** seiner HF-Nachbarn.
-⇒ **beobachtete Absender-vor-X > advertised NCNT ⇒ X speist aus dem Internet ein ⇒ GW.**
-Besonders scharf bei `N1`: schon der zweite abweichende Absender beweist es.
-Konservativ (einseitig): normalerweise ist unsere Beobachtung eine **Teilmenge**, ein
-Überschreiten ist die Anomalie. Vorbehalte: NCNT wird bei X nach 12 h gepurged und ist
-eine Selbstauskunft (kann veralten) → Zeitfenster begrenzen oder einen Sicherheitsabstand
-verlangen; dann „wahrscheinlich GW" statt „sicher". Aufwand **klein** (ein Set je Knoten
-aus Pfadposition 0→1, plus Vergleich) — der Lernteil liegt schon in AdjacencyService.
+**D1b — ✅ GEBAUT** — Gateway-Erkennung über die advertised Nachbarzahl *(Idee DL9SAU, 2026-08-02)*
+*Gebaut 2026-08-24 in `GatewayInferenceService`* (die frühere `GatewayService.ts` — die
+Datei hält jetzt **beide** Detektoren, D1 und D1b). Zweiter, **unabhängiger** Detektor —
+er löst genau die unbestimmte Zeile aus D1: Steht X als **erster Hop** im Pfad, hat X den
+Absender **direkt gehört** … oder ihn aus dem Internet eingespeist. Je Knoten X sammeln wir
+die **Absender an Pfadposition 0→1**; X' Bake meldet mit `/N<n>` (bzw. Mheard-`NCNT`) die
+Größe seiner **eigenen** Mheard-Liste, also eine **Obergrenze** seiner HF-Nachbarn.
+⇒ **beobachtet > advertised ⇒ X speist ein ⇒ GW** (`MIN_EXCESS = 1`, also schon der erste
+Überschuss; bei `N1` genügt damit der zweite abweichende Absender).
+Einseitig wie D1: unsere Sicht ist normalerweise die **Teilmenge**, nur ein Überschreiten
+sagt etwas.
+**Zeitfenster ehrlich gerechnet:** die Firmware purged einen Mheard-Eintrag nach 12 h, eine
+Meldung von n zum Zeitpunkt T deckt also `[T−12h, T]` ab — nur in diesem Intervall
+beobachtete Absender werden gegen n gehalten; frischere Beobachtungen warten auf die
+nächste Bake. Bleibt die Selbstauskunft als Rest-Unsicherheit ⇒ **„wahrscheinlich"**.
+Gefüttert aus **Positions- *und* Nachrichtenpfaden**: Positionen werden nie eingespeist,
+füllen die Menge aber schnell — und überschreiten muss ihre **Größe**. Nur-Nachrichten
+bräuchte mehrere Einspeisungen bis zum selben Schluss. Live plus **Startup-Replay** aus
+DB-Pfaden (Nachrichten + Positionen) und den gespeicherten Mheard-NCNTs.
+**Bewusst getrennt gehalten:** eigenes Store-Feld `probable`, **keine** Zählung in der
+Registry, **keine** Kartenfarbe — nur die Overlay-Zeile
+`GW: probably (7 senders relayed, advertises 5)`. Log beim ersten Verdacht, plus eine
+zweite Zeile, wenn D1 später beweist, was D1b vorhergesagt hatte (= Feldprüfung der
+Heuristik, kostet nichts).
+*Offen (Feld):* ob die Firmware wirklich **jeden** direkt gehörten Absender in ihre
+Mheard-Liste nimmt und ob deren Kapazität begrenzt ist — beides bräche die Teilmengen-
+Annahme und gäbe Fehlalarme; dann `MIN_EXCESS` hochsetzen.
 
 **D1 — ✅ GEBAUT** — Gateway-Registry (ohne Firmware-Änderung)
 *Gebaut 2026-08-24 zusammen mit D8:* `GatewayService` + `GatewayStore`, Regeln 1:1 nach
@@ -210,7 +223,8 @@ persistiert, also steht „(max n)" sofort nach einem Neustart da statt bei 0 an
 Knoten-Overlay, nur bei Knoten, denen wir etwas nachweisen konnten. Einseitig: wir
 **setzen** Gateways, nehmen sie nie zurück — die Zahl sagt, wie viel es trägt, nicht ob
 es heute noch eines ist. Offline gegen 19 Fälle geprüft.
-*Offen bleibt Zeile 4 der Tabelle* (Quelle HF-bestätigt, mehrere Relays) — dafür ist D1b da.
+*Zeile 4 der Tabelle* (Quelle HF-bestätigt, mehrere Relays) bleibt für D1 unbestimmt —
+dafür ist D1b da (gebaut, aber bewusst nur „wahrscheinlich", ohne Kartenfarbe).
 *Diagnose nebenbei:* gw-Bit **ohne** jedes Relay im Pfad wird gezählt und geloggt. Träte
 das auf, hängt ein einspeisendes Gateway sich **nicht** selbst in den Pfad — dann wäre
 auch die Weltkugel-Annahme „0 Hops = wir hörten die eigene HF des Absenders" zu prüfen.
