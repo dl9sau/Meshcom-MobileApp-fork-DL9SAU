@@ -254,8 +254,10 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
                                     {gatewayProbablyText !== null ? <><IonText>GW: {gatewayProbablyText}</IonText><br /></> : <></>}
                                     {/* Link quality (D3): heard against what the 15-min HEY
                                         interval says should have arrived, plus how many foreign
-                                        HEYs this node forwarded. */}
-                                    {heyText !== null ? <><IonText>HEY: {heyText}</IonText><br /></> : <></>}
+                                        HEYs this node forwarded. Labelled `#hey` like `#pos` and
+                                        `#msg` above - "#" reads as "number of", and HEY is a
+                                        packet type like the others (DL9SAU). */}
+                                    {heyText !== null ? <><IonText>#hey: {heyText}</IonText><br /></> : <></>}
                                     {/* Position beacons (D4), against the interval estimated
                                         for THIS node - not the 30-min default. */}
                                     {posRateText !== null ? <><IonText>Pos rate: {posRateText}</IonText><br /></> : <></>}

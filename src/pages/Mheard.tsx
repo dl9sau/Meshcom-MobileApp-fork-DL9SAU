@@ -96,16 +96,6 @@ const Mheard = () => {
                                                             {hv ? <div className='rowcont'><div>Heard via:</div><div className='value'>{hv}</div></div> : <></>}
                                                         </>);
                                                     })()}
-                                                    <div className='rowcont'>
-                                                        <div>#pos:</div>
-                                                        <div className='value'>{nodeInfoMap[mhs.mh_callSign?.toUpperCase()]?.posCount ?? 0}</div>
-                                                    </div>
-                                                    {/* booked talk groups (R= field), if the node reports any */}
-                                                    {nodeInfoMap[mhs.mh_callSign?.toUpperCase()]?.groups ?
-                                                        <div className='rowcont'>
-                                                            <div>Grp:</div>
-                                                            <div className='value'>{nodeInfoMap[mhs.mh_callSign?.toUpperCase()].groups.split(",").sort((a, b) => (parseInt(a) || 0) - (parseInt(b) || 0)).join(", ")}</div>
-                                                        </div> : <></>}
                                                 </div>
                                                 <div>
                                                     <div className='rowcont'>
@@ -121,29 +111,39 @@ const Mheard = () => {
                                                         <div className='value_r'>Dist:</div>
                                                         <div className='value'>{mhs.mh_distance > 0 ? mhs.mh_distance + " km" : "n.a."}</div>
                                                     </div>
-                                                    {/* spacer to align #msg (right) with #pos (left) */}
-                                                    <div className='rowcont'>
-                                                        <div className='value_r'>&nbsp;</div>
-                                                        <div className='value'>&nbsp;</div>
-                                                    </div>
-                                                    <div className='rowcont'>
-                                                        <div className='value_r'>#msg:</div>
-                                                        <div className='value'>{nodeInfoMap[mhs.mh_callSign?.toUpperCase()]?.msgCount ?? 0}</div>
-                                                    </div>
                                                 </div>
                                             </div>
-                                            {/* The two rate lines sit BELOW the two columns, full width, not inside
-                                                the left one: `.mhcont` is a wrapping flex row, so a long value in
-                                                the left column pushes the right one (Time/SNR/Dist/#msg) underneath
-                                                it. The position rate is the SHORT form here - `#pos` right above
-                                                already carries the raw count, "8 of 10" would just repeat it. */}
+                                            {/* Everything below the two columns runs FULL WIDTH. Two reasons:
+                                                `.mhcont` is a wrapping flex row, so a long value in the left column
+                                                pushes the right one (Time/SNR/Dist) underneath it - and the packet
+                                                counters belong together in one line instead of being split across
+                                                the columns, where an optional row above would shift them apart
+                                                (`#msg` ended up level with "Heard via", `#pos` one line below).
+                                                Order: the packet counts by type, then what we can say about their
+                                                delivery, then the booked groups. `#` reads as "number of", so HEY
+                                                is `#hey` like the others. The position rate is the SHORT form -
+                                                `#pos` right above carries the raw count. */}
                                             {(() => {
                                                 const key = mhs.mh_callSign?.toUpperCase();
+                                                const info = nodeInfoMap[key];
                                                 const hey = fmtHeyRate(heyRates[key]);
                                                 const pr = fmtRateShort(posRates[key]);
+                                                const groups = info?.groups;
                                                 return (<>
-                                                    {hey ? <div className='rowcont'><div>HEY:</div><div className='value'>{hey}</div></div> : <></>}
+                                                    <div className='rowcont'>
+                                                        <div>#pos:</div>
+                                                        <div className='value'>{info?.posCount ?? 0}</div>
+                                                        <div className='value_r'>#msg:</div>
+                                                        <div className='value'>{info?.msgCount ?? 0}</div>
+                                                    </div>
+                                                    {hey ? <div className='rowcont'><div>#hey:</div><div className='value'>{hey}</div></div> : <></>}
                                                     {pr ? <div className='rowcont'><div>Pos rate:</div><div className='value'>{pr}</div></div> : <></>}
+                                                    {/* booked talk groups (R= field), if the node reports any */}
+                                                    {groups ?
+                                                        <div className='rowcont'>
+                                                            <div>Grp:</div>
+                                                            <div className='value'>{groups.split(",").sort((a, b) => (parseInt(a) || 0) - (parseInt(b) || 0)).join(", ")}</div>
+                                                        </div> : <></>}
                                                 </>);
                                             })()}
 
