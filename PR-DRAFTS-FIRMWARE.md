@@ -34,9 +34,17 @@ Kommentar an den PR hängen (beim Committen gibt es ihn noch nicht):
 > Kompiliert gegen `dev`: `pio run -e ttgo_tbeam` (espressif32 6.13.0, ArduinoJson 7.4.3)
 > — SUCCESS, keine neuen Warnungen.
 
-Achtung: PR 2 und 3 fassen denselben `mhdoc`-Block an (**beide** Fundstellen, Zeile ~331
-und ~633). Sobald einer gemergt ist, brauchen die anderen `git rebase origin/dev` —
-trivialer Konflikt, aber er kommt.
+**Korrektur zur ersten Fassung:** PR 2 und 3 fassen **nur den Live-Pfad** an
+(`updateMheard`, ~Z. 331), *nicht* die Ausgabe der gespeicherten Liste (`sendMheard`,
+~Z. 633). Dort wird `mheardLine` aus dem gespeicherten `|`-String `mheardBuffer[iset]`
+rekonstruiert, und der enthält nur date|time|plt|hw|mod|rssi|snr|dist|path_len|mesh|ncount
+— **kein** Ursprungsrufzeichen, **kein** Ziel-Pfad, **keine** HEY-Nutzlast. Die neuen
+Felder wären dort leer bzw. immer 0: eine falsche Aussage ist schlechter als eine fehlende.
+Nur PR 1 (Puffergrenze) betrifft beide Stellen, weil es dort um die Serialisierung selbst
+geht.
+
+Beide fassen aber denselben `mhdoc`-Block an: sobald einer gemergt ist, brauchen die
+anderen `git rebase origin/dev` — trivialer Konflikt, aber er kommt.
 
 ---
 
@@ -111,8 +119,8 @@ Eingereicht 2026-08-24.
 
 ## Was geändert wurde
 
-`src/mheard_functions.cpp`, im JSON-Aufbau — **beide** Fundstellen (Live-Pfad ~Z. 331 und
-Ausgabe der gespeicherten Liste ~Z. 633), je zwei Zeilen:
+`src/mheard_functions.cpp`, im JSON-Aufbau des **Live-Pfads** (`updateMheard`, ~Z. 331),
+zwei Zeilen:
 
 ```c
 mhdoc["SRC"] = mheardLine.mh_sourcecallsign.c_str();
@@ -140,10 +148,21 @@ Gemessen an einem Standort mit einem einzigen direkten Nachbarn: in rund 75 Minu
 fremder Knoten, deren Ursprung die Firmware kennt. Zwei Drittel der Information verfallen
 ungenutzt.
 
+## Warum nicht auch in der gespeicherten Liste
+
+`sendMheard()` baut `mheardLine` aus dem persistierten `|`-String wieder auf, und der führt
+weder Ursprungsrufzeichen noch Ziel-Pfad. Dort ergänzt hießen die Felder `SRC:""` und
+`GW:0` — eine **falsche** Aussage statt einer fehlenden. Wer sie auch dort haben will,
+müsste das Speicherformat erweitern; das ist eine eigene Entscheidung und gehört nicht in
+diesen Patch.
+
 ## Umfang
 
-Zwei Zeilen je Fundstelle, keine Umbauten, keine Verhaltensänderung an bestehenden Feldern.
+Zwei Zeilen, keine Umbauten, keine Verhaltensänderung an bestehenden Feldern.
 Längenwirkung gering (~26 Zeichen), Puffer ist 300 groß, ein Datensatz liegt bei ~150.
+
+**Status:** Branch `feat/mh-json-src-gw`, Commit liegt vor, gebaut
+(`pio run -e ttgo_tbeam` → SUCCESS). Die Commit-Nachricht **ist** der PR-Text.
 
 ---
 
@@ -153,11 +172,14 @@ Längenwirkung gering (~26 Zeichen), Puffer ist 300 groß, ein Datensatz liegt b
 
 ## Was geändert wurde
 
-`src/mheard_functions.cpp`, beide Fundstellen, je eine Zeile:
+`src/mheard_functions.cpp`, **Live-Pfad** (`updateMheard`), eine Zeile:
 
 ```c
 mhdoc["PP"] = mheardLine.mh_path_payload.c_str();
 ```
+
+Auch hier nur der Live-Pfad: `mh_path_payload` steht ebenfalls nicht im gespeicherten
+`|`-String, in `sendMheard()` wäre das Feld also immer leer.
 
 ## Warum
 
