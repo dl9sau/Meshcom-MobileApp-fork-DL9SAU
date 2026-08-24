@@ -5,7 +5,7 @@ import RelayCountStore from '../store/RelayCountStore';
 import AdjacencyStore from '../store/AdjacencyStore';
 import { fmtNeighbours, fmtHeardVia } from '../utils/NeighbourStats';
 import LinkRateStore from '../store/LinkRateStore';
-import { fmtHeyRate, fmtRate } from '../utils/RateStats';
+import { fmtHeyRate, fmtRateShort } from '../utils/RateStats';
 import NodeRuntimeStore from '../store/NodeRuntimeStore';
 import { getMheards, getConfigStore } from '../store/Selectors';
 import {ConfType, MheardType} from '../utils/AppInterfaces';
@@ -91,17 +91,9 @@ const Mheard = () => {
                                                         const nb = fmtNeighbours(adjCounts[key] ?? 0, adjMax[key] ?? 0,
                                                             Math.max(mhs.mh_ncnt ?? 0, nodeInfoMap[key]?.ncnt ?? 0));
                                                         const hv = fmtHeardVia(relayCounts[key] ?? 0, relayMax[key] ?? 0);
-                                                        // How much of what this node sends actually reaches us. HEY
-                                                        // first: its 15-min interval is a firmware constant, so the
-                                                        // figure is a real link measure. The position rate rests on an
-                                                        // ESTIMATED interval and stays away where it scatters.
-                                                        const hey = fmtHeyRate(heyRates[key]);
-                                                        const pr = fmtRate(posRates[key], true);
                                                         return (<>
                                                             {nb ? <div className='rowcont'><div>Neighbours:</div><div className='value'>{nb}</div></div> : <></>}
                                                             {hv ? <div className='rowcont'><div>Heard via:</div><div className='value'>{hv}</div></div> : <></>}
-                                                            {hey ? <div className='rowcont'><div>HEY:</div><div className='value'>{hey}</div></div> : <></>}
-                                                            {pr ? <div className='rowcont'><div>Pos rate:</div><div className='value'>{pr}</div></div> : <></>}
                                                         </>);
                                                     })()}
                                                     <div className='rowcont'>
@@ -140,7 +132,21 @@ const Mheard = () => {
                                                     </div>
                                                 </div>
                                             </div>
-                                            
+                                            {/* The two rate lines sit BELOW the two columns, full width, not inside
+                                                the left one: `.mhcont` is a wrapping flex row, so a long value in
+                                                the left column pushes the right one (Time/SNR/Dist/#msg) underneath
+                                                it. The position rate is the SHORT form here - `#pos` right above
+                                                already carries the raw count, "8 of 10" would just repeat it. */}
+                                            {(() => {
+                                                const key = mhs.mh_callSign?.toUpperCase();
+                                                const hey = fmtHeyRate(heyRates[key]);
+                                                const pr = fmtRateShort(posRates[key]);
+                                                return (<>
+                                                    {hey ? <div className='rowcont'><div>HEY:</div><div className='value'>{hey}</div></div> : <></>}
+                                                    {pr ? <div className='rowcont'><div>Pos rate:</div><div className='value'>{pr}</div></div> : <></>}
+                                                </>);
+                                            })()}
+
                                         </IonCardContent>
                                     </IonCard>
                                 </> : <></>}

@@ -10,7 +10,7 @@ import RelayCountStore from "../store/RelayCountStore";
 import AdjacencyStore from "../store/AdjacencyStore";
 import GatewayStore from "../store/GatewayStore";
 import LinkRateStore from "../store/LinkRateStore";
-import { fmtHeyRate, fmtRate } from "../utils/RateStats";
+import { fmtHeyRate, fmtRateShort } from "../utils/RateStats";
 import { fmtNeighbours, fmtHeardVia } from "../utils/NeighbourStats";
 import { useHistory } from "react-router";
 import ConfigObject from "../utils/ConfigObject";
@@ -139,7 +139,8 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
     const heyRates = useStoreState(LinkRateStore, s => s.hey);
     const posRates = useStoreState(LinkRateStore, s => s.pos);
     const heyText = callUp ? fmtHeyRate(heyRates[callUp]) : null;
-    const posRateText = callUp ? fmtRate(posRates[callUp], true) : null;
+    // short form: the "#pos" figure sits right above it, so the raw count would only repeat
+    const posRateText = callUp ? fmtRateShort(posRates[callUp]) : null;
 
     // route path for display: origin dropped, wrapped after every 2 calls
     const pathLines = nodeInfo ? formatPathLines(nodeInfo.path, callSign) : [];

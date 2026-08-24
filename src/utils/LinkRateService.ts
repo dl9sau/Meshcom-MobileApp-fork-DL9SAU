@@ -72,13 +72,17 @@ class LinkRateService {
 
     private norm(c: string): string { return (c || "").toUpperCase().trim(); }
 
-    // WHICH PATH LENGTH MEANS "the node sent this itself"? The firmware might count the
-    // originator or only the relays - 0 or 1 - and the code cannot prove which. It does not
-    // have to: every Mheard record is a DIRECT reception, and among all HEYs we hear, the
-    // SHORTEST path is by definition one that its sender originated. So we learn the floor
-    // from the traffic instead of assuming it, capped at 1 because nothing else can be a
-    // node's own transmission. Read only over HEY records, never mixed with other packet
-    // types, so a per-type convention could not mislead it.
+    // WHICH PATH LENGTH MEANS "the node sent this itself"? The firmware source settles it:
+    // `PL` is `msg_last_path_cnt`, which starts at 1 and counts up per comma while parsing
+    // the source path (aprs_functions.cpp), so it counts path ENTRIES INCLUDING the sender -
+    // a directly heard packet is 1, one relay is 2. It can never be 0.
+    //
+    // The floor is learned anyway, as a guard rather than an assumption: every Mheard record
+    // is a DIRECT reception, so among all HEYs we hear the SHORTEST path is by definition one
+    // its sender originated. Capped at 1, since nothing else can be a node's own transmission.
+    // Read only over HEY records, never mixed with other packet types, so a per-type
+    // convention could not mislead it. If a future firmware renumbers this, the app follows
+    // instead of quietly counting the wrong thing.
     //
     // The floor can only ever FALL. When it does, everything counted before rested on a
     // wrong floor - forwarded beacons were filed as somebody's own - so the HEY tally starts
@@ -101,9 +105,10 @@ class LinkRateService {
         LinkRateStore.update(s => { s.hey = {}; s.heyOwn = 0; s.heyRelayed = 0; });
     }
 
-    // did this node send the beacon itself, or forward a foreign one?
+    // did this node send the beacon itself, or forward a foreign one? Before the first
+    // record the firmware's own numbering (1 = heard directly) is the starting point.
     private isOwnBeacon(pathLen: number): boolean {
-        return pathLen <= (this.ownPl < 0 ? 0 : this.ownPl);
+        return pathLen <= (this.ownPl < 0 ? OWN_PL_MAX : this.ownPl);
     }
 
     // record one reception at `ts`; returns false when it was not usable

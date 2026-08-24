@@ -278,17 +278,16 @@ erwartete Zahl über die Zeitspanne ⇒ Quote. Anzeige `HEY: 11/12 (92%) · rela
 beim Connect kommt die Mheard-Liste am Stück, nur die Knoten-Stempel legen die Sätze richtig
 ab; unplausible Uhr ⇒ übersprungen statt gemischt (zwei Uhren in einer Reihe erfänden
 Lücken).
-*Pfadlängen-Konvention wird GELERNT, nicht angenommen* (nach Feldprobe 2026-08-24):
-ob die Firmware bei einem direkt gehörten Paket `0` oder `1` meldet, ist aus dem Code nicht
-beweisbar — die ersten Proben (`3`, `1`, `3`, alle von **db0fri-12**, dessen Positionen die
-App gleichzeitig als „(direct)" loggt) entscheiden es **nicht**: die `1` kann seine eigene
-Bake sein oder eine einmal weitergeleitete. Also lernt der Service den **Boden** selbst: der
-**kürzeste** je gesehene HEY-Pfad ist per Definition eine selbst gesendete Bake. Gedeckelt
-bei **1**, weil nichts anderes eine eigene Aussendung sein kann (leerer Pfad oder nur man
-selbst) — damit ist schon der allererste Satz richtig einsortiert. Der Boden kann nur
-**fallen**; fällt er, waren die bisherigen Zahlen auf falschem Grund gebaut ⇒ HEY-Zähler
-starten neu (kostet Minuten). Nur über HEY-Sätze gelesen, nie mit anderen Pakettypen
-gemischt, damit eine typabhängige Konvention nicht in die Irre führt.
+*Pfadlängen-Konvention — im Firmware-Quelltext GEKLÄRT (2026-08-24):* `PL` ist
+`msg_last_path_cnt`, startet bei **1** und zählt je Komma im Quellpfad hoch ⇒ es zählt
+Pfad-Einträge **inklusive Absender**, **direkt = 1**, eine `0` ist unmöglich (Block F).
+Die Feldprobe (`3`, `1`, `3` von **db0fri-12**, dessen Positionen die App gleichzeitig als
+„(direct)" loggt) passt genau dazu: die `1` war seine eigene Bake, die beiden `3` waren
+weitergeleitet.
+Der Service **lernt** den Boden trotzdem weiter — als Sicherung, nicht als Annahme: der
+kürzeste je gesehene HEY-Pfad ist per Definition eine selbst gesendete Bake, gedeckelt bei
+1. Ändert eine künftige Firmware die Zählweise, folgt die App, statt still das Falsche zu
+zählen. Nur über HEY-Sätze gelesen, nie mit anderen Pakettypen gemischt.
 *Die Asymmetrie, auf der alles steht:* Verlust macht Abstände nur **länger**, nie kürzer.
 Eine Quote gilt deshalb auch bei starkem Verlust weiter — das **ist** die Messung. Nur
 Abstände **kürzer** als die Konstante (< 0,6×) heißen „unsere Annahme stimmt nicht" ⇒ dann
@@ -401,8 +400,13 @@ Alle an Stellen, wo die Firmware die Information **bereits hat**:
    Damit Gateways **gesichert** statt geschätzt.
 3. **HEY-Link-Kette durchreichen** (RSSI/SNR je Hop) — heute wird nur der Nachbar-Count
    extrahiert, der Rest verworfen. Würde das **schwache Glied** einer Strecke zeigen.
-4. Ältere Wünsche: `pong` → BLE (RTT), FW-Build-Datum im Info-JSON, `tx-repeated` /
-   MQTT-Durchsatz / Airtime-Zähler.
+4. **Version genauer melden** *(DL9SAU, 2026-08-24)*: die App zeigt nur `4.35p`. Der
+   Quelltext hat das Nötige **schon**: `SOURCE_VERSION "4.35"`, `SOURCE_VERSION_SUB "p"`
+   und **`FLASH_VERSION 20260724`** in `configuration_global.h`. Gewünscht ist also nur,
+   `FLASH_VERSION` (Build-Datum) — und idealerweise einen kurzen **git-Hash** — mit ins
+   Info-JSON zu legen. Damit ist ein Sub-Release unterscheidbar, ohne dass wir raten.
+   *Klein genug für einen PR von uns*, wenn die Stelle der Info-JSON-Erzeugung feststeht.
+5. Ältere Wünsche: `pong` → BLE (RTT), `tx-repeated` / MQTT-Durchsatz / Airtime-Zähler.
 
 ---
 
@@ -436,5 +440,22 @@ Alle an Stellen, wo die Firmware die Information **bereits hat**:
   `0x01` → 2, `0x02` → 2 (beide Wolke mit Haken); `ack = 2` ist terminal. Bei einer
   **Kanalnachricht** springt der Haken direkt auf Wolke-mit-Haken, sobald die eigene
   Nachricht **repeated** gehört wurde. Das ist so gewollt — **nicht umbauen.**
+- **`PL` im MH-JSON zählt Pfad-Einträge INKLUSIVE Absender** (Quelltext geprüft
+  2026-08-24, `aprs_functions.cpp`): `msg_last_path_cnt` startet bei **1** und wird je
+  Komma im Quellpfad erhöht. ⇒ **direkt gehört = `PL 1`**, ein Relay = 2, usw. Eine **0
+  kann gar nicht vorkommen**. Damit ist die offene Frage aus D3 beantwortet.
+- **`updateMheard` läuft für JEDES empfangene LoRa-Paket**, sofern der letzte Hop nicht das
+  eigene Rufzeichen ist (`lora_functions.cpp`) — die Grundlage von D3.
+- **12-h-Purge der Mheard-Liste bestätigt** (`mheard_functions.cpp`):
+  `if((mheardEpoch[iset]+(60*60*12)) < getUnixClock())`. Das ist das Fenster, auf das sich
+  D1b stützt.
+- **`MAX_MHEARD` ist gedeckelt**: **30** (ESP32), **80** (ESP32-S3/nRF52840), 50
+  (XML/SBUFFER), 10 (TBEAM-Dev). Hat ein Knoten mehr Nachbarn als der Deckel, sättigt NCNT
+  ⇒ **möglicher Fehlalarm bei D1b**. Bei 30/80 selten, aber jetzt benannt statt vermutet.
+- **Die Firmware verwirft selbst Mheard-Sätze mit unsynchronisierter Uhr**:
+  `if(strYear.toInt() < 2025) return;` — unsere eigene Zeitstempel-Prüfung in D3 passt dazu.
+- **Versions-Konstanten** (`configuration_global.h`): `SOURCE_VERSION "4.35"`,
+  `SOURCE_VERSION_SUB "p"`, `SOURCE_VERSION_WEB_SUB "p"`, **`FLASH_VERSION 20260724`**.
+  Das Build-Datum **gibt es also schon** — es wird nur nicht an die App gemeldet (→ E4).
 - **Server ist Blackbox** (closed source) — er **strippt den Pfad** beim Verteilen
   (Feldbeobachtung). Der hintere Teil `>xxx,DEST` behält dagegen den HF-Teil vor dem Gatewayen.

@@ -31,3 +31,13 @@ export const fmtHeyRate = (r: RateInfo | undefined): string | null => {
     if (base === null) return rel > 0 ? "relayed " + rel : null;
     return rel > 0 ? base + " · relayed " + rel : base;
 };
+
+// "100% (~30 min)" - the compact form for places that already show the raw count next to it
+// (the Heard list and the map overlay both print #pos), so the "8 of 10" would only repeat
+// what is already on screen. null / "irregular" behave exactly as in fmtRate.
+export const fmtRateShort = (r: RateInfo | undefined): string | null => {
+    if (!r || r.got <= 0) return null;
+    if (r.irregular) return "irregular";
+    if (r.expected <= 0) return null;
+    return Math.round((r.got / r.expected) * 100) + "% (" + fmtInterval(r.intervalMs) + ")";
+};
