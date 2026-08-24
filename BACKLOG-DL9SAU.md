@@ -392,21 +392,65 @@ Commit** geführt, den DL9SAU nur lokal einspielt, solange er das Gerät hat.
 > die Firmware kommt von icssw. Diese Punkte gehen an das Firmware-Team, nicht an Rainer.
 > Textentwurf macht DL9SAU bei Gelegenheit.
 
-Alle an Stellen, wo die Firmware die Information **bereits hat**:
+Alle an Stellen, wo die Firmware die Information **bereits hat** — seit dem Quelltext-Lesen
+am 2026-08-24 **mit Fundstelle belegt** (lokaler Sparse-Clone `/Users/thomas/MeshCom-Firmware`,
+Branch `dev`). Die ersten vier sind je **eine Zeile**: die Daten liegen im selben Struct, sie
+werden nur nicht serialisiert. ⇒ Als **PR im Aufwasch**, nicht als Bitte.
 
 1. **`"SRC"` (Ursprung) ins MH-JSON** — heute nur `CALL` = letzter Hop. Mit dem Ursprung
    bestätigen wir HF über **4 Hops** (HEY-Reichweite) statt 2 (Positions-Reichweite).
-2. **`"GW"` ins MH-JSON** — die Firmware kennt es bei jedem HEY (`H` vs `HG`).
-   Damit Gateways **gesichert** statt geschätzt.
-3. **HEY-Link-Kette durchreichen** (RSSI/SNR je Hop) — heute wird nur der Nachbar-Count
-   extrahiert, der Rest verworfen. Würde das **schwache Glied** einer Strecke zeigen.
-4. **Version genauer melden** *(DL9SAU, 2026-08-24)*: die App zeigt nur `4.35p`. Der
-   Quelltext hat das Nötige **schon**: `SOURCE_VERSION "4.35"`, `SOURCE_VERSION_SUB "p"`
-   und **`FLASH_VERSION 20260724`** in `configuration_global.h`. Gewünscht ist also nur,
-   `FLASH_VERSION` (Build-Datum) — und idealerweise einen kurzen **git-Hash** — mit ins
-   Info-JSON zu legen. Damit ist ein Sub-Release unterscheidbar, ohne dass wir raten.
-   *Klein genug für einen PR von uns*, wenn die Stelle der Info-JSON-Erzeugung feststeht.
+   *Liegt bereit:* `lora_functions.cpp` füllt `mheardLine.mh_sourcecallsign = aprsmsg.msg_source_call;`
+   ⇒ `mhdoc["SRC"] = mheardLine.mh_sourcecallsign.c_str();`
+2. **`"GW"` ins MH-JSON** — die Firmware **wertet `HG` schon aus**:
+   `mheard_functions.cpp:537 if(mheardLine.mh_destinationpath == "HG") mheardPathLen[ipos] = ... | 0x80;`
+   — sie merkt sich das Gateway-Bit für ihre eigene Pfadtabelle, schickt es aber nicht.
+   ⇒ `mhdoc["GW"] = (mheardLine.mh_destinationpath == "HG") ? 1 : 0;`
+   Das ist die **sichere** Gateway-Auskunft, auf die D1/D1b nur schätzen (siehe D8).
+3. **HEY-Link-Kette durchreichen** (RSSI/SNR je Hop) — die ganze Kette liegt als String da:
+   `lora_functions.cpp:664 mheardLine.mh_path_payload = aprsmsg.msg_payload;`, und
+   `mheard_functions.cpp:405-445` parst daraus **nur** den Nachbar-Count, der Rest wird
+   verworfen. ⇒ `mhdoc["PP"] = mheardLine.mh_path_payload.c_str();` zeigt das **schwache
+   Glied** einer Strecke. (Einziger Punkt mit spürbarer Längenwirkung, siehe unten.)
+4. **Version genauer melden** *(DL9SAU, 2026-08-24)*: die App zeigt nur `4.35p`.
+   `command_functions.cpp:4861` baut `snprintf(fwver, ... "%-4.4s %-1.1s", SOURCE_VERSION,
+   SOURCE_VERSION_SUB)` → `idoc["FWVER"]`. Das Build-Datum gibt es schon als
+   **`FLASH_VERSION 20260724`**. ⇒ **neuer Schlüssel** `idoc["FWDATE"] = FLASH_VERSION;`
+   statt `FWVER` umzuformatieren — so brechen bestehende Apps (auch Upstream) nicht.
+   Ein kurzer **git-Hash** wäre die Kür (PlatformIO-Build-Flag), das Datum reicht für
+   Sub-Releases.
 5. Ältere Wünsche: `pong` → BLE (RTT), `tx-repeated` / MQTT-Durchsatz / Airtime-Zähler.
+
+*Warum ausgerechnet 1 und 2 so viel wert sind* **(DL9SAU, 2026-08-24)**: wir schätzen heute
+an **zwei** Stellen, und beide Male aus demselben Grund — das `gw`-Bit wird auch gesetzt,
+wenn ein Gateway bloß **HF weiterreicht**, nicht nur beim Einspeisen. Also raten wir sowohl
+„ist X überhaupt ein Gateway" (D1/D1b) als auch „kam diese Quelle über HF oder aus dem
+Internet" (Weltkugel). Die beiden Einzeiler machen beides deterministisch, **ohne die
+Luftschnittstelle anzufassen** — das ist es, was sie als PR überhaupt aussichtsreich macht:
+- **`GW` aus dem `HG`-Ziel** ⇒ Gateway-Identität **sicher**. Grenze: nur für Knoten, die wir
+  **direkt** hören; für ferne Gateways bleiben D1/D1b.
+- **`SRC`** ⇒ HF-Bestätigung des **Ursprungs** über die HEY-Reichweite (4 Hops statt 2 bei
+  Positionen). **HEY läuft nur auf HF** — wer dort als Ursprung steht, war nachweislich auf
+  der Luft. Damit kippt die unbestimmte Zeile aus D1: `gw`-Bit **plus** HF-bestätigter
+  Ursprung heißt dann „ein Gateway hat **weitergereicht**", nicht „eingespeist".
+Die 15-min-HEYs sind dafür der Taktgeber: sie kommen regelmäßig, unabhängig vom Verkehr,
+und sie kommen ausschließlich über HF.
+
+*Hausordnung des Firmware-Repos* (`CLAUDE.md` im Wurzelverzeichnis, gilt für uns):
+PRs gehen gegen den **`dev`**-Branch, vorher auf den aktuellen Stand rebasen;
+**minimale, gezielte Änderungen — ausdrücklich keine Umbauten/Refactorings**; und die
+**PR-Beschreibung auf Deutsch**, detailliert: welche Dateien/Funktionen geändert wurden und
+**warum**, vor dem Absenden verfasst.
+
+*Was der PR beachten muss:*
+- Das MH-JSON wird an **zwei** Stellen gebaut — live in `mheard_functions.cpp:331-343` und
+  beim Ausgeben der gespeicherten Liste ab `:633`. **Beide** patchen; eine Hilfsfunktion
+  wäre schöner, verstößt aber gegen die „keine Refactorings"-Regel oben ⇒ zwei mal dieselbe
+  Zeile ist hier die *richtige* Lösung, nicht die faule.
+- **Längenbudget:** `uint8_t bleBuffer[MAX_MSG_LEN_PHONE]`, gefüllt per
+  `serializeJson(mhdoc, bleBuffer+1, measureJson(mhdoc)+1)` — **ohne Prüfung**, ob das
+  Ergebnis in den Puffer passt. Jedes neue Feld wächst bei **jedem** Empfang mit, und
+  MH-Sätze sind das häufigste über die Schnittstelle. Eine Grenzprüfung gehört mit in den
+  PR (nützt auch ohne unsere Felder).
 
 ---
 
