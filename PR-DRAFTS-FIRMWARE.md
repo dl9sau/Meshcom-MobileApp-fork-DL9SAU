@@ -26,6 +26,14 @@ git push -u fork <branch>
 ```
 dann `https://github.com/icssw-org/MeshCom-Firmware/compare/dev...dl9sau:MeshCom-Firmware:<branch>?expand=1`
 
+**Kniff:** den Text von unten gleich als **Commit-Nachricht** verwenden. Bei einem PR aus
+einem einzelnen Commit füllt GitHub Titel und Beschreibung daraus vor — dann ist nichts zu
+kopieren, und Commit und PR können nicht auseinanderlaufen. Den Build-Nachweis danach als
+Kommentar an den PR hängen (beim Committen gibt es ihn noch nicht):
+
+> Kompiliert gegen `dev`: `pio run -e ttgo_tbeam` (espressif32 6.13.0, ArduinoJson 7.4.3)
+> — SUCCESS, keine neuen Warnungen.
+
 Achtung: PR 2 und 3 fassen denselben `mhdoc`-Block an (**beide** Fundstellen, Zeile ~331
 und ~633). Sobald einer gemergt ist, brauchen die anderen `git rebase origin/dev` —
 trivialer Konflikt, aber er kommt.
