@@ -127,9 +127,11 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
     // split the figure says "how much passes through here", not "how much of it did this
     // node inject". Wording: "from internet", not "from the network" - on a mesh the RF side
     // is a network too, so that word decides nothing (DL9SAU).
+    // SESSION value on purpose, not the all-time one: it sits in a line whose packet count
+    // is session-only, and two different time bases in one line explain nothing. After a
+    // restart the line simply starts over - like everything else counted per app run.
     const gwInj = useStoreState(GatewayStore, s => s.inj);
-    const gwInjMax = useStoreState(GatewayStore, s => s.injMax);
-    const gwInjected = Math.max((callUp ? gwInj[callUp] : 0) ?? 0, (callUp ? gwInjMax[callUp] : 0) ?? 0);
+    const gwInjected = (callUp ? gwInj[callUp] : 0) ?? 0;
     // ONE line for the traffic through this node: what it forwarded at all, and how much of
     // that did not come off the air. A plain repeater has a figure here too - it never sets
     // the gw bit, so the gateway registry alone left it blank (DL9SAU).

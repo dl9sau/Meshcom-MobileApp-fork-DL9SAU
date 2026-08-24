@@ -41,6 +41,8 @@ export const fmtHeardVia = (session: number, max: number): string | null =>
 //              hence "pkts" and not "msgs".
 //   internet - of those, the ones this node fed in: the sender was not confirmed on our air,
 //              which is the same judgement the globe marker makes on a single message.
+// Both figures count THIS app run. The registry also keeps an all-time injected count for
+// the map, but mixing it in here would put two time bases in one line.
 //
 // What is deliberately NOT shown any more is the count of packets carrying the gw bit (was:
 // "gatewayed 45"). It looks like a third quantity but is an artefact of how we detect

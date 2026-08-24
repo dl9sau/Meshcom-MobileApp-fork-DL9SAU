@@ -38,9 +38,9 @@ const Mheard = () => {
     const adjMax = useStoreState(AdjacencyStore, s => s.max);
     // runtime per-node counters (#pos / #msg received this session)
     const nodeInfoMap = useStoreState(NodeRuntimeStore, s => s.info);
-    // of the traffic a node relayed to us, the share it fed in from the internet (D1)
+    // of the traffic a node relayed to us, the share it fed in from the internet (D1).
+    // Session value, matching the session-only packet count next to it.
     const gwInj = useStoreState(GatewayStore, s => s.inj);
-    const gwInjMax = useStoreState(GatewayStore, s => s.injMax);
     // how much of what a node sends we actually hear (D3 HEY / D4 positions)
     const heyRates = useStoreState(LinkRateStore, s => s.hey);
     const posRates = useStoreState(LinkRateStore, s => s.pos);
@@ -99,8 +99,7 @@ const Mheard = () => {
                                                             Math.max(mhs.mh_ncnt ?? 0, nodeInfoMap[key]?.ncnt ?? 0));
                                                         const hv = fmtHeardVia(relayCounts[key] ?? 0, relayMax[key] ?? 0);
                                                         // traffic through this node, and how much of it was injected
-                                                        const rel = fmtRelayed(relayPkts[key] ?? 0,
-                                                            Math.max(gwInj[key] ?? 0, gwInjMax[key] ?? 0));
+                                                        const rel = fmtRelayed(relayPkts[key] ?? 0, gwInj[key] ?? 0);
                                                         return (<>
                                                             {nb ? <div className='rowcont'><div>Neighbours:</div><div className='value'>{nb}</div></div> : <></>}
                                                             {hv ? <div className='rowcont'><div>Heard via:</div><div className='value'>{hv}</div></div> : <></>}
