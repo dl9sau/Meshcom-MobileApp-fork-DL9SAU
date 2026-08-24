@@ -204,8 +204,9 @@ Alternative/zusätzlich Mheard-Tab zum Vergleich mit den Direktnachbarn.
   sieht, zu einer **eigenen** Nachricht gehört: die Firmware reicht es nur durch, wenn es
   zu einer eigenen Aussendung passt (`checkOwnTx`), und nur **einmal je Nachricht**
   (`own_msg_id[..][4] < 2`) — Quelltext geprüft, `lora_functions.cpp:handleACK`.
-  Beschriftet nach dem, was die Firmware **sagt**, nicht nach dem Icon: **`heard`**
-  (`0x00`, ihr eigenes Wort „ONLY HEARD") gegen **`acked`** (`0x01`/`0x02`). Zuordnung
+  Beschriftet nach dem, was die Firmware **sagt**, nicht nach dem Icon: **`repeated`**
+  (`0x00`, ihr „ONLY HEARD" — die eigene Nachricht kam über die Luft zurück) gegen
+  **`acked`** (`0x01`/`0x02`). **Nicht kumulativ**, siehe Block F. Zuordnung
   identisch zu `ackTxtMsg`, damit Zähler und Haken nie Verschiedenes erzählen; `0x01` und
   `0x02` teilen sich einen Topf, weil sie sich ein Icon teilen **und** weil das
   Firmware-Flag zur Trennung festverdrahtet ist (Block F). Am Ack-Modell wird **nichts** geändert. Ausgeblendet, solange nichts bestätigt
@@ -496,11 +497,24 @@ PRs gehen gegen den **`dev`**-Branch, vorher auf den aktuellen Stand rebasen;
   **Wolke mit Haken** = `0x01`/`0x02`. App-seitig: `ack_type 0x00` → 1, `0x01`/`0x02` → 2,
   `ack = 2` ist terminal. Was die Firmware damit **meint**:
   - `0x00` = **„ONLY HEARD"** (`lora_functions.cpp:685`, wörtlich so kommentiert): unser
-    eigener Knoten hat unsere Nachricht **wiederholt gehört**. Kein Empfänger im Spiel.
-  - `0x01` = **Server erreicht** (`loop_functions.cpp:3426`, nur wenn der eigene Knoten
-    selbst Gateway mit IP ist) **oder** Ack für eine **Rundrufnachricht** an `*`
-    (`lora_functions.cpp:1025`).
-  - `0x02` = Ack vom **adressierten Knoten** (DM).
+    eigener Knoten hat unsere eigene **Text**nachricht wieder von der Luft empfangen, jemand
+    hat sie also **wiederholt**. Lokal erzeugt, **einmal**, und nur **solange noch kein Ack
+    vermerkt ist** (`own_msg_id[icheck][4] == 0x00`). Aussage über **Ausbreitung**, nicht
+    über Zustellung.
+  - `0x01` = ein **Ack**: über die Luft von einem **Gateway** (`lora_functions.cpp:1026`
+    bzw. `:1057`, im Zweig `if(bGATEWAY && bSendAckGateway)`; **nur** für `*`, `WLNK-1`,
+    `APRS2SOTA` und Gruppen — eine reine DM wird dort ausdrücklich **nicht** bestätigt),
+    **oder** der eigene Knoten meldet „Server erreicht" (`loop_functions.cpp:3426`, nur
+    wenn er selbst Gateway mit IP ist).
+  - `0x02` = **Altlast**. `print_buff[10]` wird in der ganzen Firmware **ausschließlich auf
+    `0x01`** gesetzt; als Flag über die Luft kommen `0x00`/`0x02` nicht vor.
+  - **DM-Bestätigung läuft anders**: der Absender hängt einen APRS-Ack-Wunsch `{NNN` an die
+    Nutzlast (`loop_functions.cpp:3391`), die Bestätigung kommt über den APRS-Mechanismus
+    zurück, nicht über diesen Binärpfad. *(Wie die App das auf das Icon abbildet, ist noch
+    nicht nachgelesen.)*
+  - ⇒ **`acked` impliziert `repeated` nicht.** Kommt das Ack zuerst, unterbleibt der
+    Heard-Bericht ganz; und ein Repeat kann ohne jedes Ack bleiben. Die beiden Zähler sind
+    getrennte Beobachtungen, keine Stufen einer Leiter (Rückfrage DL9SAU 2026-08-24).
   ⇒ **„Wolke mit Haken" heißt nur bei einer DM „der Empfänger hat's".** Bei einer
   Kanalnachricht bedeutet dasselbe Icon „Server erreicht / Rundruf-Ack". Die Firmware
   räumt an der Stelle selbst ein, dass die Unterscheidung nicht implementiert ist:

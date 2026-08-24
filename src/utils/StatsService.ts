@@ -34,7 +34,7 @@ class StatsService {
     private callRank = new Map<string, number>();  // call -> best RANK seen
     private byRank = [0, 0, 0, 0];                 // how many calls sit at each rank
     private dbCalls = -1;
-    private ack = { heard: 0, acked: 0 };
+    private ack = { repeated: 0, acked: 0 };
 
     private norm(c: string): string { return (c || "").toUpperCase().trim(); }
 
@@ -130,13 +130,17 @@ class StatsService {
     //
     // Bucketed by the SAME mapping DatabaseService.ackTxtMsg applies to decide the icon, on
     // purpose: the counter must never tell a different story than the tick in the chat.
-    //   0x00 - the firmware calls this "ONLY HEARD": our message was repeated on the air
-    //   0x01 - server reached, or an ACK for a broadcast/channel message
-    //   0x02 - the addressed node acknowledged (a DM)
-    // 0x01 and 0x02 share one bucket because they share one icon, and because the firmware's
-    // own flag for telling gateway from node is hardcoded ("currently fixed to 0x00").
+    //   0x00 - the firmware's "ONLY HEARD" (lora_functions.cpp): our own message came back
+    //          over the air, i.e. somebody relayed it. Sent locally by our own node, once,
+    //          and ONLY while no ack has been recorded yet.
+    //   0x01 - an acknowledgement: from a gateway over the air (only gateways send them, and
+    //          only for '*', WLNK-1, APRS2SOTA and groups), or our own node reporting
+    //          "server reached" when it is itself a gateway.
+    //   0x02 - legacy; the current firmware never sets this flag byte to anything but 0x01.
+    // Deliberately NOT cumulative: an ack does not imply a heard relay (the ack can arrive
+    // first, which suppresses the report), and a relay does not imply an ack.
     countAck(ackState: number) {
-        if (ackState === 0x00) this.ack.heard++;
+        if (ackState === 0x00) this.ack.repeated++;
         else if (ackState === 0x01 || ackState === 0x02) this.ack.acked++;
         else return;                       // unknown state: not ours to guess
         this.mirror();
@@ -151,7 +155,7 @@ class StatsService {
         this.dm = { direct: 0, hf: 0, gw: 0 };
         this.callRank.clear();
         this.byRank = [0, 0, 0, 0];
-        this.ack = { heard: 0, acked: 0 };
+        this.ack = { repeated: 0, acked: 0 };
         this.mirror();
     }
 }
