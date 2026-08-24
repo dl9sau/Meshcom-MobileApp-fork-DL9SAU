@@ -1108,6 +1108,10 @@ export function useMSG() {
                     
                     // Handle Acknowledge of Text Msg
                     DatabaseService.ackTxtMsg(msgID, ack_state);
+                    // ... and count it for MY STATS, along the same two states the chat
+                    // icons show. Every ACK the app sees belongs to one of our own messages:
+                    // the firmware only forwards it when it matches our own transmission.
+                    StatsService.countAck(ack_state);
                 }
 
                 break;

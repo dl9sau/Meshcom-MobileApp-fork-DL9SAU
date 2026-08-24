@@ -34,6 +34,7 @@ class StatsService {
     private callRank = new Map<string, number>();  // call -> best RANK seen
     private byRank = [0, 0, 0, 0];                 // how many calls sit at each rank
     private dbCalls = -1;
+    private ack = { cloud: 0, done: 0 };
 
     private norm(c: string): string { return (c || "").toUpperCase().trim(); }
 
@@ -58,6 +59,7 @@ class StatsService {
             s.callsGw = this.byRank[RANK.gw];
             s.callsAll = this.callRank.size;
             s.dbCalls = this.dbCalls;
+            s.ack = { ...this.ack };
         });
     }
 
@@ -122,6 +124,21 @@ class StatsService {
         if (this.note(from, hops <= 0 ? 'direct' : 'hf', this.pos)) this.mirror();
     }
 
+    // An acknowledgement for one of OUR OWN messages. The firmware hands an ACK to the app
+    // only when it matches something we transmitted (`checkOwnTx`), and only once per
+    // message - so these count our sent messages getting through, not foreign traffic.
+    //
+    // Bucketed by the SAME mapping DatabaseService.ackTxtMsg applies to decide the icon, on
+    // purpose: the counter must never tell a different story than the tick in the chat. What
+    // the two states mean exactly is the firmware's business (0x01 is "server reached", 0x02
+    // comes from the addressed node) - we mirror, we do not reinterpret.
+    countAck(ackState: number) {
+        if (ackState === 0x00) this.ack.cloud++;
+        else if (ackState === 0x01 || ackState === 0x02) this.ack.done++;
+        else return;                       // unknown state: not ours to guess
+        this.mirror();
+    }
+
     // distinct callsigns found in the database (see DatabaseService.getStatsDb)
     setDbCalls(n: number) { this.dbCalls = n; this.mirror(); }
 
@@ -131,6 +148,7 @@ class StatsService {
         this.dm = { direct: 0, hf: 0, gw: 0 };
         this.callRank.clear();
         this.byRank = [0, 0, 0, 0];
+        this.ack = { cloud: 0, done: 0 };
         this.mirror();
     }
 }

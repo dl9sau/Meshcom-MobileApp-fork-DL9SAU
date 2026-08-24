@@ -47,9 +47,6 @@ const MAX_GAPS = 64;
 const HEY_MIN_SPACING = 0.6;
 // positions: the interval is estimated, so the test is on SPREAD instead
 const POS_SPREAD_MAX = 2.5;
-// how many raw path lengths to log at the start, so a field test can see what the firmware
-// actually sends without having to trust the calibration below
-const PL_SAMPLES = 5;
 // A node's OWN transmission carries either an empty path or just itself - 0 or 1, nothing
 // else is possible. Capping the learned floor at 1 keeps a single forwarded beacon seen
 // early from being mistaken for the floor.
@@ -68,7 +65,6 @@ class LinkRateService {
     private pos = new Map<string, Track>();
     private heyOwnTotal = 0;
     private heyFwdTotal = 0;
-    private plSamples = 0;
     // The shortest HEY path length we have ever seen. -1 = nothing seen yet. See calibrate().
     private ownPl = -1;
 
@@ -94,10 +90,9 @@ class LinkRateService {
         if (this.ownPl >= 0 && pl >= this.ownPl) return;
         const prev = this.ownPl;
         this.ownPl = pl;
-        if (prev < 0) {
-            LogS.log(0, `HEY path length floor: ${pl} = a node's own beacon`);
-            return;
-        }
+        // The expected case (1, per the firmware source) is silent - only a DROP is worth a
+        // line, because it means the figures counted so far rested on a wrong floor.
+        if (prev < 0) return;
         LogS.log(0, `HEY path length floor drops ${prev} -> ${pl}: ${prev} was not a node's ` +
             `own beacon after all, HEY figures restarted`);
         this.hey.clear();
@@ -157,12 +152,7 @@ class LinkRateService {
         const c = this.norm(call);
         if (c === "" || c === this.norm(ownCall) || !(pathLen >= 0)) return;
         this.calibrate(pathLen);
-        const own = this.isOwnBeacon(pathLen);
-        if (this.plSamples < PL_SAMPLES) {
-            this.plSamples++;
-            LogS.log(0, `HEY from ${c}: path length ${pathLen} -> ${own ? "its own beacon" : "forwarded"}`);
-        }
-        if (!own) {
+        if (!this.isOwnBeacon(pathLen)) {
             this.heyFwd.set(c, (this.heyFwd.get(c) ?? 0) + 1);
             this.heyFwdTotal++;
             this.mirrorHey(c);
@@ -204,7 +194,6 @@ class LinkRateService {
 
     clear() {
         this.ownPl = -1;
-        this.plSamples = 0;
         this.hey.clear();
         this.heyFwd.clear();
         this.pos.clear();

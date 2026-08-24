@@ -27,6 +27,12 @@ export interface StatsState {
     // distinct callsigns in the DATABASE (message senders + nodes we hold a position
     // for), i.e. everything we ever heard within the retention window. -1 = not loaded.
     dbCalls: number;
+    // Acknowledgements for OUR OWN sent messages - the firmware only forwards an ACK to the
+    // app when it matches one of our own transmissions, and only once per message. Split
+    // exactly along the two icons the chat already shows, nothing reinterpreted:
+    //   cloud - "cloud" icon: confirmed somewhere on the way
+    //   done  - "cloud with tick": the stronger confirmation
+    ack: { cloud: number; done: number };
 }
 
 const zero = (): CatCounts => ({ direct: 0, hf: 0, gw: 0 });
@@ -34,7 +40,8 @@ const zero = (): CatCounts => ({ direct: 0, hf: 0, gw: 0 });
 const StatsStore = new Store<StatsState>({
     pos: zero(), msg: zero(), dm: zero(),
     callsDirect: 0, callsHf: 0, callsGw: 0, callsAll: 0,
-    dbCalls: -1
+    dbCalls: -1,
+    ack: { cloud: 0, done: 0 }
 });
 
 export default StatsStore;

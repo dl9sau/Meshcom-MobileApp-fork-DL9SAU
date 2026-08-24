@@ -182,7 +182,7 @@ Station im Rückstand; die Entprellung fasst außerdem Bursts zusammen.
 **C4 — Platzierung**: MY STATS in **Info**, Kasten unter „Sensors" (thematisch stimmig).
 Alternative/zusätzlich Mheard-Tab zum Vergleich mit den Direktnachbarn.
 
-**C7 — `#hey` ✅ GEBAUT · `#ack` offen** — in MY STATS *(Idee DL9SAU, 2026-08-24)*
+**C7 — ✅ GEBAUT** — `#hey` und `#ack` in MY STATS *(Idee DL9SAU, 2026-08-24)*
 - **`#hey`** — HEY kommt nicht als Paket in die App, ist aber über das MH-JSON zählbar
   (`PLT 64`, dieselbe Quelle wie D3). Es zählt **fremde** Stationen auf der Luft.
   Beschriftung schlicht **`#hey`**, ohne Zusatz; Gesamtzahl in den Total-Stats.
@@ -200,9 +200,14 @@ Alternative/zusätzlich Mheard-Tab zum Vergleich mit den Direktnachbarn.
   Firmware-Wunsch E3 (bleibt).
   *Gebaut 2026-08-24 mit D3:* Zeile `#hey` (`own` / `relayed`) in MY STATS, die Quote je
   Knoten in Mheard und Karten-Overlay.
-- **`#ack`** — aus den Ack-Paketen zählbar, entlang der **drei vorhandenen Zustände**
-  (Haken / Wolke / Wolke mit Haken, siehe Block F). Am Ack-Modell selbst wird **nichts
-  geändert**; der Zähler spiegelt nur, was die Anzeige ohnehin sagt.
+- **`#ack`** — *gebaut 2026-08-24:* Zeile unter **`me`**, weil jedes Ack, das die App
+  sieht, zu einer **eigenen** Nachricht gehört: die Firmware reicht es nur durch, wenn es
+  zu einer eigenen Aussendung passt (`checkOwnTx`), und nur **einmal je Nachricht**
+  (`own_msg_id[..][4] < 2`) — Quelltext geprüft, `lora_functions.cpp:handleACK`.
+  Aufgeteilt nach denselben zwei Icons wie im Chat (`cloud` / `cloud done`) und über
+  **dieselbe** Zuordnung wie `ackTxtMsg`, damit Zähler und Haken nie Verschiedenes
+  erzählen. Am Ack-Modell wird **nichts** geändert. Ausgeblendet, solange nichts bestätigt
+  wurde — eine reine Empfangsstation braucht keinen Zähler, der auf 0 stehen bleibt.
 ⇒ Gleiche Datenquelle wie D3, zusammen bauen.
 
 ---
