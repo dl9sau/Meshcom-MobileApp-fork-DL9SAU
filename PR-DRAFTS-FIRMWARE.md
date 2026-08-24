@@ -252,9 +252,9 @@ eine Überschreitung das JSON **abschneiden** und damit unbrauchbar machen würd
 | 1 | `fix/mheard-ble-buffer-guard` | `a0d2475` | ✅ | ✅ **#1090** |
 | 2 | `feat/mh-json-src-gw` | `c04ed7b` | ✅ | ✅ **#1091** |
 | 4 | `feat/info-json-flash-version` | `ae15bb7` | ✅ | ✅ **#1092** |
-| 3 | `feat/mh-json-hey-path` | `fff4010` | ✅ | zuletzt, mit Querverweis |
+| 3 | `feat/mh-json-hey-path` | `fff4010` | ✅ | ✅ **#1093** |
 
-*(alle am 2026-08-24 eingereicht, gegen `dev`)*
+*(#1090–#1092 am 2026-08-24, #1093 am 2026-08-25 — alle gegen `dev`, alle warten auf Review)*
 
 Alle vier von `origin/dev` abgezweigt, keiner baut auf einem anderen auf. Je PR:
 
