@@ -233,7 +233,7 @@ changes of this fork relative to upstream. The in-app version shows
   injected by the first relay in its path. Both cases are recorded; the ambiguous one
   (local sender, several relays) deliberately is not. Gateways get a **darkorange marker**
   — own station stays purple, direct neighbours green — and the node overlay gains a
-  **`GW: n (max m) msgs`** line counting the messages attributed to them — with the unit
+  **`GW traffic: n (max m) msgs`** line counting the messages attributed to them — with the unit
   spelled out, because the line right above it counts unique *stations* in the very same
   format, and with the share that came **from internet** shown separately (the rest is air
   traffic the gateway merely passed on; the `gw` bit alone does not tell them apart). The all-time figure

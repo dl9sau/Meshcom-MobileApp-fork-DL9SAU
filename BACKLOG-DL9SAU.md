@@ -255,7 +255,7 @@ persistiert, also steht „(max n)" sofort nach einem Neustart da statt bei 0 an
 Knoten-Overlay, nur bei Knoten, denen wir etwas nachweisen konnten. Einseitig: wir
 **setzen** Gateways, nehmen sie nie zurück — die Zahl sagt, wie viel es trägt, nicht ob
 es heute noch eines ist. Offline gegen 19 Fälle geprüft.
-*Was die Zahl sagt und was nicht* **(Rückfrage DL9SAU, 2026-08-24)**: `GW: n` zählt
+*Was die Zahl sagt und was nicht* **(Rückfrage DL9SAU, 2026-08-24)**: `GW traffic: n` zählt
 **Nachrichten**, nicht Rufzeichen — anders als das darüberstehende `Heard via`, das unique
 Stationen zählt. Beide waren gleich formatiert („n (max m)"), genau so verwechselt man sie;
 die GW-Zeile schreibt die Einheit jetzt aus. Und sie zählt **nicht nur Einspeisungen**: das
@@ -266,6 +266,11 @@ HF-bestätigt", also **aus dem Internet** eingespeist. Angezeigt wird deshalb
 weitergereicht hat. *Wortwahl bewusst nicht „from the network" (DL9SAU): im Mesh ist die
 HF-Seite auch ein Netz, das Wort entscheidet also nichts — der Gegensatz ist Internet
 gegen Luft.*
+*Und was bei einem reinen Repeater dort steht: nichts.* Der Zähler springt nur bei gesetztem
+gw-Bit an, und das setzt die Firmware nur, wenn ein Knoten **als Gateway** weiterreicht oder
+einspeist. Jede gezählte Nachricht **beweist** also die Gateway-Eigenschaft — deshalb heißt
+die Zeile `GW traffic` (Durchsatz durch dieses Gateway), nicht bloß `GW`. Was ein
+gewöhnlicher Knoten weiterträgt, steht in `Heard via`.
 
 *Zeile 4 der Tabelle* (Quelle HF-bestätigt, mehrere Relays) bleibt für D1 unbestimmt —
 dafür ist D1b da (gebaut, aber bewusst nur „wahrscheinlich", ohne Kartenfarbe).

@@ -253,13 +253,17 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
                                     {directNeighboursText !== null ? <><IonText>Neighbours: {directNeighboursText}</IonText><br /></> : <></>}
                                     {/* Heard via this node - only for our own direct neighbours */}
                                     {heardViaText !== null ? <><IonText>Heard via: {heardViaText}</IonText><br /></> : <></>}
-                                    {/* Gateway (D1): shown only for nodes we could prove gatewayed
-                                        something. The unit is spelled out because the line above it
-                                        counts something else entirely: "Heard via" is unique STATIONS,
-                                        this is MESSAGES - and both are formatted "n (max m)", which is
-                                        exactly how you misread one for the other (asked in the field,
-                                        DL9SAU 2026-08-24). */}
-                                    {gatewayText !== null ? <><IonText>GW: {gatewayText} msgs{gwInjected > 0 ? ", " + gwInjected + " from internet" : ""}</IonText><br /></> : <></>}
+                                    {/* Gateway (D1). The line exists ONLY for nodes we could prove
+                                        gatewayed something - every counted message carried the gw bit,
+                                        and the firmware sets that bit only when a node relays AS a
+                                        gateway or injects. A plain repeater therefore shows nothing
+                                        here; what it carries is the "Heard via" line above.
+                                        Label says "GW traffic", not just "GW": the count mixes injected
+                                        and merely-passed-on traffic, so it is throughput THROUGH this
+                                        gateway, not an origin (DL9SAU). The unit is spelled out because
+                                        "Heard via" right above counts unique STATIONS in the very same
+                                        "n (max m)" format. */}
+                                    {gatewayText !== null ? <><IonText>GW traffic: {gatewayText} msgs{gwInjected > 0 ? ", " + gwInjected + " from internet" : ""}</IonText><br /></> : <></>}
                                     {/* Gateway (D1b): the weaker detector - more senders seen
                                         in front of this node than it advertises neighbours. */}
                                     {gatewayProbablyText !== null ? <><IonText>GW: {gatewayProbablyText}</IonText><br /></> : <></>}
