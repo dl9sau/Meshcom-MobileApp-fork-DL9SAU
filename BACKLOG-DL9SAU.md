@@ -510,6 +510,15 @@ PRs gehen gegen den **`dev`**-Branch, vorher auf den aktuellen Stand rebasen;
 
 - **RX-Dedup by msg_id** vor Weitergabe an die App → App sieht **unique** Pakete, nie
   Luftschnittstellen-Kopien. „Pakete auf Luft / Retransmissions" ist app-seitig unmöglich.
+  *Quelltext 2026-08-24:* `is_new_packet()` (`lora_functions.cpp:1411`) vergleicht die
+  4-Byte-`msg_id` gegen einen Ring, und der **ganze** Verarbeitungszweig hängt in
+  `if(is_new_packet(...))` (`:702`) — das Duplikat fällt weg, bevor irgendetwas an die App
+  geht. Ringgröße `MAX_DEDUP_RING` = **60**, auf einer Variante **100** (Kommentar dort:
+  *„was 60, wraparounds observed"*) ⇒ bei dichtem Verkehr kann ein spätes Duplikat doch
+  durchrutschen. Folge für `Relayed: n pkts`: dieselbe Nachricht über einen zweiten Pfad
+  zählt **einmal**, gutgeschrieben den Relays der **zuerst** eingetroffenen Kopie — die
+  Zahl heißt also „wie viel hat mir dieser Knoten als Erster gebracht", nicht „wie viel hat
+  er getragen".
 - **GW-Bit = Byte6 `0x80` = `msg_server`** (Loop-Schutz). Gesetzt nur beim **Relayen**
   (`bGATEWAY && node_hasIPaddress`) und beim **Einspeisen aus dem Internet**;
   `initAPRS` setzt es für **selbst erzeugte** Pakete auf `false`. ⇒ **gw=0 ⇒ sicher HF.**
