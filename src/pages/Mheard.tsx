@@ -3,8 +3,9 @@ import MhStore from '../store/MheardStore';
 import ConfigStore from '../store/ConfStore';
 import RelayCountStore from '../store/RelayCountStore';
 import AdjacencyStore from '../store/AdjacencyStore';
-import { fmtNeighbours, fmtHeardVia } from '../utils/NeighbourStats';
+import { fmtNeighbours, fmtHeardVia, fmtRelayed } from '../utils/NeighbourStats';
 import LinkRateStore from '../store/LinkRateStore';
+import GatewayStore from '../store/GatewayStore';
 import { fmtHeyRate, fmtRateShort } from '../utils/RateStats';
 import NodeRuntimeStore from '../store/NodeRuntimeStore';
 import { getMheards, getConfigStore } from '../store/Selectors';
@@ -29,11 +30,19 @@ const Mheard = () => {
     const relayCounts = useStoreState(RelayCountStore, s => s.counts);
     // all-time neighbour counts (survives restart, shown as "(max N)")
     const relayMax = useStoreState(RelayCountStore, s => s.max);
+    // packets this node forwarded towards us (session only) - the figure that exists for a
+    // plain repeater too, which the gateway line deliberately does not cover
+    const relayPkts = useStoreState(RelayCountStore, s => s.pkts);
     // direct neighbours we inferred from route-path adjacency (session + all-time)
     const adjCounts = useStoreState(AdjacencyStore, s => s.counts);
     const adjMax = useStoreState(AdjacencyStore, s => s.max);
     // runtime per-node counters (#pos / #msg received this session)
     const nodeInfoMap = useStoreState(NodeRuntimeStore, s => s.info);
+    // gateway share of the traffic a node relayed to us (D1)
+    const gwCounts = useStoreState(GatewayStore, s => s.counts);
+    const gwMax = useStoreState(GatewayStore, s => s.max);
+    const gwInj = useStoreState(GatewayStore, s => s.inj);
+    const gwInjMax = useStoreState(GatewayStore, s => s.injMax);
     // how much of what a node sends we actually hear (D3 HEY / D4 positions)
     const heyRates = useStoreState(LinkRateStore, s => s.hey);
     const posRates = useStoreState(LinkRateStore, s => s.pos);
@@ -91,9 +100,14 @@ const Mheard = () => {
                                                         const nb = fmtNeighbours(adjCounts[key] ?? 0, adjMax[key] ?? 0,
                                                             Math.max(mhs.mh_ncnt ?? 0, nodeInfoMap[key]?.ncnt ?? 0));
                                                         const hv = fmtHeardVia(relayCounts[key] ?? 0, relayMax[key] ?? 0);
+                                                        // traffic through this node incl. the gateway share
+                                                        const rel = fmtRelayed(relayPkts[key] ?? 0, gwCounts[key] ?? 0,
+                                                            gwMax[key] ?? 0,
+                                                            Math.max(gwInj[key] ?? 0, gwInjMax[key] ?? 0));
                                                         return (<>
                                                             {nb ? <div className='rowcont'><div>Neighbours:</div><div className='value'>{nb}</div></div> : <></>}
                                                             {hv ? <div className='rowcont'><div>Heard via:</div><div className='value'>{hv}</div></div> : <></>}
+                                                            {rel ? <div className='rowcont'><div>Relayed:</div><div className='value'>{rel}</div></div> : <></>}
                                                         </>);
                                                     })()}
                                                 </div>

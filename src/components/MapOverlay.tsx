@@ -11,7 +11,7 @@ import AdjacencyStore from "../store/AdjacencyStore";
 import GatewayStore from "../store/GatewayStore";
 import LinkRateStore from "../store/LinkRateStore";
 import { fmtHeyRate, fmtRateShort } from "../utils/RateStats";
-import { fmtNeighbours, fmtHeardVia } from "../utils/NeighbourStats";
+import { fmtNeighbours, fmtHeardVia, fmtRelayed } from "../utils/NeighbourStats";
 import { useHistory } from "react-router";
 import ConfigObject from "../utils/ConfigObject";
 import { distanceKm } from "../utils/GeoUtils";
@@ -110,6 +110,7 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
     // HEARD VIA this node: unique nodes whose traffic it forwarded towards us - counted
     // for EVERY position in a path now, not just our own direct neighbour, so it also
     // says how much a remote repeater carries for others (see addForwardedAlongPath).
+    const relayPkts = useStoreState(RelayCountStore, s => s.pkts);
     const heardViaText = fmtHeardVia(
         (callUp ? relayCounts[callUp] : 0) ?? 0,
         (callUp ? relayMax[callUp] : 0) ?? 0);
@@ -119,9 +120,8 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
     // busy it is, not whether it still is one. null when we never saw it gateway anything.
     const gwCounts = useStoreState(GatewayStore, s => s.counts);
     const gwMax = useStoreState(GatewayStore, s => s.max);
-    const gatewayText = fmtHeardVia(
-        (callUp ? gwCounts[callUp] : 0) ?? 0,
-        (callUp ? gwMax[callUp] : 0) ?? 0);
+    const gwSession = (callUp ? gwCounts[callUp] : 0) ?? 0;
+    const gwAll = (callUp ? gwMax[callUp] : 0) ?? 0;
     // Of those messages, the ones this node fed in FROM THE INTERNET - the rest it merely
     // passed on after hearing them on the air. The gw bit is set for both, so without the
     // split the figure says "how much passes through here", not "how much of it did this
@@ -130,12 +130,16 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
     const gwInj = useStoreState(GatewayStore, s => s.inj);
     const gwInjMax = useStoreState(GatewayStore, s => s.injMax);
     const gwInjected = Math.max((callUp ? gwInj[callUp] : 0) ?? 0, (callUp ? gwInjMax[callUp] : 0) ?? 0);
+    // ONE line for the traffic through this node: what it forwarded at all, and how much of
+    // that it handled as a gateway. The gateway share used to be a line of its own, which
+    // left a plain repeater with no figure at all - it never sets the gw bit (DL9SAU).
+    const relayedText = fmtRelayed((callUp ? relayPkts[callUp] : 0) ?? 0, gwSession, gwAll, gwInjected);
     // D1b: no proof, but this node put more DIFFERENT senders on our air than it claims to
     // hear itself - so at least one of them never reached it over RF. Shown with both raw
     // numbers, and only while D1 has nothing: a proof beats a heuristic.
     const gwProbable = useStoreState(GatewayStore, s => s.probable);
     const gwProb = callUp ? gwProbable[callUp] : undefined;
-    const gatewayProbablyText = (gatewayText === null && gwProb)
+    const gatewayProbablyText = (gwSession <= 0 && gwAll <= 0 && gwProb)
         ? "probably (" + gwProb.seen + " senders relayed, advertises " + gwProb.advertised + ")"
         : null;
 
@@ -253,17 +257,10 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
                                     {directNeighboursText !== null ? <><IonText>Neighbours: {directNeighboursText}</IonText><br /></> : <></>}
                                     {/* Heard via this node - only for our own direct neighbours */}
                                     {heardViaText !== null ? <><IonText>Heard via: {heardViaText}</IonText><br /></> : <></>}
-                                    {/* Gateway (D1). The line exists ONLY for nodes we could prove
-                                        gatewayed something - every counted message carried the gw bit,
-                                        and the firmware sets that bit only when a node relays AS a
-                                        gateway or injects. A plain repeater therefore shows nothing
-                                        here; what it carries is the "Heard via" line above.
-                                        Label says "GW traffic", not just "GW": the count mixes injected
-                                        and merely-passed-on traffic, so it is throughput THROUGH this
-                                        gateway, not an origin (DL9SAU). The unit is spelled out because
-                                        "Heard via" right above counts unique STATIONS in the very same
-                                        "n (max m)" format. */}
-                                    {gatewayText !== null ? <><IonText>GW traffic: {gatewayText} msgs{gwInjected > 0 ? ", " + gwInjected + " from internet" : ""}</IonText><br /></> : <></>}
+                                    {/* Traffic through this node: everything it forwarded to us, and
+                                        the gateway share of it (D1). One line, because the second figure
+                                        is a subset of the first - see fmtRelayed for what each means. */}
+                                    {relayedText !== null ? <><IonText>Relayed: {relayedText}</IonText><br /></> : <></>}
                                     {/* Gateway (D1b): the weaker detector - more senders seen
                                         in front of this node than it advertises neighbours. */}
                                     {gatewayProbablyText !== null ? <><IonText>GW: {gatewayProbablyText}</IonText><br /></> : <></>}

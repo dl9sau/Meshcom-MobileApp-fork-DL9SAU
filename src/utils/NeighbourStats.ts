@@ -26,6 +26,39 @@ export const fmtNeighbours = (session: number, max: number, advertised: number):
     return parts.length > 0 ? parts.join(" · ") : null;
 };
 
-// "19 (max 45)" - null when this node never relayed anything to us
+// "19 (max 45) stations" - how many DIFFERENT stations reached us through this node. The
+// unit is spelled out because the traffic line below counts packets in a similar shape, and
+// a bare "n (max m)" next to another bare "n (max m)" is exactly how one gets read as the
+// other (field test C5, and again on the gateway line 2026-08-24).
 export const fmtHeardVia = (session: number, max: number): string | null =>
-    (session > 0 || max > 0) ? fmtCount(session, max) : null;
+    (session > 0 || max > 0) ? fmtCount(session, max) + " stations" : null;
+
+// "128 pkts, gatewayed 45, 12 from internet" - how much traffic this node carried for us,
+// and how much of it it handled AS A GATEWAY.
+//
+// Two figures, deliberately in one line (idea DL9SAU 2026-08-24), because the second is a
+// subset of the first and reading them apart invites the wrong conclusion:
+//   pkts      - everything it forwarded towards us, gateway or not. This is the figure a
+//               PLAIN REPEATER has, and it used to exist nowhere: the gateway count only
+//               ever fires on a set gw bit, which a normal node never sets. Positions count
+//               too, hence "pkts" and not "msgs".
+//   gatewayed - of those, the ones carrying the gw bit, i.e. where this node was the
+//               gatewaying hop. Any number above zero PROVES the node is a gateway.
+//   internet  - of those again, the ones whose origin was not HF-confirmed, so this node
+//               fed them in rather than passing on air traffic. The gw bit alone does not
+//               separate the two - see the gateway registry.
+// "(max n)" appears on the gateway figure only when it exceeds the session count: it is
+// replayed from the database on startup, while the packet count is session-only (the
+// database keeps one row per station, so there is no packet history to replay).
+export const fmtRelayed = (pkts: number, gwSession: number, gwMax: number,
+                           injected: number): string | null => {
+    const gw = Math.max(gwSession, 0);
+    if (pkts <= 0 && gw <= 0 && gwMax <= 0) return null;
+    const parts: string[] = [];
+    if (pkts > 0) parts.push(pkts + " pkts");
+    if (gw > 0 || gwMax > 0) {
+        parts.push("gatewayed " + gw + (gwMax > gw ? " (max " + gwMax + ")" : ""));
+        if (injected > 0) parts.push(injected + " from internet");
+    }
+    return parts.join(", ");
+};

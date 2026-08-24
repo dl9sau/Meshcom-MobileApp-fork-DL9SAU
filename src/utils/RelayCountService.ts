@@ -16,6 +16,8 @@ class RelayCountService {
     // neighbour callsign (UPPERCASE) -> set of unique callsigns heard via them
     private relayMap: Map<string, Set<string>> = new Map();   // this session
     private maxMap: Map<string, Set<string>> = new Map();      // all-time
+    // neighbour -> number of PACKETS it forwarded towards us (session only, see the store)
+    private pktMap: Map<string, number> = new Map();
 
     private norm(call: string): string {
         return (call || "").toUpperCase().trim();
@@ -63,6 +65,27 @@ class RelayCountService {
     // a lower bound on what a node really forwards.
     addForwardedAlongPath(path: string[]) {
         for (let i = 1; i < path.length; i++) this.addHeardVia(path[i], path.slice(0, i));
+        this.countPacket(path);
+    }
+
+    // One received packet, credited to every relay that carried it. Unlike the unique-station
+    // sets above this grows with every reception, which is precisely what answers "how much
+    // does this node repeat" - including for nodes that are NOT gateways and therefore never
+    // appear in the gateway figure.
+    private countPacket(path: string[]) {
+        const touched: string[] = [];
+        for (let i = 1; i < path.length; i++) {
+            const nb = this.norm(path[i]);
+            if (nb === "") continue;
+            this.pktMap.set(nb, (this.pktMap.get(nb) ?? 0) + 1);
+            touched.push(nb);
+        }
+        if (touched.length === 0) return;
+        RelayCountStore.update(s => {
+            const pkts = { ...s.pkts };
+            touched.forEach(nb => { pkts[nb] = this.pktMap.get(nb) ?? 0; });
+            s.pkts = pkts;
+        });
     }
 
     // same, but all-time only (startup seeding from persisted position paths)
@@ -95,7 +118,8 @@ class RelayCountService {
     clear() {
         this.relayMap.clear();
         this.maxMap.clear();
-        RelayCountStore.update(s => { s.counts = {}; s.max = {}; });
+        this.pktMap.clear();
+        RelayCountStore.update(s => { s.counts = {}; s.max = {}; s.pkts = {}; });
     }
 }
 

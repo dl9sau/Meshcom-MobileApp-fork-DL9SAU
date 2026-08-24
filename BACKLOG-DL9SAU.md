@@ -266,11 +266,22 @@ HF-bestätigt", also **aus dem Internet** eingespeist. Angezeigt wird deshalb
 weitergereicht hat. *Wortwahl bewusst nicht „from the network" (DL9SAU): im Mesh ist die
 HF-Seite auch ein Netz, das Wort entscheidet also nichts — der Gegensatz ist Internet
 gegen Luft.*
-*Und was bei einem reinen Repeater dort steht: nichts.* Der Zähler springt nur bei gesetztem
-gw-Bit an, und das setzt die Firmware nur, wenn ein Knoten **als Gateway** weiterreicht oder
-einspeist. Jede gezählte Nachricht **beweist** also die Gateway-Eigenschaft — deshalb heißt
-die Zeile `GW traffic` (Durchsatz durch dieses Gateway), nicht bloß `GW`. Was ein
-gewöhnlicher Knoten weiterträgt, steht in `Heard via`.
+*Und was bei einem reinen Repeater dort stand: nichts* — der Zähler springt nur bei
+gesetztem gw-Bit an, und das setzt die Firmware nur, wenn ein Knoten **als Gateway**
+weiterreicht oder einspeist. Jede gezählte Nachricht **beweist** damit zwar die
+Gateway-Eigenschaft, aber der gewöhnliche Repeater hatte gar keine Verkehrszahl (Einwand
+DL9SAU). *Gelöst 2026-08-24 in seiner Form* — **eine** Zeile über den Verkehr durch den
+Knoten, der Gateway-Anteil als Zusatz:
+`Relayed: 128 pkts, gatewayed 45 (max 60), 12 from internet`
+- **`pkts`** — alles, was er uns weitergereicht hat, Gateway oder nicht. Neuer Zähler in
+  `RelayCountService` (je Relay im Pfad ein Paket), **session-only**: die DB hält eine Zeile
+  je Station, es gibt keine Paket-Historie zum Nachspielen, ein „(max)" wäre erfunden.
+  Positionen zählen mit ⇒ `pkts`, nicht `msgs`.
+- **`gatewayed`** — davon die mit gw-Bit; jede Zahl > 0 beweist die Gateway-Eigenschaft.
+  `(max n)` nur, wenn der all-time-Wert den Session-Wert übersteigt.
+- **`from internet`** — davon die eingespeisten (`gwState === 'solid'`).
+`Heard via` bleibt daneben stehen und zählt weiterhin **Stationen** — jetzt mit
+ausgeschriebener Einheit, damit die beiden Zeilen nicht verwechselt werden.
 
 *Zeile 4 der Tabelle* (Quelle HF-bestätigt, mehrere Relays) bleibt für D1 unbestimmt —
 dafür ist D1b da (gebaut, aber bewusst nur „wahrscheinlich", ohne Kartenfarbe).
