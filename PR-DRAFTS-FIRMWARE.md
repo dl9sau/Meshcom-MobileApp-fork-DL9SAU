@@ -264,3 +264,19 @@ dann `https://github.com/icssw-org/MeshCom-Firmware/compare/dev...dl9sau:MeshCom
 Titel und Beschreibung füllt GitHub aus der Commit-Nachricht — nichts zu kopieren.
 Wird einer gemergt, brauchen die anderen `git fetch origin dev && git rebase origin/dev`
 (PR 2 und 3 fassen denselben `mhdoc`-Block an).
+
+## Querverweis für PR 3
+
+PR 3 zuletzt einreichen, dann diesen Absatz als **Kommentar** darunter (oder über das
+Stift-Symbol an die Beschreibung anhängen). Bewusst **nicht** als „hängt ab von"
+formuliert — technisch ist der PR eigenständig, und eine behauptete Abhängigkeit ließe den
+Maintainer unnötig warten:
+
+> Ergänzung zur Einordnung: Dieser PR ist eigenständig — er baut und funktioniert ohne die
+> anderen. Der Reihenfolge halber: `PP` ist das größte der vorgeschlagenen Felder, deshalb
+> passt er gut **nach** #\<Nr. von PR 1\> (Puffergrenze). Er berührt denselben
+> `mhdoc`-Block wie #\<Nr. von PR 2\>; wird einer der beiden gemergt, rebase ich den
+> anderen umgehend.
+
+GitHub verlinkt `#123` automatisch und zeigt den Bezug dann auch in PR 1 und 2 als
+Querverweis — die Zusammengehörigkeit ist damit ohne weiteres Zutun sichtbar.
