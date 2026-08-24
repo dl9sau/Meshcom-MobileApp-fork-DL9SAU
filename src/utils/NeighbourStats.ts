@@ -50,8 +50,12 @@ export const fmtHeardVia = (session: number, max: number): string | null =>
 // Duplicates do NOT inflate this: the node drops a repeated msg_id before the app ever sees
 // it (firmware dedup ring, 60-100 ids). So the same packet arriving over a second path, or
 // a sender's retransmission, counts once - credited to the relays of the copy that arrived
-// FIRST. A relay that carried the same packet but lost the race gets nothing, which makes
-// this "how much did this node deliver to me first", not "how much did it carry".
+// FIRST.
+//
+// That is a feature, not a caveat (DL9SAU): where several ways exist, the one that keeps
+// winning IS the way the network actually runs here. The figure measures effective delivery,
+// not theoretical participation - the packet-level counterpart to what "Heard via" says
+// about stations.
 //
 // What is deliberately NOT shown any more is the count of packets carrying the gw bit (was:
 // "gatewayed 45"). It looks like a third quantity but is an artefact of how we detect

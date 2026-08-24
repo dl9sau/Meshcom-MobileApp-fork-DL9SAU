@@ -516,9 +516,11 @@ PRs gehen gegen den **`dev`**-Branch, vorher auf den aktuellen Stand rebasen;
   geht. Ringgröße `MAX_DEDUP_RING` = **60**, auf einer Variante **100** (Kommentar dort:
   *„was 60, wraparounds observed"*) ⇒ bei dichtem Verkehr kann ein spätes Duplikat doch
   durchrutschen. Folge für `Relayed: n pkts`: dieselbe Nachricht über einen zweiten Pfad
-  zählt **einmal**, gutgeschrieben den Relays der **zuerst** eingetroffenen Kopie — die
-  Zahl heißt also „wie viel hat mir dieser Knoten als Erster gebracht", nicht „wie viel hat
-  er getragen".
+  zählt **einmal**, gutgeschrieben den Relays der **zuerst** eingetroffenen Kopie. *Das ist
+  kein Mangel, sondern die Aussage* (DL9SAU): wo mehrere Wege bestehen, ist der, der
+  regelmäßig zuerst da ist, **der Weg, über den das Netz hier tatsächlich läuft**. Gemessen
+  wird wirksame Zustellung, nicht theoretische Beteiligung — das Paket-Gegenstück zu dem,
+  was `Heard via` über Stationen sagt (D2).
 - **GW-Bit = Byte6 `0x80` = `msg_server`** (Loop-Schutz). Gesetzt nur beim **Relayen**
   (`bGATEWAY && node_hasIPaddress`) und beim **Einspeisen aus dem Internet**;
   `initAPRS` setzt es für **selbst erzeugte** Pakete auf `false`. ⇒ **gw=0 ⇒ sicher HF.**
