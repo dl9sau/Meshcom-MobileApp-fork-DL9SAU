@@ -54,6 +54,7 @@ import AdjacencyService from '../utils/AdjacencyService';
 import NodeRuntimeService from '../utils/NodeRuntimeService';
 import StatsService from '../utils/StatsService';
 import GatewayInference from '../utils/GatewayInferenceService';
+import LinkRateService from '../utils/LinkRateService';
 import HfHeardService from '../utils/HfHeardService';
 import { computeGlobeState } from '../utils/GlobeState';
 import { distanceKm } from '../utils/GeoUtils';
@@ -1066,6 +1067,12 @@ export function useMSG() {
                         LogS.log(0, `Pos Msg from ${from_callsign_}${posViaHops ? " via " + posViaHops : " (direct)"}: Lat ${lat_degree_final} Lon ${lon_degree_final} Alt ${alt_nr_meter}m`);
                         // count position reports per node (runtime)
                         NodeRuntimeService.incPos(from_callsign_);
+                        // D4: the same beacon seen as a RATE - how much of what this node
+                        // sends actually reaches us. The interval is estimated per node (see
+                        // LinkRateService): the 30-min default is not what a smart-beaconing
+                        // or moving node really does, and where the spacing scatters no
+                        // percentage is shown at all.
+                        LinkRateService.notePos(from_callsign_, now_timestamp, node_call_ref.current);
                         // app-wide receive stats: positions are HF-only (never gatewayed),
                         // so only direct vs. relayed; own beacons excluded in the service
                         StatsService.countPos(from_callsign_, node_hops, node_call_ref.current);
@@ -1625,6 +1632,24 @@ export function useMSG() {
                                 // (the Mheard list our own node keeps about this station)
                                 if (mheard.NCNT > 0)
                                     GatewayInference.noteAdvertised(mheard.CALL, mheard.NCNT, now_timestamp);
+
+                                // D3: HEY is the one beacon with a FIXED interval (15 min),
+                                // which is what makes it the clean link measure - see
+                                // LinkRateService. It never reaches the app as a packet, but
+                                // the firmware writes an Mheard record for EVERY RF reception
+                                // and names the packet type there: PLT 64 = '@' = HEY. Path
+                                // length 0 = this node sent it itself, >0 = it forwarded a
+                                // foreign one. We take the NODE's timestamp, not our receive
+                                // time: the mheard list is re-sent in bulk on a connect, and
+                                // only the node's own stamps put those records back where they
+                                // belong. An implausible clock is skipped rather than mixed in
+                                // - two clocks in one series would invent gaps.
+                                if (mheard.PLT === 64) {
+                                    const hey_ts = Date.parse((mheard.DATE || "") + "T" + (mheard.TIME || ""));
+                                    if (isAfter(hey_ts, new Date(2024,1,1)) && isBefore(hey_ts, now_timestamp + 86400000))
+                                        LinkRateService.noteHey(mheard.CALL, hey_ts,
+                                            mheard.PL ?? 0, node_call_ref.current);
+                                }
 
                                 const new_mheard:MheardType = {
                                     mh_timestamp:now_timestamp,

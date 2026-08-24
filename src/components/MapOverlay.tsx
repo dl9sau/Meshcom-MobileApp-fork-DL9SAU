@@ -9,6 +9,8 @@ import NodeRuntimeStore from "../store/NodeRuntimeStore";
 import RelayCountStore from "../store/RelayCountStore";
 import AdjacencyStore from "../store/AdjacencyStore";
 import GatewayStore from "../store/GatewayStore";
+import LinkRateStore from "../store/LinkRateStore";
+import { fmtHeyRate, fmtRate } from "../utils/RateStats";
 import { fmtNeighbours, fmtHeardVia } from "../utils/NeighbourStats";
 import { useHistory } from "react-router";
 import ConfigObject from "../utils/ConfigObject";
@@ -129,6 +131,16 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
         ? "probably (" + gwProb.seen + " senders relayed, advertises " + gwProb.advertised + ")"
         : null;
 
+    // HOW MUCH OF WHAT THIS NODE SENDS DO WE HEAR (D3/D4). HEY first: its 15-min interval
+    // is a firmware constant, so the quota is a real link figure - and it exists only for
+    // nodes our own node heard on RF, since it comes out of the Mheard records. The position
+    // rate rests on an ESTIMATED interval and says "irregular" instead of a percentage where
+    // the spacing scatters (smart beaconing, movement).
+    const heyRates = useStoreState(LinkRateStore, s => s.hey);
+    const posRates = useStoreState(LinkRateStore, s => s.pos);
+    const heyText = callUp ? fmtHeyRate(heyRates[callUp]) : null;
+    const posRateText = callUp ? fmtRate(posRates[callUp], true) : null;
+
     // route path for display: origin dropped, wrapped after every 2 calls
     const pathLines = nodeInfo ? formatPathLines(nodeInfo.path, callSign) : [];
 
@@ -239,6 +251,13 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
                                     {/* Gateway (D1b): the weaker detector - more senders seen
                                         in front of this node than it advertises neighbours. */}
                                     {gatewayProbablyText !== null ? <><IonText>GW: {gatewayProbablyText}</IonText><br /></> : <></>}
+                                    {/* Link quality (D3): heard against what the 15-min HEY
+                                        interval says should have arrived, plus how many foreign
+                                        HEYs this node forwarded. */}
+                                    {heyText !== null ? <><IonText>HEY: {heyText}</IonText><br /></> : <></>}
+                                    {/* Position beacons (D4), against the interval estimated
+                                        for THIS node - not the 30-min default. */}
+                                    {posRateText !== null ? <><IonText>Pos rate: {posRateText}</IonText><br /></> : <></>}
                                     {/* booked talk groups (R= field), if the node reports any */}
                                     {nodeInfo?.groups ? <><IonText>Grp: {nodeInfo.groups.split(",").sort((a, b) => (parseInt(a) || 0) - (parseInt(b) || 0)).join(", ")}</IonText><br /></> : <></>}
                                     {/* sensor values: hidden when empty (0 = no sensor; temp uses 999 as n.a.) */}

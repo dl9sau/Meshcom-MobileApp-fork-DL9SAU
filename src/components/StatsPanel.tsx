@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import StatsStore from '../store/StatsStore';
+import LinkRateStore from '../store/LinkRateStore';
 import NodeRuntimeStore from '../store/NodeRuntimeStore';
 import DatabaseService from '../DBservices/DataBaseService';
 import StatsService from '../utils/StatsService';
@@ -16,6 +17,11 @@ import './StatsPanel.css';
 // already headed "My Stats" - but the floating panel on the map has no such frame.
 export const StatsPanel: React.FC<{ ownCall: string, onClose?: () => void, showTitle?: boolean }> = ({ ownCall, onClose, showTitle }) => {
     const s = StatsStore.useState(x => x);
+    // HEY beacons (D3). They never arrive as packets - the firmware does not hand them to
+    // the app - so these are counted out of the Mheard records and stand apart from the rx
+    // block, which they do not add into.
+    const heyOwn = LinkRateStore.useState(x => x.heyOwn);
+    const heyRelayed = LinkRateStore.useState(x => x.heyRelayed);
     const nodeInfoMap = NodeRuntimeStore.useState(x => x.info);
     // "me" comes from NodeRuntimeService for our own callsign - the very same numbers as
     // our own node overlay, so the two can never disagree
@@ -68,6 +74,12 @@ export const StatsPanel: React.FC<{ ownCall: string, onClose?: () => void, showT
             <Row label="#pos" c={s.pos} noGw />
             <Row label="#msg" c={s.msg} />
             <Row label="#dm" c={s.dm} />
+            <div className="stats-sep" />
+            <div className="stats-row">
+                <span className="stats-key">#hey</span>
+                <span className="stats-num">{heyOwn + heyRelayed}</span>
+                <span className="stats-dim">own {heyOwn} · relayed {heyRelayed}</span>
+            </div>
             <div className="stats-sep" />
             {/* The rows above are TOTALS (packets), this section is BY CALL (stations):
                 "#pos direct 2" next to "calls direct 1" is two beacons of the same station,

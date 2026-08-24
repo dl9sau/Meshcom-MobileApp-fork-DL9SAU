@@ -182,6 +182,29 @@ Station im Rückstand; die Entprellung fasst außerdem Bursts zusammen.
 **C4 — Platzierung**: MY STATS in **Info**, Kasten unter „Sensors" (thematisch stimmig).
 Alternative/zusätzlich Mheard-Tab zum Vergleich mit den Direktnachbarn.
 
+**C7 — `#hey` ✅ GEBAUT · `#ack` offen** — in MY STATS *(Idee DL9SAU, 2026-08-24)*
+- **`#hey`** — HEY kommt nicht als Paket in die App, ist aber über das MH-JSON zählbar
+  (`PLT 64`, dieselbe Quelle wie D3). Es zählt **fremde** Stationen auf der Luft.
+  Beschriftung schlicht **`#hey`**, ohne Zusatz; Gesamtzahl in den Total-Stats.
+  **Keine** Aufschlüsselung je Rufzeichen — ob ein Knoten über hey, pos oder als
+  Pfad-Referenz als HF-lokal gilt, ist für die calls-Zeile egal (DL9SAU).
+  Der eigentliche Wert liegt nicht in der Summe, sondern im Vergleich **erwartet gegen
+  empfangen**: festes 15-min-Intervall ⇒ die erwartete Zahl über einen Zeitraum ist
+  bekannt ⇒ **Linkqualität über die Hops** (DL9SAU). `PL` trennt dabei die eigene Bake des
+  Nachbarn von weitergeleiteten.
+  **HEY ist dafür die klarere Messung als Positionen**: die Positionsbake hat kein
+  verlässlich festes Intervall (Smart-Beaconing, Bewegung), HEY schon. ⇒ Die Quote gehört
+  angezeigt bei **LastHeard/Mheard** und an den **Knoten in der Karte**, nicht nur als
+  Summe in MY STATS.
+  Die RSSI/SNR-Kette je Hop steckt zwar im HEY, wird aber nicht durchgereicht →
+  Firmware-Wunsch E3 (bleibt).
+  *Gebaut 2026-08-24 mit D3:* Zeile `#hey` (`own` / `relayed`) in MY STATS, die Quote je
+  Knoten in Mheard und Karten-Overlay.
+- **`#ack`** — aus den Ack-Paketen zählbar, entlang der **drei vorhandenen Zustände**
+  (Haken / Wolke / Wolke mit Haken, siehe Block F). Am Ack-Modell selbst wird **nichts
+  geändert**; der Zähler spiegelt nur, was die Anzeige ohnehin sagt.
+⇒ Gleiche Datenquelle wie D3, zusammen bauen.
+
 ---
 
 ## D · Neue Auswertungen
@@ -244,18 +267,37 @@ Bisher nur Last-Hop. Im Pfad `ORIGIN,…,X,…,LASTHOP` gilt: alles **vor** X ka
 Ergibt „wie wichtig ist der Knoten fürs HF-Netz" (z. B. dn9whv-11).
 Vorbehalt dokumentieren: Bias — wir sehen nur Pfade, die **uns** erreichen.
 
-**D3 — HEY-basierte Zuverlässigkeits-Quote** *(geht heute schon!)*
-`updateMheard()` schickt bei **jedem RF-Empfang** ein MH-JSON mit `PLT` (Pakettyp) und
-`PL` (Pfadlänge). HEY = `PLT 64`, festes Intervall **15 min**, **nicht** von Smart-Beaconing
-betroffen.
-- `PLT=64` **und** `PL` = direkt → **eigene HEY-Bake** des Nachbarn ⇒ Loss-Quote `n/m`
-- `PLT=64` **und** `PL>0` → er hat **fremde** HEYs weitergeleitet ⇒ Relay-Aktivität
-Vorbehalt: HEY hat Priorität BACKGROUND → Lücke kann senderseitig sein.
+**D3 — ✅ GEBAUT** — HEY-basierte Zuverlässigkeits-Quote *(gebaut 2026-08-24)*
+`LinkRateService` + `LinkRateStore`. HEY kommt nicht als Paket in die App, aber die Firmware
+schreibt zu **jedem** RF-Empfang einen Mheard-Satz und nennt dort den Pakettyp: `PLT 64` =
+`@` = HEY, `PL 0` = der gehörte Knoten hat sie **selbst** gesendet, `PL>0` = er hat eine
+**fremde** weitergeleitet (Relay-Aktivität). Aus dem festen 15-min-Intervall folgt die
+erwartete Zahl über die Zeitspanne ⇒ Quote. Anzeige `HEY: 11/12 (92%) · relayed 3` in
+**Mheard** und im **Karten-Overlay**, Summe als `#hey own/relayed` in MY STATS.
+*Zeitstempel:* der des **Knotens** (DATE/TIME aus dem MH-Satz), nicht unsere Empfangszeit —
+beim Connect kommt die Mheard-Liste am Stück, nur die Knoten-Stempel legen die Sätze richtig
+ab; unplausible Uhr ⇒ übersprungen statt gemischt (zwei Uhren in einer Reihe erfänden
+Lücken).
+*Die Asymmetrie, auf der alles steht:* Verlust macht Abstände nur **länger**, nie kürzer.
+Eine Quote gilt deshalb auch bei starkem Verlust weiter — das **ist** die Messung. Nur
+Abstände **kürzer** als die Konstante (< 0,6×) heißen „unsere Annahme stimmt nicht" ⇒ dann
+`irregular` statt Prozent.
+*Obergrenze, keine Wahrheit:* HEY hat Priorität BACKGROUND, eine Lücke kann senderseitig
+sein. 100 % heißt „nichts nachweisbar verloren", nicht „perfekt".
+Session-only (RAM): die Mheard-Tabelle hält nur **eine Zeile je Station**, es gibt keine
+Baken-Historie zum Nachspielen.
 
-**D4 — Positions-Quote nur wo sinnvoll**
-Nicht den 30-min-Default annehmen, sondern das **tatsächliche Intervall pro Knoten** aus
-den Abständen schätzen (niedriges Perzentil — verpasste Baken verlängern Lücken nur).
-Bei hoher Streuung (Smart-Beaconing, GPS-Jitter) statt Prozentzahl „unregelmäßig" zeigen.
+**D4 — ✅ GEBAUT** — Positions-Quote nur wo sinnvoll *(gebaut 2026-08-24)*
+Gleiche Arithmetik wie D3, gleicher `LinkRateService` — nur wird das Intervall **je Knoten
+geschätzt** statt die 30 min anzunehmen: das **untere Perzentil** (p25) der beobachteten
+Abstände, denn eine verpasste Bake kann einen Abstand nur verlängern, nie verkürzen.
+Streuen die Abstände (p75 > 2,5×p25 — Smart-Beaconing, Bewegung), gibt es **keine
+Prozentzahl**, sondern „n heard, irregular"; unter 4 Abständen gar keine Aussage.
+Anzeige `Pos rate: 8/10 (80%, ~30 min)` in Mheard und Karten-Overlay — das geschätzte
+Intervall steht **dabei**, weil die Quote ohne es nicht beurteilbar ist.
+*Bias:* bei viel Verlust kann die Schätzung ein **Vielfaches** des wahren Intervalls treffen
+⇒ die Quote sieht dann besser aus als die Wirklichkeit, nie schlechter. Auch hier
+session-only: die Positions-Tabelle hält eine Zeile je Station, keine Bakenhistorie.
 
 **D5 — HF-Erkennung über Pfadvergleich** — ❌ **NICHT bauen, bereits abgedeckt** (geprüft
 2026-08-02). Der „bekannte HF-Pfad" kann nur aus einer Position **oder** einer gw=0-Text-
@@ -308,13 +350,18 @@ Gewünscht: „sicher Gateway" in einer eigenen Farbe (Vorschlag DL9SAU: hellgr�
 Talkgroups und werden von **jedem** Knoten gesendet, auch von Usern. Kein GW-Indikator.
 Es bleibt die **GW-Registry aus D1** (sicher: GW-Bit + genau ein Relay im Pfad ⇒ dieses
 Relay **ist** Gateway) plus **D1b** als zweiter, schwächerer Detektor („wahrscheinlich").
+*Dritter Weg, heute nicht baubar:* die **HEY-Bake announciert ein Gateway selbst** — Ziel
+`HG` statt `H` (Firmware, parkierte Idee 2026-07-28). Das wäre die sichere Auskunft, aber
+HEY wird nicht an die App durchgereicht ⇒ hängt an **Firmware-Wunsch E2** (`GW` ins
+MH-JSON). Solange der nicht da ist, sind D1/D1b das, was wir haben.
 ⇒ **D8 hängt an D1**; ohne Registry keine Farbe.
 
 *Offene Punkte vor dem Bauen:*
 1. **Farbe: Orange** *(entschieden 2026-08-23)*. Hellgrün fällt weg — grün ist schon
    „direkter Nachbar", das wäre genau die Verwechslung, die wir vermeiden wollen.
    **Lila fällt ebenfalls weg**: das ist bereits das **eigene** Rufzeichen
-   (`markerColor_own`). Bleibt Orange; Sichtprüfung am Gerät steht noch aus.
+   (`markerColor_own`). Bleibt Orange — **Sichtprüfung am Gerät bestanden**
+   (DL9SAU, 2026-08-24: „orange ist schick").
 2. Ein Knoten kann **beides** sein (direkter Nachbar **und** Gateway). `<Marker>` kennt nur
    **eine** `color` → entweder eine Vorrangregel oder der `<Overlay>`-Umbau aus **D6**, der
    zwei Merkmale gleichzeitig zeigen kann (Pin + Symbol/Label).
@@ -372,5 +419,11 @@ Alle an Stellen, wo die Firmware die Information **bereits hat**:
 - **`R=` in der Positionsbake = die vom Knoten SELBST gebuchten Talkgroups**
   (";"-getrennt, z. B. `232;2321;2323;`), gesendet von **jedem** Knoten — User wie Digi.
   **Kein Gateway-Indikator** (geprüft 2026-08-23, siehe D8).
+- **Ack: drei Icons, drei Zustände** (Original-App, Feldverhalten DL9SAU bestätigt):
+  **Haken** = die App hat an die Firmware übergeben · **Wolke** = unterwegs bestätigt ·
+  **Wolke mit Haken** = End-to-End-Ack. Im Code: `ack_type` `0x00` → 1 (Wolke),
+  `0x01` → 2, `0x02` → 2 (beide Wolke mit Haken); `ack = 2` ist terminal. Bei einer
+  **Kanalnachricht** springt der Haken direkt auf Wolke-mit-Haken, sobald die eigene
+  Nachricht **repeated** gehört wurde. Das ist so gewollt — **nicht umbauen.**
 - **Server ist Blackbox** (closed source) — er **strippt den Pfad** beim Verteilen
   (Feldbeobachtung). Der hintere Teil `>xxx,DEST` behält dagegen den HF-Teil vor dem Gatewayen.

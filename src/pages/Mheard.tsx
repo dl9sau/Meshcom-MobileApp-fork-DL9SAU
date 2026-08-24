@@ -4,6 +4,8 @@ import ConfigStore from '../store/ConfStore';
 import RelayCountStore from '../store/RelayCountStore';
 import AdjacencyStore from '../store/AdjacencyStore';
 import { fmtNeighbours, fmtHeardVia } from '../utils/NeighbourStats';
+import LinkRateStore from '../store/LinkRateStore';
+import { fmtHeyRate, fmtRate } from '../utils/RateStats';
 import NodeRuntimeStore from '../store/NodeRuntimeStore';
 import { getMheards, getConfigStore } from '../store/Selectors';
 import {ConfType, MheardType} from '../utils/AppInterfaces';
@@ -32,6 +34,9 @@ const Mheard = () => {
     const adjMax = useStoreState(AdjacencyStore, s => s.max);
     // runtime per-node counters (#pos / #msg received this session)
     const nodeInfoMap = useStoreState(NodeRuntimeStore, s => s.info);
+    // how much of what a node sends we actually hear (D3 HEY / D4 positions)
+    const heyRates = useStoreState(LinkRateStore, s => s.hey);
+    const posRates = useStoreState(LinkRateStore, s => s.pos);
 
 
     useEffect(()=>{
@@ -86,9 +91,17 @@ const Mheard = () => {
                                                         const nb = fmtNeighbours(adjCounts[key] ?? 0, adjMax[key] ?? 0,
                                                             Math.max(mhs.mh_ncnt ?? 0, nodeInfoMap[key]?.ncnt ?? 0));
                                                         const hv = fmtHeardVia(relayCounts[key] ?? 0, relayMax[key] ?? 0);
+                                                        // How much of what this node sends actually reaches us. HEY
+                                                        // first: its 15-min interval is a firmware constant, so the
+                                                        // figure is a real link measure. The position rate rests on an
+                                                        // ESTIMATED interval and stays away where it scatters.
+                                                        const hey = fmtHeyRate(heyRates[key]);
+                                                        const pr = fmtRate(posRates[key], true);
                                                         return (<>
                                                             {nb ? <div className='rowcont'><div>Neighbours:</div><div className='value'>{nb}</div></div> : <></>}
                                                             {hv ? <div className='rowcont'><div>Heard via:</div><div className='value'>{hv}</div></div> : <></>}
+                                                            {hey ? <div className='rowcont'><div>HEY:</div><div className='value'>{hey}</div></div> : <></>}
+                                                            {pr ? <div className='rowcont'><div>Pos rate:</div><div className='value'>{pr}</div></div> : <></>}
                                                         </>);
                                                     })()}
                                                     <div className='rowcont'>

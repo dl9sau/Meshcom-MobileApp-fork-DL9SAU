@@ -237,6 +237,20 @@ changes of this fork relative to upstream. The in-app version shows
   12 h its own list covers. That is a heuristic, not a proof, so it is kept out of the
   count and off the map colour — the overlay just says
   **`GW: probably (7 senders relayed, advertises 5)`**.
+- **How much of what a node sends do you actually hear** — a reception quota per node,
+  from the one beacon with a dependable interval. Every node announces itself every
+  **15 minutes** (the firmware `HEY`), and that interval is fixed: not smart-beaconed, not
+  tied to movement, not affected by how chatty the node is. HEY never reaches the app as a
+  packet — but the firmware writes a *heard* record for every RF reception and names the
+  packet type in it, which is where the count comes from. So the node overlay and the
+  **Heard list** gain **`HEY: 11/12 (92%) · relayed 3`**: what arrived against what should
+  have, plus how many *foreign* announcements that node forwarded — i.e. how much it carries
+  for the mesh. **Position beacons** get the same treatment (**`Pos rate: 8/10 (80%,
+  ~30 min)`**), but their interval is estimated per node instead of assuming the 30-minute
+  default — and where a node's spacing scatters (smart beaconing, movement) it says
+  **`irregular`** rather than invent a percentage. Both are upper bounds: a missing beacon
+  can also be the sender's doing, so 100% means "nothing detectably lost". MY STATS gains a
+  **`#hey`** line with the totals.
 - **Booked talk groups per node** (`Grp: 232, 2321`) — the talk groups a node has
   subscribed to (from the firmware `R=` field) are shown in the **map node overlay**
   and the **Mheard list**, and persist across restarts (ported from upstream: a
