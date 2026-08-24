@@ -41,7 +41,9 @@ export const fmtHeardVia = (session: number, max: number): string | null =>
 //   pkts     - everything it forwarded towards us, gateway or not. This is the figure a
 //              PLAIN REPEATER has, and it used to exist nowhere: the gateway count only ever
 //              fires on a set gw bit, which a normal node never sets. Positions count too,
-//              hence "pkts" and not "msgs".
+//              hence "pkts" and not "msgs". HEY does NOT: it never reaches the app as a
+//              packet, only as an Mheard record, and shows up in the "#hey ... relayed n"
+//              line instead. So what a node really carries is MORE than this figure.
 //   internet - of those, the ones this node fed in: the sender was not confirmed on our air,
 //              which is the same judgement the globe marker makes on a single message.
 // Both figures count THIS app run. The registry also keeps an all-time injected count for
