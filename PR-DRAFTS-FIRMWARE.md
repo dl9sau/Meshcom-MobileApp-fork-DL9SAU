@@ -249,10 +249,12 @@ eine Überschreitung das JSON **abschneiden** und damit unbrauchbar machen würd
 
 | PR | Branch | Commit | Gebaut | Eingereicht |
 |---|---|---|---|---|
-| 1 | `fix/mheard-ble-buffer-guard` | `a0d2475` | ✅ | ✅ 2026-08-24 |
-| 2 | `feat/mh-json-src-gw` | `c04ed7b` | ✅ | offen |
-| 3 | `feat/mh-json-hey-path` | `fff4010` | ✅ | offen |
-| 4 | `feat/info-json-flash-version` | `ae15bb7` | ✅ | offen |
+| 1 | `fix/mheard-ble-buffer-guard` | `a0d2475` | ✅ | ✅ **#1090** |
+| 2 | `feat/mh-json-src-gw` | `c04ed7b` | ✅ | ✅ **#1091** |
+| 4 | `feat/info-json-flash-version` | `ae15bb7` | ✅ | ✅ **#1092** |
+| 3 | `feat/mh-json-hey-path` | `fff4010` | ✅ | zuletzt, mit Querverweis |
+
+*(alle am 2026-08-24 eingereicht, gegen `dev`)*
 
 Alle vier von `origin/dev` abgezweigt, keiner baut auf einem anderen auf. Je PR:
 
@@ -274,9 +276,8 @@ Maintainer unnötig warten:
 
 > Ergänzung zur Einordnung: Dieser PR ist eigenständig — er baut und funktioniert ohne die
 > anderen. Der Reihenfolge halber: `PP` ist das größte der vorgeschlagenen Felder, deshalb
-> passt er gut **nach** #\<Nr. von PR 1\> (Puffergrenze). Er berührt denselben
-> `mhdoc`-Block wie #\<Nr. von PR 2\>; wird einer der beiden gemergt, rebase ich den
-> anderen umgehend.
+> passt er gut **nach** #1090 (Puffergrenze). Er berührt denselben `mhdoc`-Block wie #1091;
+> wird einer der beiden gemergt, rebase ich den anderen umgehend.
 
 GitHub verlinkt `#123` automatisch und zeigt den Bezug dann auch in PR 1 und 2 als
 Querverweis — die Zusammengehörigkeit ist damit ohne weiteres Zutun sichtbar.
