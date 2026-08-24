@@ -179,6 +179,17 @@ Retention 2/7/30/2/7/2 alles weg außer den Partnern **eigener** DMs (30 Tage).
 erst kurz **nach** dem Zähler geschrieben, eine sofortige Abfrage wäre dauerhaft eine
 Station im Rückstand; die Entprellung fasst außerdem Bursts zusammen.
 
+**C8 — ✅ GEBAUT** — Laufzeit im MY-STATS-Kopf *(Wunsch DL9SAU, 2026-08-25)*
+„Ich weiß nicht, wann ich die App gestartet habe" — ohne Bezugsdauer sind die Zahlen nicht
+einzuordnen. Der Kopf sagt jetzt **`totals since app start · 1d 23h 3min`**.
+Bewusst als **Dauer**, nicht als Startzeitpunkt: „1d 23h 3min" ist auf einen Blick zu
+bewerten, „seit 00:40" verlangt erst Kopfrechnen gegen die aktuelle Uhrzeit (DL9SAU).
+*Gebaut:* `StatsService.getStartedAt()` (Zeitpunkt des Modul-Ladens = App-Start; die Zähler
+werden nie zurückgesetzt und überleben BLE-Abbrüche), Formatierung über den neuen
+gemeinsamen Helfer `TimeFmt.formatAge` — dieselbe Funktion, die im Karten-Overlay „Age"
+schreibt, jetzt an einer Stelle statt zweimal. Der Kopf tickt einmal je Minute, sonst würde
+er auf einem stillen Kanal stundenlang dieselbe Zahl zeigen.
+
 **C4 — Platzierung**: MY STATS in **Info**, Kasten unter „Sensors" (thematisch stimmig).
 Alternative/zusätzlich Mheard-Tab zum Vergleich mit den Direktnachbarn.
 

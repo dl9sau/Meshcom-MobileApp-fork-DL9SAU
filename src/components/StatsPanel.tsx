@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import StatsStore from '../store/StatsStore';
 import LinkRateStore from '../store/LinkRateStore';
 import NodeRuntimeStore from '../store/NodeRuntimeStore';
 import DatabaseService from '../DBservices/DataBaseService';
 import StatsService from '../utils/StatsService';
+import { formatAge } from '../utils/TimeFmt';
 import './StatsPanel.css';
 
 // "MY STATS" - what THIS node received since the app connected, sorted by packet type
@@ -44,6 +45,17 @@ export const StatsPanel: React.FC<{ ownCall: string, onClose?: () => void, showT
         return () => { alive = false; clearTimeout(t); };
     }, [ownCall, s.callsAll]);
 
+    // How long these figures have been accumulating. Shown as a DURATION, not as the start
+    // time: "1d 23h 3min" can be judged at a glance, "since 00:40" has to be worked out
+    // against the current time first (DL9SAU). Ticks once a minute - the panel otherwise
+    // only re-renders when a counter moves, and on a quiet channel that can be a long while.
+    const [, setTick] = useState(0);
+    useEffect(() => {
+        const iv = setInterval(() => setTick(t => t + 1), 60000);
+        return () => clearInterval(iv);
+    }, []);
+    const runningFor = formatAge(StatsService.getStartedAt());
+
     const sum = (c: { direct: number, hf: number, gw: number }) => c.direct + c.hf + c.gw;
     const total = sum(s.pos) + sum(s.msg) + sum(s.dm);
 
@@ -64,8 +76,8 @@ export const StatsPanel: React.FC<{ ownCall: string, onClose?: () => void, showT
             {showTitle && <div className="stats-title">MY STATS</div>}
             {/* "since app start", not "since connect": reset() is never called, so the
                 counters survive a BLE drop and reconnect and keep running as long as the
-                app process lives. */}
-            <div className="stats-title">totals since app start</div>
+                app process lives - hence the elapsed time right in the heading. */}
+            <div className="stats-title">totals since app start &middot; {runningFor}</div>
             <div className="stats-row">
                 <span className="stats-key">rx</span>
                 <span className="stats-num">{total}</span>

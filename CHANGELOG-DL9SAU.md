@@ -262,6 +262,10 @@ changes of this fork relative to upstream. The in-app version shows
   **`irregular`** rather than invent a percentage. Both are upper bounds: a missing beacon
   can also be the sender's doing, so 100% means "nothing detectably lost". MY STATS gains a
   **`#hey`** line with the totals.
+- **MY STATS says how long it has been counting** — the heading reads
+  **`totals since app start · 1d 23h 3min`**. A duration, not a start time: you can judge
+  "is 200 packets a lot?" against it directly, without first working out the difference to
+  the current clock.
 - **Booked talk groups per node** (`Grp: 232, 2321`) — the talk groups a node has
   subscribed to (from the firmware `R=` field) are shown in the **map node overlay**
   and the **Mheard list**, and persist across restarts (ported from upstream: a

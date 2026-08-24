@@ -35,6 +35,10 @@ class StatsService {
     private byRank = [0, 0, 0, 0];                 // how many calls sit at each rank
     private dbCalls = -1;
     private ack = { repeatedOnly: 0, acked: 0 };
+    // when this app run began - the reference for every figure in the panel. Taken at module
+    // load, which is app start: the counters are never reset, they survive a BLE drop and
+    // reconnect and keep running as long as the process lives.
+    private readonly startedAt = Date.now();
 
     private norm(c: string): string { return (c || "").toUpperCase().trim(); }
 
@@ -147,6 +151,9 @@ class StatsService {
         else return;                       // unknown state: not ours to guess
         this.mirror();
     }
+
+    // when the counting started, so the panel can say over how long these figures accumulated
+    getStartedAt(): number { return this.startedAt; }
 
     // distinct callsigns found in the database (see DatabaseService.getStatsDb)
     setDbCalls(n: number) { this.dbCalls = n; this.mirror(); }
