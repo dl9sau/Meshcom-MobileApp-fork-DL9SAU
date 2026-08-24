@@ -13,6 +13,13 @@ export interface GatewayState {
     // key: gateway callsign (UPPERCASE) -> number of messages we attributed to it
     counts: { [call: string]: number };
     max: { [call: string]: number };
+    // Of those, the ones that came OUT OF THE NETWORK: the frozen globe verdict says the
+    // ORIGIN was not HF-confirmed, so this node fed the message in rather than passing on
+    // something it had heard on the air. The firmware sets the gw bit for BOTH cases, so
+    // without this split the figure answers "how much passes through here", not "how much
+    // does this node inject" (asked in the field, DL9SAU 2026-08-24).
+    inj: { [call: string]: number };
+    injMax: { [call: string]: number };
     // key: callsign -> the two numbers behind the D1b verdict (senders seen vs. advertised)
     probable: { [call: string]: { seen: number, advertised: number } };
 }
@@ -20,6 +27,8 @@ export interface GatewayState {
 const GatewayStore = new Store<GatewayState>({
     counts: {},
     max: {},
+    inj: {},
+    injMax: {},
     probable: {}
 });
 

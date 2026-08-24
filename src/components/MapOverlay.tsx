@@ -122,6 +122,13 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
     const gatewayText = fmtHeardVia(
         (callUp ? gwCounts[callUp] : 0) ?? 0,
         (callUp ? gwMax[callUp] : 0) ?? 0);
+    // Of those messages, the ones this node fed IN from the network - the rest it merely
+    // passed on after hearing it on the air. The gw bit is set for both, so without this
+    // split the figure says "how much passes through here", not "how much comes from the
+    // network through here".
+    const gwInj = useStoreState(GatewayStore, s => s.inj);
+    const gwInjMax = useStoreState(GatewayStore, s => s.injMax);
+    const gwInjected = Math.max((callUp ? gwInj[callUp] : 0) ?? 0, (callUp ? gwInjMax[callUp] : 0) ?? 0);
     // D1b: no proof, but this node put more DIFFERENT senders on our air than it claims to
     // hear itself - so at least one of them never reached it over RF. Shown with both raw
     // numbers, and only while D1 has nothing: a proof beats a heuristic.
@@ -240,23 +247,27 @@ export const MapOverlay: React.FunctionComponent<MapOverlayProps> = ({ callSign,
                             {!lineMode && shExtInfo && (
                                 <div className="info">
                                     {pathBlock}
-                                    <IonText>#pos: {nodeInfo?.posCount ?? 0}&nbsp;&nbsp;#msg: {nodeInfo?.msgCount ?? 0}</IonText><br />
                                     {/* Direct neighbours (our path-adjacency observation + what the
                                         node last advertised) - shown for any node we have data on */}
                                     {directNeighboursText !== null ? <><IonText>Neighbours: {directNeighboursText}</IonText><br /></> : <></>}
                                     {/* Heard via this node - only for our own direct neighbours */}
                                     {heardViaText !== null ? <><IonText>Heard via: {heardViaText}</IonText><br /></> : <></>}
                                     {/* Gateway (D1): shown only for nodes we could prove gatewayed
-                                        something. The number is how many messages, not a confidence. */}
-                                    {gatewayText !== null ? <><IonText>GW: {gatewayText}</IonText><br /></> : <></>}
+                                        something. The unit is spelled out because the line above it
+                                        counts something else entirely: "Heard via" is unique STATIONS,
+                                        this is MESSAGES - and both are formatted "n (max m)", which is
+                                        exactly how you misread one for the other (asked in the field,
+                                        DL9SAU 2026-08-24). */}
+                                    {gatewayText !== null ? <><IonText>GW: {gatewayText} msgs{gwInjected > 0 ? ", " + gwInjected + " from the network" : ""}</IonText><br /></> : <></>}
                                     {/* Gateway (D1b): the weaker detector - more senders seen
                                         in front of this node than it advertises neighbours. */}
                                     {gatewayProbablyText !== null ? <><IonText>GW: {gatewayProbablyText}</IonText><br /></> : <></>}
-                                    {/* Link quality (D3): heard against what the 15-min HEY
-                                        interval says should have arrived, plus how many foreign
-                                        HEYs this node forwarded. Labelled `#hey` like `#pos` and
-                                        `#msg` above - "#" reads as "number of", and HEY is a
-                                        packet type like the others (DL9SAU). */}
+                                    {/* The packet counters by type, together and directly above the
+                                        two lines that judge their delivery - the same grouping as in the
+                                        Heard list. They used to sit at the top, several lines away from
+                                        `#hey`, although they answer the same question (DL9SAU). "#"
+                                        reads as "number of", and HEY is a packet type like pos and msg. */}
+                                    <IonText>#pos: {nodeInfo?.posCount ?? 0}&nbsp;&nbsp;#msg: {nodeInfo?.msgCount ?? 0}</IonText><br />
                                     {heyText !== null ? <><IonText>#hey: {heyText}</IonText><br /></> : <></>}
                                     {/* Position beacons (D4), against the interval estimated
                                         for THIS node - not the 30-min default. */}

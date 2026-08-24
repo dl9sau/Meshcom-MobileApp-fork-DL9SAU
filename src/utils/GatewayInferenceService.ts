@@ -77,6 +77,11 @@ const MIN_EXCESS = 1;
 class GatewayInferenceService {
     private session = new Map<string, number>();
     private all = new Map<string, number>();
+    // the subset that came out of the network: frozen gwState 'solid' means the ORIGIN was
+    // not HF-confirmed, so this node injected it instead of passing on air traffic. The gw
+    // bit alone cannot tell the two apart - it is set for both.
+    private sessionInj = new Map<string, number>();
+    private allInj = new Map<string, number>();
     // gw=1 with NOBODY in the path. Should not happen: the origin does not set the bit for
     // its own traffic, so somebody must have relayed it. If this ever fires, an injecting
     // gateway does NOT append itself to the path - which would also mean the globe's
@@ -127,12 +132,16 @@ class GatewayInferenceService {
         const firstProof = !this.all.has(call) && !this.session.has(call);
         this.bump(this.session, call);
         this.bump(this.all, call);
+        if (gwState === 'solid') { this.bump(this.sessionInj, call); this.bump(this.allInj, call); }
         if (firstProof && this.probable.has(call))
             LogS.log(0, `Gateway ${call}: D1b said "probably" before D1 proved it`);
         const sc = this.session.get(call) ?? 0, ac = this.all.get(call) ?? 0;
+        const si = this.sessionInj.get(call) ?? 0, ai = this.allInj.get(call) ?? 0;
         GatewayStore.update(s => {
             s.counts = { ...s.counts, [call]: sc };
             s.max = { ...s.max, [call]: ac };
+            s.inj = { ...s.inj, [call]: si };
+            s.injMax = { ...s.injMax, [call]: ai };
         });
     }
 
@@ -142,6 +151,7 @@ class GatewayInferenceService {
         const call = this.verdict(gw, gwState, this.splitVia(via));
         if (call === "" || call === this.norm(ownCall)) return;
         this.bump(this.all, call);
+        if (gwState === 'solid') this.bump(this.allInj, call);
     }
 
     // --- D1b ------------------------------------------------------------------------
@@ -210,7 +220,12 @@ class GatewayInferenceService {
         if (this.all.size > 0) {
             const max: { [k: string]: number } = {};
             this.all.forEach((n, c) => { max[c] = n; });
-            GatewayStore.update(s => { s.max = { ...max, ...s.max }; });
+            const injMax: { [k: string]: number } = {};
+            this.allInj.forEach((n, c) => { injMax[c] = n; });
+            GatewayStore.update(s => {
+                s.max = { ...max, ...s.max };
+                s.injMax = { ...injMax, ...s.injMax };
+            });
             LogS.log(0, `Gateway registry seeded: ${this.all.size} gateway(s) from stored messages`);
         }
         if (this.noRelayAnomalies > 0)
@@ -225,6 +240,7 @@ class GatewayInferenceService {
 
     getCount(call: string): number { return this.session.get(this.norm(call)) ?? 0; }
     getMax(call: string): number { return this.all.get(this.norm(call)) ?? 0; }
+    getInjected(call: string): number { return this.sessionInj.get(this.norm(call)) ?? 0; }
 
     // D1b verdict for one node, or undefined while it never overshot its own number
     getProbable(call: string): { seen: number, advertised: number } | undefined {
@@ -234,11 +250,13 @@ class GatewayInferenceService {
     clear() {
         this.session.clear();
         this.all.clear();
+        this.sessionInj.clear();
+        this.allInj.clear();
         this.noRelayAnomalies = 0;
         this.firstHop.clear();
         this.advertised.clear();
         this.probable.clear();
-        GatewayStore.update(s => { s.counts = {}; s.max = {}; s.probable = {}; });
+        GatewayStore.update(s => { s.counts = {}; s.max = {}; s.inj = {}; s.injMax = {}; s.probable = {}; });
     }
 }
 

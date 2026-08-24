@@ -255,6 +255,16 @@ persistiert, also steht „(max n)" sofort nach einem Neustart da statt bei 0 an
 Knoten-Overlay, nur bei Knoten, denen wir etwas nachweisen konnten. Einseitig: wir
 **setzen** Gateways, nehmen sie nie zurück — die Zahl sagt, wie viel es trägt, nicht ob
 es heute noch eines ist. Offline gegen 19 Fälle geprüft.
+*Was die Zahl sagt und was nicht* **(Rückfrage DL9SAU, 2026-08-24)**: `GW: n` zählt
+**Nachrichten**, nicht Rufzeichen — anders als das darüberstehende `Heard via`, das unique
+Stationen zählt. Beide waren gleich formatiert („n (max m)"), genau so verwechselt man sie;
+die GW-Zeile schreibt die Einheit jetzt aus. Und sie zählt **nicht nur Einspeisungen**: das
+gw-Bit setzt die Firmware auch, wenn ein Gateway HF-Verkehr bloß **weiterreicht**. Der
+eingefrorene `gwState` trennt beides so weit es geht — `solid` heißt „Quelle nicht
+HF-bestätigt", also aus dem Netz eingespeist. Angezeigt wird deshalb
+`GW: 45 (max 45) msgs, 12 from the network`; die Differenz ist HF-Verkehr, den er als
+Gateway weitergereicht hat.
+
 *Zeile 4 der Tabelle* (Quelle HF-bestätigt, mehrere Relays) bleibt für D1 unbestimmt —
 dafür ist D1b da (gebaut, aber bewusst nur „wahrscheinlich", ohne Kartenfarbe).
 *Diagnose nebenbei:* gw-Bit **ohne** jedes Relay im Pfad wird gezählt und geloggt. Träte
