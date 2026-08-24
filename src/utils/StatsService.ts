@@ -34,7 +34,7 @@ class StatsService {
     private callRank = new Map<string, number>();  // call -> best RANK seen
     private byRank = [0, 0, 0, 0];                 // how many calls sit at each rank
     private dbCalls = -1;
-    private ack = { repeated: 0, acked: 0 };
+    private ack = { repeatedOnly: 0, acked: 0 };
 
     private norm(c: string): string { return (c || "").toUpperCase().trim(); }
 
@@ -132,7 +132,9 @@ class StatsService {
     // purpose: the counter must never tell a different story than the tick in the chat.
     //   0x00 - the firmware's "ONLY HEARD" (lora_functions.cpp): our own message came back
     //          over the air, i.e. somebody relayed it. Sent locally by our own node, once,
-    //          and ONLY while no ack has been recorded yet.
+    //          and ONLY while no ack has been recorded yet - hence the label "repeated-only".
+    //          A relay of a CHANNEL message never lands here: for '*' traffic the firmware
+    //          reports it as an ack instead (verified in the field, DL9SAU 2026-08-24).
     //   0x01 - an acknowledgement: from a gateway over the air (only gateways send them, and
     //          only for '*', WLNK-1, APRS2SOTA and groups), or our own node reporting
     //          "server reached" when it is itself a gateway.
@@ -140,7 +142,7 @@ class StatsService {
     // Deliberately NOT cumulative: an ack does not imply a heard relay (the ack can arrive
     // first, which suppresses the report), and a relay does not imply an ack.
     countAck(ackState: number) {
-        if (ackState === 0x00) this.ack.repeated++;
+        if (ackState === 0x00) this.ack.repeatedOnly++;
         else if (ackState === 0x01 || ackState === 0x02) this.ack.acked++;
         else return;                       // unknown state: not ours to guess
         this.mirror();
@@ -155,7 +157,7 @@ class StatsService {
         this.dm = { direct: 0, hf: 0, gw: 0 };
         this.callRank.clear();
         this.byRank = [0, 0, 0, 0];
-        this.ack = { repeated: 0, acked: 0 };
+        this.ack = { repeatedOnly: 0, acked: 0 };
         this.mirror();
     }
 }

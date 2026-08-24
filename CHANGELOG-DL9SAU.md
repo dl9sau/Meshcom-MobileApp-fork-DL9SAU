@@ -216,10 +216,10 @@ changes of this fork relative to upstream. The in-app version shows
   messages vs. beacon load* at a glance; **unique callsigns** heard (HF vs gw); and a
   **me** line — your own **`#msg` sent** and **`#pos` heard-back** (beacons of yours
   that came back over RF), plus **`#ack`**: how many of your messages came back
-  confirmed, split the way the firmware itself reports it — **`repeated`** (your message came
-  back over the air, so somebody relayed it) against **`acked`** (an acknowledgement).
-  The two are independent observations, not steps of one ladder: an acknowledgement
-  arriving first suppresses the relay report, and a relay may never be acknowledged. Every ACK the app
+  confirmed, split the way the firmware itself reports it — **`repeated-only`** (your message
+  came back over the air *and* nothing acknowledged it) against **`acked`**. The two are
+  independent observations, not steps of one ladder: an acknowledgement arriving first
+  suppresses the relay report, and a relay may never be acknowledged. Every ACK the app
   receives belongs to one of your own messages — the node only forwards it when it matches
   something you transmitted — so this reads as "how much of what I sent got through". Counts are de-duplicated (the firmware only forwards the
   first copy of each packet), so they're *unique* messages, not airtime. (What the

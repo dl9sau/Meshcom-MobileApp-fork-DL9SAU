@@ -30,16 +30,18 @@ export interface StatsState {
     // Acknowledgements for OUR OWN sent messages - the firmware only forwards an ACK to the
     // app when it matches one of our own transmissions, and only once per message. Named
     // after what the firmware actually reports (see the verified facts in the backlog):
-    //   repeated - state 0x00, the firmware's "ONLY HEARD": our own message came back over
-    //              the air, so somebody relayed it. A statement about PROPAGATION.
-    //   acked    - state 0x01/0x02: an acknowledgement. For a channel message that is a
-    //              GATEWAY confirming receipt (only gateways send it, and only for '*',
-    //              WLNK-1, APRS2SOTA and groups), or our own node reporting "server reached".
+    //   repeatedOnly - state 0x00, the firmware's "ONLY HEARD": our own message came back
+    //                  over the air, so somebody relayed it - and NO acknowledgement was
+    //                  recorded for it. Hence "only".
+    //   acked        - state 0x01/0x02: an acknowledgement. For a DM that is the addressed
+    //                  node confirming (field test 2026-08-24); for a channel message it is
+    //                  a gateway - which is also where a heard REPEAT of a channel message
+    //                  ends up, because the firmware reports that as an ack, not as "heard".
     // The two are NOT nested - neither implies the other. The "only heard" report is sent
     // only while no ack has been recorded yet, so an ack arriving first suppresses it; and a
     // relay can be heard without any ack ever following. Adding them up would assert
     // something the data does not say.
-    ack: { repeated: number; acked: number };
+    ack: { repeatedOnly: number; acked: number };
 }
 
 const zero = (): CatCounts => ({ direct: 0, hf: 0, gw: 0 });
@@ -48,7 +50,7 @@ const StatsStore = new Store<StatsState>({
     pos: zero(), msg: zero(), dm: zero(),
     callsDirect: 0, callsHf: 0, callsGw: 0, callsAll: 0,
     dbCalls: -1,
-    ack: { repeated: 0, acked: 0 }
+    ack: { repeatedOnly: 0, acked: 0 }
 });
 
 export default StatsStore;

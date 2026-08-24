@@ -204,9 +204,10 @@ Alternative/zusätzlich Mheard-Tab zum Vergleich mit den Direktnachbarn.
   sieht, zu einer **eigenen** Nachricht gehört: die Firmware reicht es nur durch, wenn es
   zu einer eigenen Aussendung passt (`checkOwnTx`), und nur **einmal je Nachricht**
   (`own_msg_id[..][4] < 2`) — Quelltext geprüft, `lora_functions.cpp:handleACK`.
-  Beschriftet nach dem, was die Firmware **sagt**, nicht nach dem Icon: **`repeated`**
-  (`0x00`, ihr „ONLY HEARD" — die eigene Nachricht kam über die Luft zurück) gegen
-  **`acked`** (`0x01`/`0x02`). **Nicht kumulativ**, siehe Block F. Zuordnung
+  Beschriftet nach dem, was die Firmware **sagt**, nicht nach dem Icon:
+  **`repeated-only`** (`0x00`, ihr „ONLY HEARD" — die eigene Nachricht kam über die Luft
+  zurück **und** es wurde kein Ack vermerkt) gegen **`acked`** (`0x01`/`0x02`).
+  **Nicht kumulativ**, siehe Block F. Zuordnung
   identisch zu `ackTxtMsg`, damit Zähler und Haken nie Verschiedenes erzählen; `0x01` und
   `0x02` teilen sich einen Topf, weil sie sich ein Icon teilen **und** weil das
   Firmware-Flag zur Trennung festverdrahtet ist (Block F). Am Ack-Modell wird **nichts** geändert. Ausgeblendet, solange nichts bestätigt
@@ -512,9 +513,17 @@ PRs gehen gegen den **`dev`**-Branch, vorher auf den aktuellen Stand rebasen;
     Nutzlast (`loop_functions.cpp:3391`), die Bestätigung kommt über den APRS-Mechanismus
     zurück, nicht über diesen Binärpfad. *(Wie die App das auf das Icon abbildet, ist noch
     nicht nachgelesen.)*
-  - ⇒ **`acked` impliziert `repeated` nicht.** Kommt das Ack zuerst, unterbleibt der
-    Heard-Bericht ganz; und ein Repeat kann ohne jedes Ack bleiben. Die beiden Zähler sind
-    getrennte Beobachtungen, keine Stufen einer Leiter (Rückfrage DL9SAU 2026-08-24).
+  - ⇒ **`acked` impliziert `repeated-only` nicht.** Kommt das Ack zuerst, unterbleibt der
+    Heard-Bericht ganz; und ein Repeat kann ohne jedes Ack bleiben. Getrennte Beobachtungen,
+    keine Stufen einer Leiter (Rückfrage DL9SAU 2026-08-24).
+  - **Feldtest 2026-08-24 (DL9SAU), zwei Befunde:** (a) Der beobachtete **Repeat einer
+    Kanalnachricht** landet **nicht** im Repeat-Topf — für `*`-Verkehr meldet die Firmware
+    ihn als Ack. Der Topf zählt also „wiederholt gehört **und sonst nichts**", daher der
+    Name `repeated-only`. (b) Eine **DM an db0fri-12** hat `acked` von 1 auf 2 gezogen: der
+    adressierte Knoten bestätigt also selbst, und das erreicht die App über denselben Pfad.
+    ⇒ `acked` heißt **bei einer DM** „der Empfänger hat's", **bei einer Kanalnachricht**
+    „ein Gateway hat's bzw. es kam wiederholt zurück". Zwei Bedeutungen, ein Icon — das ist
+    Firmware-seitig so und wird nicht umgebaut.
   ⇒ **„Wolke mit Haken" heißt nur bei einer DM „der Empfänger hat's".** Bei einer
   Kanalnachricht bedeutet dasselbe Icon „Server erreicht / Rundruf-Ack". Die Firmware
   räumt an der Stelle selbst ein, dass die Unterscheidung nicht implementiert ist:
