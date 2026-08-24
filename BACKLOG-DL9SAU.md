@@ -204,9 +204,11 @@ Alternative/zusätzlich Mheard-Tab zum Vergleich mit den Direktnachbarn.
   sieht, zu einer **eigenen** Nachricht gehört: die Firmware reicht es nur durch, wenn es
   zu einer eigenen Aussendung passt (`checkOwnTx`), und nur **einmal je Nachricht**
   (`own_msg_id[..][4] < 2`) — Quelltext geprüft, `lora_functions.cpp:handleACK`.
-  Aufgeteilt nach denselben zwei Icons wie im Chat (`cloud` / `cloud done`) und über
-  **dieselbe** Zuordnung wie `ackTxtMsg`, damit Zähler und Haken nie Verschiedenes
-  erzählen. Am Ack-Modell wird **nichts** geändert. Ausgeblendet, solange nichts bestätigt
+  Beschriftet nach dem, was die Firmware **sagt**, nicht nach dem Icon: **`heard`**
+  (`0x00`, ihr eigenes Wort „ONLY HEARD") gegen **`acked`** (`0x01`/`0x02`). Zuordnung
+  identisch zu `ackTxtMsg`, damit Zähler und Haken nie Verschiedenes erzählen; `0x01` und
+  `0x02` teilen sich einen Topf, weil sie sich ein Icon teilen **und** weil das
+  Firmware-Flag zur Trennung festverdrahtet ist (Block F). Am Ack-Modell wird **nichts** geändert. Ausgeblendet, solange nichts bestätigt
   wurde — eine reine Empfangsstation braucht keinen Zähler, der auf 0 stehen bleibt.
 ⇒ Gleiche Datenquelle wie D3, zusammen bauen.
 
@@ -489,12 +491,22 @@ PRs gehen gegen den **`dev`**-Branch, vorher auf den aktuellen Stand rebasen;
 - **`R=` in der Positionsbake = die vom Knoten SELBST gebuchten Talkgroups**
   (";"-getrennt, z. B. `232;2321;2323;`), gesendet von **jedem** Knoten — User wie Digi.
   **Kein Gateway-Indikator** (geprüft 2026-08-23, siehe D8).
-- **Ack: drei Icons, drei Zustände** (Original-App, Feldverhalten DL9SAU bestätigt):
-  **Haken** = die App hat an die Firmware übergeben · **Wolke** = unterwegs bestätigt ·
-  **Wolke mit Haken** = End-to-End-Ack. Im Code: `ack_type` `0x00` → 1 (Wolke),
-  `0x01` → 2, `0x02` → 2 (beide Wolke mit Haken); `ack = 2` ist terminal. Bei einer
-  **Kanalnachricht** springt der Haken direkt auf Wolke-mit-Haken, sobald die eigene
-  Nachricht **repeated** gehört wurde. Das ist so gewollt — **nicht umbauen.**
+- **Ack: drei Icons, drei Zustände** (Original-App; Quelltext beider Seiten geprüft
+  2026-08-24). **Haken** = die App hat an die Firmware übergeben · **Wolke** = `0x00` ·
+  **Wolke mit Haken** = `0x01`/`0x02`. App-seitig: `ack_type 0x00` → 1, `0x01`/`0x02` → 2,
+  `ack = 2` ist terminal. Was die Firmware damit **meint**:
+  - `0x00` = **„ONLY HEARD"** (`lora_functions.cpp:685`, wörtlich so kommentiert): unser
+    eigener Knoten hat unsere Nachricht **wiederholt gehört**. Kein Empfänger im Spiel.
+  - `0x01` = **Server erreicht** (`loop_functions.cpp:3426`, nur wenn der eigene Knoten
+    selbst Gateway mit IP ist) **oder** Ack für eine **Rundrufnachricht** an `*`
+    (`lora_functions.cpp:1025`).
+  - `0x02` = Ack vom **adressierten Knoten** (DM).
+  ⇒ **„Wolke mit Haken" heißt nur bei einer DM „der Empfänger hat's".** Bei einer
+  Kanalnachricht bedeutet dasselbe Icon „Server erreicht / Rundruf-Ack". Die Firmware
+  räumt an der Stelle selbst ein, dass die Unterscheidung nicht implementiert ist:
+  `print_buff[10]=0x01; // switch ack GW / Node currently fixed to 0x00`.
+  Das ist der „Teil-Ack" aus DL9SAUs Einwand, an der Quelle belegt — **trotzdem nicht
+  umbauen**, das Verhalten ist so gewollt (Entscheidung 2026-08-24).
 - **`PL` im MH-JSON zählt Pfad-Einträge INKLUSIVE Absender** (Quelltext geprüft
   2026-08-24, `aprs_functions.cpp`): `msg_last_path_cnt` startet bei **1** und wird je
   Komma im Quellpfad erhöht. ⇒ **direkt gehört = `PL 1`**, ein Relay = 2, usw. Eine **0

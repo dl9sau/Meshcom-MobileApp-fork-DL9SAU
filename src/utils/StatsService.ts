@@ -34,7 +34,7 @@ class StatsService {
     private callRank = new Map<string, number>();  // call -> best RANK seen
     private byRank = [0, 0, 0, 0];                 // how many calls sit at each rank
     private dbCalls = -1;
-    private ack = { cloud: 0, done: 0 };
+    private ack = { heard: 0, acked: 0 };
 
     private norm(c: string): string { return (c || "").toUpperCase().trim(); }
 
@@ -129,12 +129,15 @@ class StatsService {
     // message - so these count our sent messages getting through, not foreign traffic.
     //
     // Bucketed by the SAME mapping DatabaseService.ackTxtMsg applies to decide the icon, on
-    // purpose: the counter must never tell a different story than the tick in the chat. What
-    // the two states mean exactly is the firmware's business (0x01 is "server reached", 0x02
-    // comes from the addressed node) - we mirror, we do not reinterpret.
+    // purpose: the counter must never tell a different story than the tick in the chat.
+    //   0x00 - the firmware calls this "ONLY HEARD": our message was repeated on the air
+    //   0x01 - server reached, or an ACK for a broadcast/channel message
+    //   0x02 - the addressed node acknowledged (a DM)
+    // 0x01 and 0x02 share one bucket because they share one icon, and because the firmware's
+    // own flag for telling gateway from node is hardcoded ("currently fixed to 0x00").
     countAck(ackState: number) {
-        if (ackState === 0x00) this.ack.cloud++;
-        else if (ackState === 0x01 || ackState === 0x02) this.ack.done++;
+        if (ackState === 0x00) this.ack.heard++;
+        else if (ackState === 0x01 || ackState === 0x02) this.ack.acked++;
         else return;                       // unknown state: not ours to guess
         this.mirror();
     }
@@ -148,7 +151,7 @@ class StatsService {
         this.dm = { direct: 0, hf: 0, gw: 0 };
         this.callRank.clear();
         this.byRank = [0, 0, 0, 0];
-        this.ack = { cloud: 0, done: 0 };
+        this.ack = { heard: 0, acked: 0 };
         this.mirror();
     }
 }

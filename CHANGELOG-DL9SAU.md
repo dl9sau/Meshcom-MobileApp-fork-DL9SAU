@@ -215,8 +215,9 @@ changes of this fork relative to upstream. The in-app version shows
   network) and **`#pos`** (position beacons — always RF), so you can compare *user
   messages vs. beacon load* at a glance; **unique callsigns** heard (HF vs gw); and a
   **me** line — your own **`#msg` sent** and **`#pos` heard-back** (beacons of yours
-  that came back over RF), plus **`#ack`**: how many of your messages were acknowledged,
-  split along the same two icons the chat shows (`cloud` / `cloud done`). Every ACK the app
+  that came back over RF), plus **`#ack`**: how many of your messages came back
+  confirmed, split the way the firmware itself reports it — **`heard`** (it saw your message
+  repeated on the air) against **`acked`** (a real acknowledgement). Every ACK the app
   receives belongs to one of your own messages — the node only forwards it when it matches
   something you transmitted — so this reads as "how much of what I sent got through". Counts are de-duplicated (the firmware only forwards the
   first copy of each packet), so they're *unique* messages, not airtime. (What the

@@ -126,15 +126,17 @@ export const StatsPanel: React.FC<{ ownCall: string, onClose?: () => void, showT
             </div>
             {/* Acknowledgements for our OWN messages - the firmware forwards an ACK to the app
                 only when it matches something we sent, and only once per message. Named after
-                the two icons the chat shows, so the line and the tick can never disagree.
+                what the firmware itself reports: "heard" is its own wording for "somebody
+                repeated it on the air", "acked" is a real acknowledgement. Same split as the
+                two chat icons, so the line and the tick can never disagree.
                 Hidden while nothing has been acknowledged: a read-only station should not be
                 told about a counter that will stay at zero. */}
-            {(s.ack.cloud + s.ack.done) > 0 &&
+            {(s.ack.heard + s.ack.acked) > 0 &&
                 <div className="stats-row">
                     <span className="stats-key"></span>
-                    <span className="stats-num">{s.ack.cloud + s.ack.done}</span>
+                    <span className="stats-num">{s.ack.heard + s.ack.acked}</span>
                     <span className="stats-dim">
-                        #ack &nbsp;cloud {s.ack.cloud} · cloud done {s.ack.done}
+                        #ack &nbsp;heard {s.ack.heard} · acked {s.ack.acked}
                     </span>
                 </div>}
         </div>
