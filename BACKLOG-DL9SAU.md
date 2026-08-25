@@ -435,8 +435,10 @@ Abstände, denn eine verpasste Bake kann einen Abstand nur verlängern, nie verk
 Streuen die Abstände (p75 > 2,5×p25 — Smart-Beaconing, Bewegung), gibt es **keine
 Prozentzahl**, sondern „n heard, irregular"; unter 4 Abständen gar keine Aussage.
 *Nachgeschärft 2026-08-25 (Rückfrage DL9SAU „was heißt das?" bei 6 Positionen in 8,5 h):*
-das Wort trägt jetzt seinen Grund mit — **`irregular (30-180 min apart)`**, also die beiden
-Abstandswerte, auf denen das Urteil beruht. Ohne sie muss der Leser raten, was wir nicht
+das Wort trägt jetzt seinen Grund mit — **`irregular (30-180 min)`**, also die beiden
+Abstandswerte, auf denen das Urteil beruht (ohne „apart": in einer Zeile über Bakenrate kann
+eine Minuten-Spanne nur der Abstand sein, und das Knoten-Fenster auf der Karte hat keinen
+Platz zu verschenken — auch das seine Anmerkung). Ohne sie muss der Leser raten, was wir nicht
 messen konnten. Und die Klarstellung, die dabei fehlte: `irregular` ist **kein
 Qualitätsurteil**. Es heißt nicht „schlechte Verbindung", sondern „hier ist keine ehrliche
 Quote möglich" — bei einem fernen Knoten meist löchriger Empfang über mehrere Hops, sonst

@@ -13,13 +13,15 @@ export const fmtInterval = (ms: number): string => {
 // "11/12 (92%)" - what we got against what the node should have sent while we had contact.
 // null when there is not enough to say anything; "n heard, irregular" when the node keeps
 // no dependable interval - a percentage against a made-up interval is worse than none.
-// "irregular (30-180 min apart)" - the word plus the reason for it. Without the range a
-// reader has to ask what "irregular" measured (asked in the field, DL9SAU 2026-08-25).
+// "irregular (30-180 min)" - the word plus the reason for it. Without the range a reader
+// has to ask what "irregular" measured (asked in the field, DL9SAU 2026-08-25). No "apart":
+// in a line about beacon rate a range in minutes can only be the spacing, and the node
+// overlay on the map has no room to spare (also his).
 const fmtSpread = (r: RateInfo): string => {
     const lo = r.spreadLow ?? 0, hi = r.spreadHigh ?? 0;
     if (lo <= 0 || hi <= 0) return "";
     const m = (ms: number) => Math.round(ms / 60000);
-    return m(hi) > m(lo) ? " (" + m(lo) + "-" + m(hi) + " min apart)" : " (~" + m(lo) + " min apart)";
+    return m(hi) > m(lo) ? " (" + m(lo) + "-" + m(hi) + " min)" : " (~" + m(lo) + " min)";
 };
 
 export const fmtRate = (r: RateInfo | undefined, showInterval?: boolean): string | null => {
