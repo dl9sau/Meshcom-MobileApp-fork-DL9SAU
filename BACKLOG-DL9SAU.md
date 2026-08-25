@@ -75,6 +75,29 @@ auf (beim Start ist er ausgewählt, und nur das aktive Segment wird erstbefüllt
 bei Autoscroll aus** (bei „ein" steht man am Ende, dort räumt `settleAtBottomBoundary` den
 Zähler sofort weg). Beides sagt der Mechanismus vorher, statt bloß dazu zu passen.
 
+**A8 — ✅ GEBAUT** — Teile einer gesplitteten Nachricht in Reihenfolge zeigen
+*(Feldbefund DL9SAU, 2026-08-25: „der Gegenüber meinte, die messages kamen out of order")*
+Im Mesh können die Pakete einer langen Nachricht in beliebiger Reihenfolge ankommen. Der
+Marker `(i/n xx)` aus `MsgSplit` reicht zum Sortieren: **gleicher Absender + gleicher Tag +
+gleiches n**, geordnet nach `i`. Neu: `MsgGroup.orderMultipart`, eingehängt an der einen
+Stelle, an der die Liste fürs Rendern entsteht (`visibleMsgs`) — Zähl- und Scroll-Logik
+arbeiten unverändert auf `msgArr_s`.
+*Entscheidungen (DL9SAU):*
+- **Nur sortieren, nicht zusammenfügen** — sonst müsste der zusammengesetzte Text irgendwo
+  gehalten werden, und genau am Puffer arbeiten wir uns ja ab. Die Teile behalten ihre
+  eigenen Zeitstempel und Acks.
+- **Verankert beim zuerst eingetroffenen Teil**, nicht bei Teil 1: die Nachricht bleibt
+  dort, wo ihr **Kontext** ist, statt nach zehn Minuten unter neueren zu landen.
+- **Fenster gegen den ersten Teil der Gruppe, nie gegen „jetzt"** — sonst zerfiele eine
+  Gruppe später wieder und dasselbe Gespräch sähe morgen anders aus. 2 h; bei 1296
+  Tag-Werten *und* Absenderbindung ist eine Kollision darin unwahrscheinlich.
+- **Nichts erfunden:** fehlende Teile bleiben sichtbare Lücken (dafür ist der Marker da),
+  eine Nachlieferung nach Resend sortiert sich an ihren Platz, ein doppelter Teil bleibt
+  erhalten und landet neben seinem Zwilling.
+*Nebenwirkung:* zieht ein später Teil nach oben zu seiner Gruppe, steht er über dem
+„new messages"-Trenner, obwohl er neu ist. Im Feld beobachten.
+Offline gegen 18 Fälle geprüft.
+
 **A6 — DM-Tab: gelb (Filter aktiv) verdeckt grün (neue Nachricht)** *(klein)*
 Vorschlag: erst dunkleres Grün probieren; sonst Blinken gelb↔grün ~1 s (nicht flackern).
 

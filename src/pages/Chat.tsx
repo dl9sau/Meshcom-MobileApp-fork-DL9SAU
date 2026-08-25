@@ -32,6 +32,7 @@ import LogS from '../utils/LogService';
 // only for getStartedAt(): the moment this app run began, which is what separates the
 // stored backlog from messages that actually arrived while we were running
 import StatsService from '../utils/StatsService';
+import { orderMultipart } from '../utils/MsgGroup';
 import DatabaseService from '../DBservices/DataBaseService';
 import { set } from 'date-fns';
 import AlertCard from '../components/AlertCard';
@@ -1741,7 +1742,12 @@ const Tab3: React.FC = () => {
   
 
 
-  const visibleMsgs = msgArr_s.filter(dmVisible).filter(searchVisible);
+  // Parts of a split message can arrive out of order on a mesh, and then they are read
+  // out of order (reported by a correspondent, 2026-08-25). orderMultipart gathers the
+  // parts of one "(i/n xx)" group at the position of the FIRST one that arrived and sorts
+  // them by part number - display only, nothing is joined, dropped or invented, and the
+  // counting/scroll logic keeps working on the untouched msgArr_s.
+  const visibleMsgs = orderMultipart(msgArr_s.filter(dmVisible).filter(searchVisible));
   // "new messages" divider: sits right above the unseen tail. Derived purely from
   // newBelow (= segUnreadRef[current segment]) so there's no second, drifting state -
   // it therefore inherits the counter's behaviour exactly: appears when messages are
