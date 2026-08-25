@@ -88,24 +88,6 @@ const Mheard = () => {
                                                         <div>Hw:</div>
                                                         <div className='value'>{mhs.mh_hw}</div>
                                                     </div>
-                                                    {/* Two DIFFERENT things, previously conflated under one label (this
-                                                        list showed the heard-via count while the map showed the
-                                                        firmware one): the node's own direct neighbours as we inferred
-                                                        them from path adjacency (+ what it advertises), and what it
-                                                        relayed to US. Same wording and formatting as the map overlay. */}
-                                                    {(() => {
-                                                        const key = mhs.mh_callSign?.toUpperCase();
-                                                        const nb = fmtNeighbours(adjCounts[key] ?? 0, adjMax[key] ?? 0,
-                                                            Math.max(mhs.mh_ncnt ?? 0, nodeInfoMap[key]?.ncnt ?? 0));
-                                                        const hv = fmtHeardVia(relayCounts[key] ?? 0, relayMax[key] ?? 0);
-                                                        // traffic through this node, and how much of it was injected
-                                                        const rel = fmtRelayed(relayPkts[key] ?? 0, gwInj[key] ?? 0);
-                                                        return (<>
-                                                            {nb ? <div className='rowcont'><div>Neighbours:</div><div className='value'>{nb}</div></div> : <></>}
-                                                            {hv ? <div className='rowcont'><div>Heard via:</div><div className='value'>{hv}</div></div> : <></>}
-                                                            {rel ? <div className='rowcont'><div>Relayed:</div><div className='value'>{rel}</div></div> : <></>}
-                                                        </>);
-                                                    })()}
                                                 </div>
                                                 <div>
                                                     <div className='rowcont'>
@@ -123,23 +105,38 @@ const Mheard = () => {
                                                     </div>
                                                 </div>
                                             </div>
-                                            {/* Everything below the two columns runs FULL WIDTH. Two reasons:
-                                                `.mhcont` is a wrapping flex row, so a long value in the left column
-                                                pushes the right one (Time/SNR/Dist) underneath it - and the packet
-                                                counters belong together in one line instead of being split across
-                                                the columns, where an optional row above would shift them apart
-                                                (`#msg` ended up level with "Heard via", `#pos` one line below).
-                                                Order: the packet counts by type, then what we can say about their
-                                                delivery, then the booked groups. `#` reads as "number of", so HEY
-                                                is `#hey` like the others. The position rate is the SHORT form -
-                                                `#pos` right above carries the raw count. */}
+                                            {/* EVERYTHING that can grow runs below the two columns, full width; the
+                                                columns keep only the short pairs (Date/RSSI/Hw | Time/SNR/Dist).
+                                                `.mhcont` is a wrapping flex row, so ONE long value on the left pushes
+                                                the right column underneath it and the card collapses to a single
+                                                column. That happened twice - first with the rate lines, then again
+                                                once "Heard via" gained its "stations" and "Relayed" its bracket
+                                                (field test DL9SAU). With the growable lines down here it cannot
+                                                happen a third time.
+                                                Order: what surrounds the node (neighbours, who came through it, how
+                                                much), then the packet counts by type, then what we can say about
+                                                their delivery, then the booked groups. `#` reads as "number of", so
+                                                HEY is `#hey` like the others; the position rate is the SHORT form
+                                                because `#pos` right above carries the raw count. */}
                                             {(() => {
                                                 const key = mhs.mh_callSign?.toUpperCase();
                                                 const info = nodeInfoMap[key];
+                                                // Two DIFFERENT things, previously conflated under one label (this
+                                                // list showed the heard-via count while the map showed the firmware
+                                                // one): the node's own direct neighbours as we inferred them from
+                                                // path adjacency (+ what it advertises), and what it relayed to US.
+                                                const nb = fmtNeighbours(adjCounts[key] ?? 0, adjMax[key] ?? 0,
+                                                    Math.max(mhs.mh_ncnt ?? 0, info?.ncnt ?? 0));
+                                                const hv = fmtHeardVia(relayCounts[key] ?? 0, relayMax[key] ?? 0);
+                                                // traffic through this node, and how much of it was injected
+                                                const rel = fmtRelayed(relayPkts[key] ?? 0, gwInj[key] ?? 0);
                                                 const hey = fmtHeyRate(heyRates[key]);
                                                 const pr = fmtRateShort(posRates[key]);
                                                 const groups = info?.groups;
                                                 return (<>
+                                                    {nb ? <div className='rowcont'><div>Neighbours:</div><div className='value'>{nb}</div></div> : <></>}
+                                                    {hv ? <div className='rowcont'><div>Heard via:</div><div className='value'>{hv}</div></div> : <></>}
+                                                    {rel ? <div className='rowcont'><div>Relayed:</div><div className='value'>{rel}</div></div> : <></>}
                                                     <div className='rowcont'>
                                                         <div>#pos:</div>
                                                         <div className='value'>{info?.posCount ?? 0}</div>
