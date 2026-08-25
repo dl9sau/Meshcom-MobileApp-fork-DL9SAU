@@ -42,6 +42,12 @@ export interface AppPrefsState {
     // own callsign, persisted so housekeeping can tell my DMs from overheard ones
     // (at app start, before a node connects, the live config call is not known yet)
     ownCall: string;
+    // automatic resend of DM parts that were never acknowledged. Only parts of a SPLIT
+    // message (they carry the "(i/n xx)" marker), only direct messages, only within the
+    // running app session, three attempts at 5/15/40 min after the original send - on top
+    // of the firmware's own three tries in the first two minutes. Silent: the echo folds
+    // into the original line via the resend collapse. Default ON, see ResendService.
+    autoResendDM: boolean;
     // master on/off for the whole chat filter (callsign-deny + allow + text-deny).
     // OFF = nothing is filtered, without deleting any rules. Default ON.
     filtersEnabled: boolean;
@@ -78,6 +84,7 @@ const AppPrefsStore = new Store<AppPrefsState>({
     tabHintSeen: false,
     tgLabels: "{}",
     ownCall: "",
+    autoResendDM: true,
     filtersEnabled: true,
     keepScreenOn: false,
     splitMethod: 'balanced',

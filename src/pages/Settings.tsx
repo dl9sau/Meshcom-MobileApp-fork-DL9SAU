@@ -344,6 +344,13 @@ const Tab2: React.FC = () => {
     await DataBaseService.setPref('compactHeader', checked ? '1' : '0');
   };
 
+  // automatic resend of unacknowledged DM parts (see ResendService)
+  const autoResendDM = useStoreState(AppPrefsStore, s => s.autoResendDM);
+  const setAutoResendDM = async (checked: boolean) => {
+    AppPrefsStore.update(s => { s.autoResendDM = checked; });
+    await DataBaseService.setPref('autoResendDM', checked ? '1' : '0');
+  };
+
   // monitoring mode: keep the screen on (applied centrally in App.tsx)
   const keepScreenOn = useStoreState(AppPrefsStore, s => s.keepScreenOn);
   const setKeepScreenOn = async (checked: boolean) => {
@@ -2951,6 +2958,10 @@ const Tab2: React.FC = () => {
               <div id="spacer-advTop" />
               {/* compact (default, blue/solid) vs legacy multi-line message header */}
               <IonButton id="settings_button" fill={compactHeader ? 'solid' : 'outline'} slot='start' onClick={() => setCompactHeader(!compactHeader)}>{compactHeader ? "Message header: compact" : "Message header: legacy"}</IonButton>
+              {/* Auto-resend: only DM parts of a SPLIT message, only within this app run,
+                  three attempts at 5/15/40 min after the original send. Silent - the echo
+                  folds into the original line ("resent #N"). Default on. */}
+              <IonButton id="settings_button" fill={autoResendDM ? 'solid' : 'outline'} slot='start' onClick={() => setAutoResendDM(!autoResendDM)}>{autoResendDM ? "Auto-resend DM parts: on" : "Auto-resend DM parts: off"}</IonButton>
               <div id="spacer-advTop" />
               {/* monitoring mode: keep the screen lit so the WebView JS never pauses */}
               <IonItem>

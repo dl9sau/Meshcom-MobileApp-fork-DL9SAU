@@ -262,6 +262,18 @@ changes of this fork relative to upstream. The in-app version shows
   **`irregular`** rather than invent a percentage. Both are upper bounds: a missing beacon
   can also be the sender's doing, so 100% means "nothing detectably lost". MY STATS gains a
   **`#hey`** line with the totals.
+- **Long messages are put back in order** — the parts of a split message can arrive in any
+  order over a mesh, and were then read that way. They are now sorted by their `(i/n xx)`
+  marker and gathered where the FIRST part landed, so the message stays in the context it
+  belongs to. Nothing is merged, dropped or invented: a missing part stays a visible gap,
+  and one that arrives later slots into place.
+- **Unacknowledged parts of a long direct message are resent automatically** — the node
+  itself gives up after three tries in two minutes; the app follows with three more at
+  **5, 15 and 40 minutes**, then stops. Only for direct messages (a channel message has no
+  recipient acknowledgement, and guessing would fill the channel with duplicates), only for
+  parts of a split message, only within the running session. It happens silently: the
+  resent copy folds into the original line, which counts the attempts. Can be switched off
+  in the settings.
 - **MY STATS says how long it has been counting** — the heading reads
   **`totals since app start · 1d 23h 3min`**. A duration, not a start time: you can judge
   "is 200 packets a lot?" against it directly, without first working out the difference to

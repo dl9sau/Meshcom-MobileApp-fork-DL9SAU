@@ -33,6 +33,7 @@ import LogS from '../utils/LogService';
 // stored backlog from messages that actually arrived while we were running
 import StatsService from '../utils/StatsService';
 import { orderMultipart } from '../utils/MsgGroup';
+import ResendService from '../utils/ResendService';
 import DatabaseService from '../DBservices/DataBaseService';
 import { set } from 'date-fns';
 import AlertCard from '../components/AlertCard';
@@ -1094,6 +1095,21 @@ const Tab3: React.FC = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [msgArr_s]);
+
+
+  // AUTOMATIC RESEND of DM parts the recipient never acknowledged (see ResendService).
+  // Driven from here because this is where the send path lives - and a DM can only have
+  // been sent with the chat open, so nothing is missed by not running it app-wide.
+  // One pass a minute: the schedule is minutes wide, a finer tick would only cost battery.
+  useEffect(() => {
+    const iv = setInterval(() => {
+      ResendService.tick(
+        (since) => DatabaseService.getUnackedOwnDMs(AppPrefsStore.getRawState().ownCall, since),
+        sendFinalMessage);
+    }, 60000);
+    return () => clearInterval(iv);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
 
   // (re)start the divider fade countdown. Only ever armed while you're AT the bottom -

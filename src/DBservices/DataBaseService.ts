@@ -419,7 +419,12 @@ class DatabaseService {
                 const txtMsgs = await DatabaseService.getTextMessages();
                 DatabaseService.applyFilters(DatabaseService.escapeQuotesInArr(txtMsgs));
                 // signal Chat to scroll up to + flash the updated original (if its
-                // channel is on screen) so the in-place update doesn't go unnoticed
+                // channel is on screen) so the in-place update doesn't go unnoticed.
+                // NOT for our own messages: a manual resend was just triggered by the user
+                // and an automatic one is meant to be silent (ResendService) - jumping the
+                // view to our own line would be noise in both cases.
+                const ownCallNow = (AppPrefsStore.getRawState().ownCall || "").toUpperCase().trim();
+                if ((msg.fromCall || "").toUpperCase().trim() === ownCallNow) return;
                 MsgStore.update(s => {
                     s.resendJump = {
                         msgNr: orig.msgNr, fromCall: msg.fromCall,
@@ -1100,6 +1105,7 @@ class DatabaseService {
             AppPrefsStore.update(s => {
                 // only override the default when a value was actually saved
                 if ('compactHeader' in prefs) s.compactHeader = prefs['compactHeader'] === '1';
+                if ('autoResendDM' in prefs) s.autoResendDM = prefs['autoResendDM'] === '1';
                 if ('dmShowAll' in prefs) s.dmShowAll = prefs['dmShowAll'] === '1';
                 if ('alertAll' in prefs) s.alertAll = prefs['alertAll'] === '1';
                 if ('alertTGs' in prefs) s.alertTGs = prefs['alertTGs'];
@@ -1193,6 +1199,23 @@ class DatabaseService {
             }
         } catch (err) {
             LogS.log(1, 'Error loading Mheards:' + err);
+        }
+    }
+
+    // Own DMs from this app run that the recipient has not confirmed - the candidates for
+    // the automatic resend (see ResendService). Narrow on purpose: this runs on a timer, so
+    // it must not drag the whole message table through JS every minute.
+    static async getUnackedOwnDMs(ownCall: string, sinceTs: number): Promise<MsgType[]> {
+        try {
+            if (!DatabaseService.db || !ownCall) return [];
+            const own = ownCall.toUpperCase().trim().replace(/'/g, "''");
+            const res = await DatabaseService.db.query(
+                `SELECT * FROM TextMessages WHERE isDM = 1 AND UPPER(fromCall) = '${own}' ` +
+                `AND ack < 2 AND timestamp >= ${sinceTs} ORDER BY timestamp ASC;`);
+            return (res.values ?? []) as MsgType[];
+        } catch (err) {
+            LogS.log(1, 'Error loading unacked own DMs:' + err);
+            return [];
         }
     }
 

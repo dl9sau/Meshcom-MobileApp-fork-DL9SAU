@@ -98,6 +98,31 @@ arbeiten unverändert auf `msgArr_s`.
 „new messages"-Trenner, obwohl er neu ist. Im Feld beobachten.
 Offline gegen 18 Fälle geprüft.
 
+**A9 — ✅ GEBAUT** — Automatischer Resend unbestätigter DM-Teile *(Idee DL9SAU, 2026-08-25)*
+Die Firmware wiederholt selbst — aber nur **3× im Abstand von 40 s**, nach 2 Minuten gibt
+sie auf (`MAX_RETRANSMIT`, `lora_functions.cpp:1947`, im Quelltext nachgesehen). Danach
+bleibt ein verlorener Teil unbestätigt liegen und man muss ihn von Hand nachschicken.
+`ResendService` setzt genau dort an, wo die Firmware aufhört.
+*Bewusst eng gefasst (Entscheidungen DL9SAU):*
+- **Nur DMs.** Eine Kanalnachricht hat kein Empfänger-Ack; die Wolke sagt nur „jemand hat
+  wiederholt". Ein überhörtes Repeat als Verlust zu deuten würde den Kanal für **alle**
+  mit Duplikaten fluten.
+- **Nur Teile einer gesplitteten Nachricht** (die mit `(i/n xx)`-Marker). Eine kurze
+  Nachricht bleibt beim Firmware-Retry — dafür ist er da; weh tut der Verlust bei der
+  langen.
+- **Nicht über den App-Neustart hinweg** — nur was in *diesem* Lauf gesendet wurde.
+- **Still**: kein Extra-Eintrag im Chat. Der Rückläufer wird vom vorhandenen
+  Resend-Collapse ins Original gefaltet, der auch die Versuche zählt → daher die schon
+  gerenderte Zeile `· resent #N at hh:mm`. Dafür unterdrückt der Collapse jetzt den
+  Sprung/Blitz bei **eigenen** Nachrichten (bei fremden bleibt er).
+- **Abschaltbar**, Default an (`autoResendDM` in den Einstellungen).
+*Takt:* 5 / 15 / 40 min **nach der ursprünglichen Sendung**, drei Versuche in gut einer
+Stunde — großzügig, weil die Firmware es in den ersten zwei Minuten schon dreimal versucht
+hat: kam da nichts, ist die Strecke schlecht oder die Station weg, und schnelle Nachschläge
+helfen dann nicht, kosten aber Airtime.
+*Kandidaten* kommen aus einer eigenen, engen Abfrage (`getUnackedOwnDMs`) statt aus der
+ganzen Nachrichtentabelle — der Ticker läuft jede Minute. Offline gegen 17 Fälle geprüft.
+
 **A6 — DM-Tab: gelb (Filter aktiv) verdeckt grün (neue Nachricht)** *(klein)*
 Vorschlag: erst dunkleres Grün probieren; sonst Blinken gelb↔grün ~1 s (nicht flackern).
 
