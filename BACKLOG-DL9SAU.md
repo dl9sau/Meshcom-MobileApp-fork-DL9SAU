@@ -49,6 +49,21 @@ der Falz bei Erscheinen, danach **eingefroren** (wächst bei weiteren Ankünften
 Kein Idle-Kriterium mehr nötig — der Marker im Auto-Modus verfällt von selbst und ersetzt
 damit den Nutzen der früheren Away-Erkennung (Light-Sleep-Fall).
 
+**A7 — ✅ GEBAUT** — Beim Start galt der ganze DB-Bestand als „neu" *(Feldtest DL9SAU, 2026-08-25)*
+Kanal ALL, Autoscroll aus, hochgescrollt: der Kreis zeigte **26 neue Nachrichten** — und der
+Kanal enthielt insgesamt 26. Ursache im `msgArr`-Effekt: er misst Ankünfte als
+`msgArr.length - prevLen`, und beim Start springt die Länge in **einem** Schritt von 0 auf
+N, weil die gespeicherten Nachrichten geladen werden. Das ist von N gleichzeitig
+eintreffenden Paketen nicht zu unterscheiden.
+*Fix:* nur die **erste** Befüllung wird gesondert behandelt — gezählt wird dort, was
+**neuer als der App-Start** ist (`StatsService.getStartedAt()`), alles Ältere war schon da.
+Danach zählt wieder das Delta. Wichtig war der Fall „leere Datenbank": dort darf die erste
+echte Nachricht nicht verschluckt werden, deshalb der Zeitstempel-Vergleich statt eines
+bloßen „erste Füllung ignorieren".
+*Grenze:* Nachrichten-Zeitstempel kommen von der Knoten-Uhr. Geht sie nach, kann eine
+Nachricht, die genau während des Starts eintrifft, als Bestand gelten — betrifft nur die
+erste Füllung. Offline gegen 7 Fälle geprüft.
+
 **A6 — DM-Tab: gelb (Filter aktiv) verdeckt grün (neue Nachricht)** *(klein)*
 Vorschlag: erst dunkleres Grün probieren; sonst Blinken gelb↔grün ~1 s (nicht flackern).
 

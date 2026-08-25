@@ -29,6 +29,9 @@ import { parseTGset, notifyLevelFor, msgDiscarded, isChannelMention } from '../u
 import { markSegmentUnread, clearSegmentUnread } from '../store/ChatUnread';
 import { useHistory } from "react-router";
 import LogS from '../utils/LogService';
+// only for getStartedAt(): the moment this app run began, which is what separates the
+// stored backlog from messages that actually arrived while we were running
+import StatsService from '../utils/StatsService';
 import DatabaseService from '../DBservices/DataBaseService';
 import { set } from 'date-fns';
 import AlertCard from '../components/AlertCard';
@@ -134,6 +137,10 @@ const Tab3: React.FC = () => {
   // badge on the ↓ jump button - the "new below" signal for the channel you're viewing,
   // since the active tab never goes green). Reset on reaching the bottom / segment switch.
   const [newBelow, setNewBelow] = useState<number>(0);
+  // false until msgArr has been filled once: that first fill is the stored backlog, not
+  // arrivals (see the msgArr effect). Deliberately a plain ref - it must survive re-renders
+  // and must NOT trigger one.
+  const seededMsgLenRef = useRef<boolean>(false);
   // "new messages" divider linger: when you reach the bottom, newBelow drops to 0 at
   // once. Hiding the divider that instant gives no time to orient which msgs were new,
   // so we HOLD the last boundary for a few seconds after catching up, then fade it out.
@@ -1059,7 +1066,20 @@ const Tab3: React.FC = () => {
       return;
     }
     if (delta <= 0) return;   // refresh/delete, not an arrival
-    const count = (segUnreadRef.current[seg] || 0) + delta;
+    // THE FIRST FILL IS THE DATABASE BACKLOG, NOT ARRIVALS. On start msgArr jumps from 0 to
+    // N in one step because the stored messages load, and this effect cannot tell that from
+    // N packets landing at once - a freshly installed build therefore announced the whole
+    // channel as new (field test DL9SAU 2026-08-25: "26 neue Nachrichten" in a channel that
+    // holds 26 messages). So for that first fill we count only what is genuinely newer than
+    // this app run; everything older was already there when we started.
+    let arrivals = delta;
+    if (!seededMsgLenRef.current) {
+        seededMsgLenRef.current = true;
+        const startedAt = StatsService.getStartedAt();
+        arrivals = msgArr_s.filter(m => (m.timestamp ?? 0) >= startedAt).length;
+        if (arrivals <= 0) return;
+    }
+    const count = (segUnreadRef.current[seg] || 0) + arrivals;
     segUnreadRef.current[seg] = count;
     setNewBelow(count);
     if (atBottomRef.current) {
