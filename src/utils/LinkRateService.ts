@@ -143,7 +143,7 @@ class LinkRateService {
             : p75 > p25 * POS_SPREAD_MAX;         // scattered -> no percentage
         // never report more than 100%: our own count is the floor of what was sent
         const expected = Math.max(t.n, Math.round((t.last - t.first) / interval) + 1);
-        return { got: t.n, expected, intervalMs: interval, irregular };
+        return { got: t.n, expected, intervalMs: interval, irregular, spreadLow: p25, spreadHigh: p75 };
     }
 
     // D3: one HEY seen in an Mheard record. `pathLen` decides whose beacon it was - against

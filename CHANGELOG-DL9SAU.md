@@ -259,7 +259,9 @@ changes of this fork relative to upstream. The in-app version shows
   for the mesh. **Position beacons** get the same treatment (**`Pos rate: 8/10 (80%,
   ~30 min)`**), but their interval is estimated per node instead of assuming the 30-minute
   default — and where a node's spacing scatters (smart beaconing, movement) it says
-  **`irregular`** rather than invent a percentage. Both are upper bounds: a missing beacon
+  **`irregular (30-180 min apart)`** rather than invent a percentage — with the gap range
+  that led to that verdict, so the word carries its own reason. It is not a quality
+  judgement: it means "no honest percentage possible here", not "bad link". Both are upper bounds: a missing beacon
   can also be the sender's doing, so 100% means "nothing detectably lost". MY STATS gains a
   **`#hey`** line with the totals.
 - **Long messages are put back in order** — the parts of a split message can arrive in any

@@ -17,6 +17,11 @@ export interface RateInfo {
     expected: number;     // how many the node should have sent in the same span
     intervalMs: number;   // the interval that expectation rests on
     irregular: boolean;   // no dependable interval -> a percentage would be made up
+    // the two gap values the verdict rests on (ms). Shown when `irregular`, so the word
+    // carries its own reason: "irregular (30-180 min apart)" says the beacons scatter,
+    // instead of leaving the reader to guess what we could not measure.
+    spreadLow?: number;
+    spreadHigh?: number;
     relayed?: number;     // HEY only: foreign HEYs this node forwarded (relay activity)
 }
 

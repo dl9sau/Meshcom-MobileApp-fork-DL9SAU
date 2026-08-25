@@ -13,9 +13,18 @@ export const fmtInterval = (ms: number): string => {
 // "11/12 (92%)" - what we got against what the node should have sent while we had contact.
 // null when there is not enough to say anything; "n heard, irregular" when the node keeps
 // no dependable interval - a percentage against a made-up interval is worse than none.
+// "irregular (30-180 min apart)" - the word plus the reason for it. Without the range a
+// reader has to ask what "irregular" measured (asked in the field, DL9SAU 2026-08-25).
+const fmtSpread = (r: RateInfo): string => {
+    const lo = r.spreadLow ?? 0, hi = r.spreadHigh ?? 0;
+    if (lo <= 0 || hi <= 0) return "";
+    const m = (ms: number) => Math.round(ms / 60000);
+    return m(hi) > m(lo) ? " (" + m(lo) + "-" + m(hi) + " min apart)" : " (~" + m(lo) + " min apart)";
+};
+
 export const fmtRate = (r: RateInfo | undefined, showInterval?: boolean): string | null => {
     if (!r || r.got <= 0) return null;
-    if (r.irregular) return r.got + " heard, irregular";
+    if (r.irregular) return r.got + " heard, irregular" + fmtSpread(r);
     if (r.expected <= 0) return null;
     const pct = Math.round((r.got / r.expected) * 100);
     return r.got + "/" + r.expected + " (" + pct + "%" +
@@ -41,7 +50,7 @@ export const fmtHeyRate = (r: RateInfo | undefined): string | null => {
 // what is already on screen. null / "irregular" behave exactly as in fmtRate.
 export const fmtRateShort = (r: RateInfo | undefined): string | null => {
     if (!r || r.got <= 0) return null;
-    if (r.irregular) return "irregular";
+    if (r.irregular) return "irregular" + fmtSpread(r);
     if (r.expected <= 0) return null;
     return Math.round((r.got / r.expected) * 100) + "% (" + fmtInterval(r.intervalMs) + ")";
 };
