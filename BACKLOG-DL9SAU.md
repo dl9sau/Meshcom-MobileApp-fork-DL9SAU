@@ -7,9 +7,10 @@ Reihenfolge innerhalb der Blöcke = grober Vorschlag, nicht fix.
 
 ## A · Chat / Scrollverhalten
 
-> **Status: Build 1 gebaut (6906b13)** — A1 ✅, A5 ✅, A6 ✅, A2 ✅ (als Teil von A5:
-> nach dem Entfernen des Markers wird wieder ans Ende gepinnt), A4 ✅ (Pixel-Rechnerei
-> entfernt). **A3 offen** — sollte durch A5 verschwunden sein, im Test verifizieren.
+> **Status: Block A ist komplett.** Build 1 (6906b13): A1 ✅, A5 ✅, A6 ✅, A2 ✅ (als Teil
+> von A5: nach dem Entfernen des Markers wird wieder ans Ende gepinnt), A4 ✅ (Pixel-
+> Rechnerei entfernt). **A3 ✅** — im Feldtest 2026-08-25 bestätigt, siehe unten. **A7 ✅**
+> (2026-08-25 gefunden und gefixt).
 
 **A1 — `scrollToBottom()` cached ein totes DOM-Element** *(Bug, klein)*
 `bottomRef.current` wird nur neu geholt, wenn es `null` ist. Ersetzt React den Knoten
@@ -22,10 +23,16 @@ Beim Aufholen verschwindet der Marker → Inhaltshöhe schrumpft → man ist nic
 unten → Button kommt zurück, zweiter Druck nötig. Fix: beim Entfernen die Scrollposition
 um die Marker-Höhe kompensieren (oder nur entfernen, wenn er außerhalb des Sichtfelds ist).
 
-**A3 — Zwei Klicks bei Autoscroll EIN, einer bei AUS** *(Bug, Ursache offen)*
-Kandidaten: (a) Zähler wird in beiden Modi an unterschiedlichen Stellen geleert,
+**A3 — ✅ ERLEDIGT** — Zwei Klicks bei Autoscroll EIN, einer bei AUS *(Bug)*
+Kandidaten waren: (a) der Zähler wird in beiden Modi an unterschiedlichen Stellen geleert,
 (b) während Tap 1 trifft eine neue Nachricht ein, der Divider wandert, Tap 2 zielt erneut
-auf ihn. Live nachstellen.
+auf ihn.
+*Ergebnis:* **durch A5 verschwunden**, ohne eigenen Fix — beide Kandidaten hingen an der
+Pixel-Arithmetik, die dort weggefallen ist. **Feldtest DL9SAU 2026-08-25:** ein Tap genügt,
+seitenweises Weiterblättern stimmt auch bei wiederholtem Drücken und nach zwischenzeitlichem
+Hochscrollen; die Sichtbarkeitsberechnung passt. „Verhält sich perfekt, gut getestet."
+Das ist der Beleg dafür, dass elementbasiertes Scrollen die richtige Entscheidung war: der
+Fehler war nie ein eigener Bug, sondern eine Folge des falschen Ansatzes.
 
 **A4 — Pixel-Arithmetik auf Nachrichtenhöhen ist grundsätzlich falsch** *(Design)*
 Header kann mehrzeilig sein (langer Path), Schriftgrößen unterscheiden sich. `PEEK = 48px`
