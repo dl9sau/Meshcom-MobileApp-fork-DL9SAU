@@ -62,7 +62,11 @@ echte Nachricht nicht verschluckt werden, deshalb der Zeitstempel-Vergleich stat
 bloßen „erste Füllung ignorieren".
 *Grenze:* Nachrichten-Zeitstempel kommen von der Knoten-Uhr. Geht sie nach, kann eine
 Nachricht, die genau während des Starts eintrifft, als Bestand gelten — betrifft nur die
-erste Füllung. Offline gegen 7 Fälle geprüft.
+erste Füllung. Offline gegen 7 Fälle geprüft, **im Feld bestätigt** (DL9SAU, 2026-08-25).
+*Die beobachtete Einschränkung stützt die Diagnose:* der Fehler trat **nur im Kanal ALL**
+auf (beim Start ist er ausgewählt, und nur das aktive Segment wird erstbefüllt) und **nur
+bei Autoscroll aus** (bei „ein" steht man am Ende, dort räumt `settleAtBottomBoundary` den
+Zähler sofort weg). Beides sagt der Mechanismus vorher, statt bloß dazu zu passen.
 
 **A6 — DM-Tab: gelb (Filter aktiv) verdeckt grün (neue Nachricht)** *(klein)*
 Vorschlag: erst dunkleres Grün probieren; sonst Blinken gelb↔grün ~1 s (nicht flackern).
