@@ -586,11 +586,14 @@ werden nur nicht serialisiert. ⇒ Als **PR im Aufwasch**, nicht als Bitte.
    %-1.1s", SOURCE_VERSION, SOURCE_VERSION_SUB)` → `idoc["FWVER"]`; vorgeschlagen war ein
    **neuer Schlüssel** `FWDATE` statt einer Änderung an `FWVER`, damit bestehende Apps
    nicht brechen.
-   *Rückmeldung OE1KBC (2026-08-26):* er ersetzt `FLASH_VERSION` durch das **aktuelle
-   Compile-Datum**, weil das Flash-Datum sich nur selten ändert und nur dann, wenn die
-   Flash-Struktur angepasst wird. **Damit war unsere Begründung an einem Punkt falsch**
-   (siehe Block F) — die Lösung wird dadurch aber besser als vorgeschlagen: ein echtes
-   Build-Datum statt einer Struktur-Version.
+   *Rückmeldung OE1KBC (2026-08-26), wörtlich:* „Ich werde die FLASH_VERSION gegen das
+   aktuelle Compile-Datum ersetzen. Begründung: das Flash-Datum ändert sich nur selten und
+   nur dann wenn die Flash-Struktur angepasst werden muss."
+   ⇒ Eine **Ankündigung**, nicht der Stand. Offen bleibt, ob er die Konstante selbst
+   umwidmet oder nur ihre Verwendung im JSON ersetzt — **abwarten, was tatsächlich landet**,
+   und die App erst darauf einstellen, wenn es im `dev` steht.
+   Fest steht nur: **unsere Begründung war an einem Punkt falsch** (siehe Block F),
+   `FLASH_VERSION` ist heute kein Build-Datum.
    *Offen für den PR-Faden:* in welchem **Format**. Ein sortierbares `YYYYMMDD` (bzw. ein
    Zahlwert) lässt sich in der App direkt vergleichen; der C-Makro `__DATE__` liefert
    `"Aug 26 2026"` und müsste erst geparst werden. Kleine Anmerkung wert, seine
@@ -723,8 +726,9 @@ PRs gehen gegen den **`dev`**-Branch, vorher auf den aktuellen Stand rebasen;
   Struktur** — sie ändert sich nur, wenn das Layout angepasst werden muss (Auskunft
   **OE1KBC** im PR #1092, 2026-08-26). Meine ursprüngliche Notiz hier behauptete das
   Gegenteil und war falsch; der Datumswert daneben hat sie plausibel aussehen lassen.
-  Ein echtes Build-Datum gab es bis dahin **nicht** — OE1KBC ergänzt es jetzt aus dem
-  Compile-Datum.
+  Ein echtes Build-Datum gibt es damit **nicht**. OE1KBC hat **angekündigt**, das zu
+  ändern (siehe E4) — noch nicht geschehen, und ob er die Konstante selbst umwidmet oder
+  nur ihre Verwendung ersetzt, steht offen.
   *Nachgerechnet (DL9SAU wollte es genau wissen, 2026-08-26):* der Wert `20260724` fällt auf
   einen Commit-Tag der Datei (*„v4.35p ping check"*), aber die Datei wurde danach erneut
   geändert — zuletzt **2026-08-05** (*„v4.35p new country PL"*) — und die Konstante steht
