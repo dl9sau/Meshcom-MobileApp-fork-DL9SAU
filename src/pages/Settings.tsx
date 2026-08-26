@@ -2610,8 +2610,17 @@ const Tab2: React.FC = () => {
                         TRACK and the GPS fix (loop_functions.cpp sendPosition):
                           TRACK off               -> MeshCom
                           TRACK on, no GPS fix    -> MeshCom (the block needs posinfo_fix)
-                          TRACK on, GPS fix       -> LoRa-APRS, and MeshCom ONLY if nothing
-                                                     was heard for 15 s - hence the "?".
+                          TRACK on, GPS fix       -> LoRa-APRS, and MeshCom only if one of
+                                                     two timers says so (nothing heard for
+                                                     15 s, or no mesh position for
+                                                     POSINFO_INTERVAL) - hence the "?", we
+                                                     cannot see either of them.
+                        The APRS packet itself is built in exactly one place (the
+                        `if(bSendViaAPRS)` branch), and that flag is only ever set by the
+                        TRACK+fix block or by `--sendtrack` - so with TRACK off no LoRa-APRS
+                        packet exists at all. The manual's "sends an APRS position signal"
+                        does not contradict this: a MeshCom position IS in APRS format, it
+                        just travels the mesh instead of 433.775.
                         The old label said "LoRa-APRS" unconditionally, which is right in
                         exactly one of those three cases. Spelling the target out makes the
                         firmware's concept visible instead of hiding it (DL9SAU). */}
