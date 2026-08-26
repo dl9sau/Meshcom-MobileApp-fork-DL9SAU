@@ -2620,6 +2620,9 @@ const Tab2: React.FC = () => {
                 </div>
                 <div className='settings_btns_r'>
                   <div>
+                    <IonButton expand="block" fill='outline' slot='start' onClick={() => sendTxtCmd("posdebug")}>GPS-Status</IonButton>
+                  </div>
+                  <div>
                     {/* WHERE this position goes is not fixed - the firmware decides it from
                         TRACK and the GPS fix (loop_functions.cpp sendPosition):
                           TRACK off               -> MeshCom
@@ -2647,9 +2650,6 @@ const Tab2: React.FC = () => {
                         <span className='btn_sub'>{config_s.track_on && ownPosData.SFIX ? "APRS, ?MeshCom" : "MeshCom"}</span>
                       </div>
                     </IonButton>
-                  </div>
-                  <div>
-                    <IonButton expand="block" fill='outline' slot='start' onClick={() => sendTxtCmd("posdebug")}>GPS-Status</IonButton>
                   </div>
                 </div>
               </div>
