@@ -725,5 +725,11 @@ PRs gehen gegen den **`dev`**-Branch, vorher auf den aktuellen Stand rebasen;
   Gegenteil und war falsch; der Datumswert daneben hat sie plausibel aussehen lassen.
   Ein echtes Build-Datum gab es bis dahin **nicht** — OE1KBC ergänzt es jetzt aus dem
   Compile-Datum.
+  *Nachgerechnet (DL9SAU wollte es genau wissen, 2026-08-26):* der Wert `20260724` fällt auf
+  einen Commit-Tag der Datei (*„v4.35p ping check"*), aber die Datei wurde danach erneut
+  geändert — zuletzt **2026-08-05** (*„v4.35p new country PL"*) — und die Konstante steht
+  **immer noch** auf `20260724`. Sie wandert also nachweislich **nicht** mit den Builds mit.
+  Der Fehler wäre die unangenehme Sorte gewesen: er hätte funktioniert und plausibel
+  ausgesehen, bis zwei verschiedene Firmwares dasselbe „Build-Datum" melden.
 - **Server ist Blackbox** (closed source) — er **strippt den Pfad** beim Verteilen
   (Feldbeobachtung). Der hintere Teil `>xxx,DEST` behält dagegen den HF-Teil vor dem Gatewayen.
