@@ -251,7 +251,7 @@ eine Überschreitung das JSON **abschneiden** und damit unbrauchbar machen würd
 |---|---|---|---|---|
 | 1 | `fix/mheard-ble-buffer-guard` | `a0d2475` | ✅ | ✅ **#1090 — gemerged in `dev`** |
 | 2 | `feat/mh-json-src-gw` | `c04ed7b` | ✅ | ✅ **#1091 — gemerged in `dev`** |
-| 4 | `feat/info-json-flash-version` | `ae15bb7` | ✅ | ✅ **#1092** |
+| 4 | `feat/info-json-flash-version` | `ae15bb7` | ✅ | ✅ **#1092 — aufgegriffen, s. u.** |
 | 3 | `feat/mh-json-hey-path` | `fff4010` | ✅ | ✅ **#1093** |
 
 *(#1090–#1092 am 2026-08-24, #1093 am 2026-08-25 — alle gegen `dev`, alle warten auf Review)*
@@ -281,3 +281,21 @@ Maintainer unnötig warten:
 
 GitHub verlinkt `#123` automatisch und zeigt den Bezug dann auch in PR 1 und 2 als
 Querverweis — die Zusammengehörigkeit ist damit ohne weiteres Zutun sichtbar.
+
+---
+
+## Rückmeldung zu #1092 (OE1KBC, 2026-08-26)
+
+> „Ich werde die FLASH_VERSION gegen das aktuelle Compile-Datum ersetzen. Begründung: das
+> Flash-Datum ändert sich nur selten und nur dann wenn die Flash-Struktur angepasst werden
+> muss."
+
+**Er hat recht, und unsere Begründung war an dieser Stelle falsch:** `FLASH_VERSION` ist die
+Version der Flash-Struktur, kein Build-Datum — der Datumswert `20260724` hat sie nur so
+aussehen lassen. Das Anliegen (Sub-Releases unterscheidbar machen) greift er auf und löst es
+sauberer als vorgeschlagen, mit dem echten Compile-Datum.
+
+*Möglicher Nachtrag im PR-Faden:* nach dem **Format** fragen. `YYYYMMDD` als Zahl lässt sich
+in der App direkt vergleichen und sortieren; `__DATE__` liefert `"Aug 26 2026"` und müsste
+geparst werden (monatsnamen-abhängig, locale-anfällig). Seine Entscheidung — aber es kostet
+nichts, es einmal zu erwähnen.

@@ -580,13 +580,21 @@ werden nur nicht serialisiert. ⇒ Als **PR im Aufwasch**, nicht als Bitte.
    `mheard_functions.cpp:405-445` parst daraus **nur** den Nachbar-Count, der Rest wird
    verworfen. ⇒ `mhdoc["PP"] = mheardLine.mh_path_payload.c_str();` zeigt das **schwache
    Glied** einer Strecke. (Einziger Punkt mit spürbarer Längenwirkung, siehe unten.)
-4. **Version genauer melden** *(DL9SAU, 2026-08-24)*: die App zeigt nur `4.35p`.
-   `command_functions.cpp:4861` baut `snprintf(fwver, ... "%-4.4s %-1.1s", SOURCE_VERSION,
-   SOURCE_VERSION_SUB)` → `idoc["FWVER"]`. Das Build-Datum gibt es schon als
-   **`FLASH_VERSION 20260724`**. ⇒ **neuer Schlüssel** `idoc["FWDATE"] = FLASH_VERSION;`
-   statt `FWVER` umzuformatieren — so brechen bestehende Apps (auch Upstream) nicht.
-   Ein kurzer **git-Hash** wäre die Kür (PlatformIO-Build-Flag), das Datum reicht für
-   Sub-Releases.
+4. **Version genauer melden** — *eingereicht als #1092, vom Maintainer aufgegriffen*
+   *(DL9SAU, 2026-08-24)*: die App zeigt nur `4.35p`, damit sind **Sub-Releases nicht
+   unterscheidbar**. `command_functions.cpp:4861` baut `snprintf(fwver, ... "%-4.4s
+   %-1.1s", SOURCE_VERSION, SOURCE_VERSION_SUB)` → `idoc["FWVER"]`; vorgeschlagen war ein
+   **neuer Schlüssel** `FWDATE` statt einer Änderung an `FWVER`, damit bestehende Apps
+   nicht brechen.
+   *Rückmeldung OE1KBC (2026-08-26):* er ersetzt `FLASH_VERSION` durch das **aktuelle
+   Compile-Datum**, weil das Flash-Datum sich nur selten ändert und nur dann, wenn die
+   Flash-Struktur angepasst wird. **Damit war unsere Begründung an einem Punkt falsch**
+   (siehe Block F) — die Lösung wird dadurch aber besser als vorgeschlagen: ein echtes
+   Build-Datum statt einer Struktur-Version.
+   *Offen für den PR-Faden:* in welchem **Format**. Ein sortierbares `YYYYMMDD` (bzw. ein
+   Zahlwert) lässt sich in der App direkt vergleichen; der C-Makro `__DATE__` liefert
+   `"Aug 26 2026"` und müsste erst geparst werden. Kleine Anmerkung wert, seine
+   Entscheidung.
 5. Ältere Wünsche: `pong` → BLE (RTT), `tx-repeated` / MQTT-Durchsatz / Airtime-Zähler.
 
 *Warum ausgerechnet 1 und 2 so viel wert sind* **(DL9SAU, 2026-08-24)**: wir schätzen heute
@@ -710,7 +718,12 @@ PRs gehen gegen den **`dev`**-Branch, vorher auf den aktuellen Stand rebasen;
 - **Die Firmware verwirft selbst Mheard-Sätze mit unsynchronisierter Uhr**:
   `if(strYear.toInt() < 2025) return;` — unsere eigene Zeitstempel-Prüfung in D3 passt dazu.
 - **Versions-Konstanten** (`configuration_global.h`): `SOURCE_VERSION "4.35"`,
-  `SOURCE_VERSION_SUB "p"`, `SOURCE_VERSION_WEB_SUB "p"`, **`FLASH_VERSION 20260724`**.
-  Das Build-Datum **gibt es also schon** — es wird nur nicht an die App gemeldet (→ E4).
+  `SOURCE_VERSION_SUB "p"`, `SOURCE_VERSION_WEB_SUB "p"`, `FLASH_VERSION 20260724`.
+  ⚠️ **`FLASH_VERSION` ist NICHT das Build-Datum**, sondern die Version der **Flash-
+  Struktur** — sie ändert sich nur, wenn das Layout angepasst werden muss (Auskunft
+  **OE1KBC** im PR #1092, 2026-08-26). Meine ursprüngliche Notiz hier behauptete das
+  Gegenteil und war falsch; der Datumswert daneben hat sie plausibel aussehen lassen.
+  Ein echtes Build-Datum gab es bis dahin **nicht** — OE1KBC ergänzt es jetzt aus dem
+  Compile-Datum.
 - **Server ist Blackbox** (closed source) — er **strippt den Pfad** beim Verteilen
   (Feldbeobachtung). Der hintere Teil `>xxx,DEST` behält dagegen den HF-Teil vor dem Gatewayen.
