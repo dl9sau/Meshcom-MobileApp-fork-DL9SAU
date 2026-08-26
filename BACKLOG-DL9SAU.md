@@ -141,8 +141,20 @@ mehr und ist entfallen.
 *Und die Quittung gab es schon:* **selbst** ans Ende zu scrollen zählt im Code seit jeher als
 „gelesen" (`onContentScroll`; das eigene Nachführen ist über `markProgScroll` ausgenommen).
 Genau die Geste, die DL9SAU vorschlug — kurz hoch und wieder runter — räumt die Grenze also
-weg, ohne dass dafür etwas gebaut werden musste. Ebenso räumt sie eine **eigene Nachricht**
-weg (Echo-Pfad), sodass die nächste Grenze an der eigenen Nachricht beginnt.
+weg, ohne dass dafür etwas gebaut werden musste.
+*Zweite Quittung, nachgereicht 2026-08-26:* das **Antippen des Eingabefeldes**, und zwar
+**nur, wenn man am Ende steht**. Begründung DL9SAU: in dem Moment hat man den aktuellen Stand
+vor Augen. Das ist der bessere Auslöser als das **Absenden** — tippt man zwei Minuten und es
+kommen drei Nachrichten herein, galten die beim Absenden bisher als gesehen, obwohl man
+geschrieben und nicht gelesen hat. Jetzt räumt der Fokus die Grenze, und was **während** des
+Tippens ankommt, sammelt sich hinter einer frischen: genau das, was man wissen will, wenn man
+von der Tastatur aufsieht. Der Echo-Pfad räumt entsprechend **nicht** mehr, er zählt die
+eigene Nachricht nur nicht mit.
+*Hochgescrollt bleibt alles unangetastet* — Position **und** Marker: dort liest man den
+Kontext, auf den man antwortet (DL9SAU).
+*Dabei gefunden:* `scrollToBottom()` markiert den Sprung nicht als programmatisch, der
+eigene Sprung ans Ende hätte den Zähler also über `onContentScroll` doch geleert. Deshalb
+jetzt `markProgScroll()` davor.
 *Verworfen unterwegs:* eine Unterdrückungs-Mechanik („nach dem Verfallen keinen neuen
 setzen") — sie löste das Symptom, ließ aber den alten Marker verschwinden, also genau das,
 was erhalten bleiben sollte. Und eine Pausen-Heuristik: auf einem stillen Kanal kann eine

@@ -1059,7 +1059,13 @@ const Tab3: React.FC = () => {
     if (pendingOwnScrollRef.current && delta > 0) {
       pendingOwnScrollRef.current = false;
       atBottomRef.current = true;
-      segUnreadRef.current[seg] = 0; setNewBelow(0);
+      // Your own message is not "unseen" - but do NOT clear the boundary here either:
+      // anything that arrived WHILE YOU WERE TYPING is exactly what you want marked when
+      // you look up from the keyboard (DL9SAU, 2026-08-26). The boundary is cleared when
+      // you TAP the input - you had the current state in front of you then - not when you
+      // send. markProgScroll so our own jump to the bottom is not mistaken for you
+      // scrolling there, which would clear it via onContentScroll.
+      markProgScroll();
       scrollToBottom();
       return;
     }
@@ -2124,7 +2130,18 @@ const Tab3: React.FC = () => {
                   rows={1}
                   placeholder='Type Message'
                   onIonInput={(e) => { stampActivity(); setComposeText((e.detail as any)?.value ?? ""); }}
-                  onIonFocus={() => { if (showSearch && searchQuery.trim() === "") setShowSearch(false); }}
+                  onIonFocus={() => {
+                    if (showSearch && searchQuery.trim() === "") setShowSearch(false);
+                    // Tapping the input is the moment you HAVE the current state in front of
+                    // you - so the boundary is cleared here, and everything arriving while
+                    // you type collects behind a fresh one. ONLY when standing at the bottom:
+                    // if you scrolled up to keep the context you are replying to in view,
+                    // both your position and the marker stay untouched (DL9SAU).
+                    if (atBottomRef.current) {
+                      segUnreadRef.current[segmentFilterRef.current] = 0;
+                      setNewBelow(0);
+                    }
+                  }}
                   disabled={!ble_connected}>
                 </IonTextarea>
               </IonItem>
