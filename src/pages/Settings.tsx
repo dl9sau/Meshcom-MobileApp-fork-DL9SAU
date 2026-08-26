@@ -2601,7 +2601,21 @@ const Tab2: React.FC = () => {
                     <IonButton expand="block" fill={config_s.gps_on ? 'solid' : 'outline'} slot='start' onClick={() => sendTxtCmd("gps")}>GPS-Chip</IonButton>
                   </div>
                   <div >
-                    <IonButton expand="block" fill={config_s.track_on ? 'solid' : 'outline'} slot='start' onClick={() => sendTxtCmd("track")}>{config_s.track_on ? "SmartBeaconing (track on)" : "Fixed Pos Interval (track off)"}</IonButton>
+                    {/* TRACK does more than its name says: the same block in sendPosition
+                        governs the PERIODIC beacons too (esp32_main.cpp:3122 /
+                        nrf52_main.cpp:1794 call it with posinfo_interval), so this switch
+                        decides WHERE your position beacons go at all. With TRACK on and a
+                        GPS fix every beacon goes to LoRa-APRS - and the mesh still gets one
+                        per POSINFO_INTERVAL (line 3820), exactly the rhythm it has with
+                        TRACK off. So it is "both", not "APRS instead of mesh", and no "?"
+                        is warranted here: the mesh beacon is interval-driven either way
+                        (DL9SAU). Without a fix the block is skipped -> mesh only. */}
+                    <IonButton expand="block" fill={config_s.track_on ? 'solid' : 'outline'} slot='start' onClick={() => sendTxtCmd("track")}>
+                      <div className='btn_two_lines'>
+                        <span>{config_s.track_on ? "SmartBeaconing (track on)" : "Fixed Pos Interval (track off)"}</span>
+                        <span className='btn_sub'>{config_s.track_on && ownPosData.SFIX ? "Pos → APRS + MeshCom" : "Pos → MeshCom"}</span>
+                      </div>
+                    </IonButton>
                   </div>
                 </div>
                 <div className='settings_btns_r'>
@@ -2615,6 +2629,9 @@ const Tab2: React.FC = () => {
                                                      15 s, or no mesh position for
                                                      POSINFO_INTERVAL) - hence the "?", we
                                                      cannot see either of them.
+                        The "?" belongs on THIS button and not on the TRACK one: a single
+                        press either makes it into the mesh or does not, while the periodic
+                        beacon gets there once per interval anyway.
                         The APRS packet itself is built in exactly one place (the
                         `if(bSendViaAPRS)` branch), and that flag is only ever set by the
                         TRACK+fix block or by `--sendtrack` - so with TRACK off no LoRa-APRS
