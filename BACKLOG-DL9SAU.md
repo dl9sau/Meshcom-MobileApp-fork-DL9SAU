@@ -123,38 +123,31 @@ helfen dann nicht, kosten aber Airtime.
 *Kandidaten* kommen aus einer eigenen, engen Abfrage (`getUnackedOwnDMs`) statt aus der
 ganzen Nachrichtentabelle — der Ticker läuft jede Minute. Offline gegen 17 Fälle geprüft.
 
-**A10 — ✅ GEBAUT** — „nicht neu setzen" aus A5 war nie umgesetzt *(Feldbefund DL9SAU, 2026-08-26)*
-Beobachtung bei Autoscroll EIN, ganz unten stehend: der Marker wandert mit hoch, verfällt
-oben aus dem Bild — und die **nächste** Ankunft setzt ihn sofort wieder, das Spiel
-wiederholt sich endlos. `settleAtBottomBoundary` löscht ihn zwar korrekt beim
-Hinausscrollen (`dropBoundaryMarker`), aber jede Ankunft erhöht den Ungesehen-Zähler, und
-der Trenner ist rein daraus abgeleitet. Die zweite Hälfte der A5-Regel — **„Marker löschen,
-nicht neu setzen"** — fehlte schlicht.
-*Warum überhaupt gelöscht wird* (zur Erinnerung, A5): im Auto-Modus folgt man live; ein
-Marker nützt nur, solange er **sichtbar** ist. Sein Weg durchs Sichtfeld **ist** die Prüfung
-„hattest du die Gelegenheit hinzusehen" — und ersetzt damit das frühere Idle-Kriterium.
-Warst du weg (Bildschirm aus, WebView eingefroren), kommen die Nachrichten beim Aufwachen
-im Schwall und der Marker steht **noch im Bild**, weil ihn nichts hinausgescrollt hat.
-*Gebaut:* nach dem Verfallen wird der Marker je Segment **unterdrückt**, solange du am Ende
-stehst und die App sichtbar bleibt — dann bist du dabei, und die Ankunft gilt als gesehen.
-Wieder scharf geschaltet wird nur, wo ein neuer Bezugspunkt entsteht (nachgeschärft
-2026-08-26, DL9SAU):
-- **die App war weg** (Bildschirm aus, Hintergrund) — der einzige Fall, in dem „hast du es
-  gesehen" wirklich offen ist,
-- **du wechselst den Kanal**,
-- **du schickst selbst etwas ab.** Das ist der interessante Zusatz: eine eigene Nachricht
-  schreibst du im Kontext des gerade Sichtbaren, also ist „alles ab hier" eine Grenze, die
-  du selbst gesetzt hast.
-*Ausdrücklich NICHT beim Hochscrollen und Zurückkehren:* dabei warst du die ganze Zeit
-anwesend, ein frischer Marker beantwortete keine Frage — er würde nur eine weitere
-Marker-Runde starten, also genau das, was hier abgeschafft wurde. Solange du **oben** stehst,
-zählen Ankünfte ohnehin normal und der Trenner erscheint; die Unterdrückung gilt nur am Ende
-der Liste.
-*Ausdrücklich ohne Zeitkriterium* (Einwand DL9SAU, und er ist richtig): eine stille Stunde
-sagt nichts darüber, ob jemand hingeschaut hat — eine Pausen-Heuristik hätte den Marker
-ausgerechnet dann wieder gesetzt, wenn man die ganze Zeit davorsaß.
-Autoscroll AUS bleibt unberührt. Offline gegen 13 Fälle geprüft (Modell der vier
-Ereignisse).
+**A10 — ✅ GEBAUT** — Der „new messages"-Marker bleibt stehen *(Feldbefund DL9SAU, 2026-08-26)*
+Beobachtung bei Autoscroll EIN, ganz unten stehend: der Marker wandert mit hoch, und sobald
+er oben aus dem Bild gelaufen ist, wird **die nächste eintreffende Nachricht** neu markiert
+— und so weiter, endlos.
+*Ursache:* `settleAtBottomBoundary` hat ihn beim Hinausscrollen **gelöscht**
+(`dropBoundaryMarker`, Zähler auf 0). Die nächste Ankunft setzte den Zähler auf 1, und der
+Trenner ist rein daraus abgeleitet — also stand er wieder da, direkt über der neuesten
+Nachricht.
+*Die Korrektur der Regel selbst* (DL9SAU): A5 sagte „Marker löschen, nicht neu setzen" —
+**beides falsch**. Der Marker soll **bleiben**, auch außerhalb des Sichtfelds: er ist die
+Marke „bis hierher hatte ich gelesen", und man will hochscrollen können, um zu sehen, was
+über den Tag passiert ist. Weg soll nur der *neue*, den das Löschen provozierte.
+*Gebaut:* im Autoscroll-Zweig wird nicht mehr gelöscht — der Trenner bleibt an seiner
+Nachricht, während die Ansicht weiterläuft. `dropBoundaryMarker` hatte damit keinen Aufrufer
+mehr und ist entfallen.
+*Und die Quittung gab es schon:* **selbst** ans Ende zu scrollen zählt im Code seit jeher als
+„gelesen" (`onContentScroll`; das eigene Nachführen ist über `markProgScroll` ausgenommen).
+Genau die Geste, die DL9SAU vorschlug — kurz hoch und wieder runter — räumt die Grenze also
+weg, ohne dass dafür etwas gebaut werden musste. Ebenso räumt sie eine **eigene Nachricht**
+weg (Echo-Pfad), sodass die nächste Grenze an der eigenen Nachricht beginnt.
+*Verworfen unterwegs:* eine Unterdrückungs-Mechanik („nach dem Verfallen keinen neuen
+setzen") — sie löste das Symptom, ließ aber den alten Marker verschwinden, also genau das,
+was erhalten bleiben sollte. Und eine Pausen-Heuristik: auf einem stillen Kanal kann eine
+Stunde vergehen, während man davorsitzt (beides DL9SAU).
+Offline gegen 10 Fälle geprüft.
 
 **A6 — DM-Tab: gelb (Filter aktiv) verdeckt grün (neue Nachricht)** *(klein)*
 Vorschlag: erst dunkleres Grün probieren; sonst Blinken gelb↔grün ~1 s (nicht flackern).
