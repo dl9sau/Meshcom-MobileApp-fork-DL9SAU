@@ -2584,7 +2584,18 @@ const Tab2: React.FC = () => {
                         receives its own traffic, it just carries nothing for anyone else.
                         Worth spelling out next to "Gateway": a gateway with MESH off is an
                         internet bridge that does not repeat on RF (DL9SAU). */}
-                    <IonButton expand="block" fill={config_s.mesh_on ? 'solid' : 'outline'} slot='start' onClick={() => sendTxtCmd("mesh_retrx")}>MESH (repeat)</IonButton>
+                    <IonButton expand="block" fill={config_s.mesh_on ? 'solid' : 'outline'} slot='start' onClick={() => sendTxtCmd("mesh_retrx")}>
+                      <div className='btn_two_lines'>
+                        <span>MESH</span>
+                        {/* The name stays as the firmware calls it, the EFFECT goes below -
+                            same shape as the GPS buttons. "MESH off" would read as "not in
+                            the mesh", which is wrong: the node stays in the network and
+                            keeps sending and receiving its own traffic, it just carries
+                            nothing for anyone else. The negation belongs to the
+                            PARTICIPATION, not to the network (DL9SAU). */}
+                        <span className='btn_sub'>{config_s.mesh_on ? "repeats for others" : "does not repeat"}</span>
+                      </div>
+                    </IonButton>
                   </div>
                   <div>
                     <IonButton expand="block" fill={nodeSettings.NOALL ? 'solid' : 'outline'} slot='start' onClick={() => sendTxtCmd("no_allmsg_rx")}>No ALL Msgs</IonButton>
