@@ -2577,7 +2577,14 @@ const Tab2: React.FC = () => {
                     <IonButton expand="block" fill={nodeSettings.GWNPOS ? 'solid' : 'outline'} slot='start' onClick={() => sendTxtCmd("gw_nopos")}>GW NO POS</IonButton>
                   </div>  */}
                   <div>
-                    <IonButton expand="block" fill={config_s.mesh_on ? 'solid' : 'outline'} slot='start' onClick={() => sendTxtCmd("mesh_retrx")}>MESH</IonButton>
+                    {/* MESH decides whether this node REPEATS what it hears - the firmware
+                        says so in via_functions.cpp: "by default, every received packet is
+                        forwarded to the LoRa transmitter", and checkMesh() returns false for
+                        everything while bMESH is off. Off means the node still sends and
+                        receives its own traffic, it just carries nothing for anyone else.
+                        Worth spelling out next to "Gateway": a gateway with MESH off is an
+                        internet bridge that does not repeat on RF (DL9SAU). */}
+                    <IonButton expand="block" fill={config_s.mesh_on ? 'solid' : 'outline'} slot='start' onClick={() => sendTxtCmd("mesh_retrx")}>MESH (repeat)</IonButton>
                   </div>
                   <div>
                     <IonButton expand="block" fill={nodeSettings.NOALL ? 'solid' : 'outline'} slot='start' onClick={() => sendTxtCmd("no_allmsg_rx")}>No ALL Msgs</IonButton>
