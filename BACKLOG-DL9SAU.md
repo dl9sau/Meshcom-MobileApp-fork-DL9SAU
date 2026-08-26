@@ -137,8 +137,19 @@ Warst du weg (Bildschirm aus, WebView eingefroren), kommen die Nachrichten beim 
 im Schwall und der Marker steht **noch im Bild**, weil ihn nichts hinausgescrollt hat.
 *Gebaut:* nach dem Verfallen wird der Marker je Segment **unterdrückt**, solange du am Ende
 stehst und die App sichtbar bleibt — dann bist du dabei, und die Ankunft gilt als gesehen.
-Wieder scharf geschaltet wird, wo „hast du es gesehen" **wirklich** offen ist: die App war
-weg, du scrollst vom Ende weg, oder du wechselst den Kanal.
+Wieder scharf geschaltet wird nur, wo ein neuer Bezugspunkt entsteht (nachgeschärft
+2026-08-26, DL9SAU):
+- **die App war weg** (Bildschirm aus, Hintergrund) — der einzige Fall, in dem „hast du es
+  gesehen" wirklich offen ist,
+- **du wechselst den Kanal**,
+- **du schickst selbst etwas ab.** Das ist der interessante Zusatz: eine eigene Nachricht
+  schreibst du im Kontext des gerade Sichtbaren, also ist „alles ab hier" eine Grenze, die
+  du selbst gesetzt hast.
+*Ausdrücklich NICHT beim Hochscrollen und Zurückkehren:* dabei warst du die ganze Zeit
+anwesend, ein frischer Marker beantwortete keine Frage — er würde nur eine weitere
+Marker-Runde starten, also genau das, was hier abgeschafft wurde. Solange du **oben** stehst,
+zählen Ankünfte ohnehin normal und der Trenner erscheint; die Unterdrückung gilt nur am Ende
+der Liste.
 *Ausdrücklich ohne Zeitkriterium* (Einwand DL9SAU, und er ist richtig): eine stille Stunde
 sagt nichts darüber, ob jemand hingeschaut hat — eine Pausen-Heuristik hätte den Marker
 ausgerechnet dann wieder gesetzt, wenn man die ganze Zeit davorsaß.

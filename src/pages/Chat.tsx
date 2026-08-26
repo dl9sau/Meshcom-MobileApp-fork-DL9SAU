@@ -758,8 +758,11 @@ const Tab3: React.FC = () => {
       // just left the bottom while a divider was fading -> pause the fade and keep the
       // marker solid for orientation; it restarts when you settle at the bottom again.
       pauseDividerHide();
-      // you are no longer following live -> the next arrival deserves a marker again
-      armBoundaryMarker(segmentFilterRef.current);
+      // NOT re-armed here on purpose: scrolling up and back means you were present the
+      // whole time, so a fresh boundary would answer a question you don't have - it would
+      // just start another marker round (DL9SAU, 2026-08-26). While you ARE scrolled up,
+      // arrivals count and the divider shows anyway; the suppression only applies at the
+      // bottom.
     }
   };
 
@@ -965,6 +968,11 @@ const Tab3: React.FC = () => {
             // compose a reply), STAY there - being yanked to the bottom would force you to
             // scroll back up. Your sent message then just shows up in the ↓ counter.
             pendingOwnScrollRef.current = atBottomRef.current;
+            // YOU just said something, in the context of what was on screen - that is a
+            // deliberate reference point, so "everything after this" is a boundary worth
+            // marking again (DL9SAU). Re-arms the marker that had expired while you were
+            // following live.
+            armBoundaryMarker(segmentFilterRef.current);
 
             // clear input
             textAreaInputRef.current!.value = "";
