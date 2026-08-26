@@ -143,6 +143,20 @@ const Tab3: React.FC = () => {
   // arrivals (see the msgArr effect). Deliberately a plain ref - it must survive re-renders
   // and must NOT trigger one.
   const seededMsgLenRef = useRef<boolean>(false);
+  // A5: "marker expires when it scrolls off the top - and is NOT set again". The second
+  // half was never implemented: every arrival re-armed it, so in autoscroll mode a marker
+  // kept re-appearing above the newest message and travelling up again (field 2026-08-26).
+  // While you STAND at the bottom with the app in front of you, a boundary marker answers
+  // a question you don't have - you are watching it happen. So after an expiry we suppress
+  // re-arming per segment, and arm again only where "did you see it" is genuinely in doubt:
+  // the app was away, you scrolled off the bottom, or you switched channels.
+  // Deliberately NO time criterion: a quiet hour says nothing about whether you were
+  // looking (DL9SAU rejected a pause-based rule, rightly).
+  const markerSuppressedRef = useRef<{ [seg: string]: boolean }>({});
+  const armBoundaryMarker = (seg?: string) => {
+    if (seg === undefined) markerSuppressedRef.current = {};
+    else delete markerSuppressedRef.current[seg];
+  };
   // "new messages" divider linger: when you reach the bottom, newBelow drops to 0 at
   // once. Hiding the divider that instant gives no time to orient which msgs were new,
   // so we HOLD the last boundary for a few seconds after catching up, then fade it out.
@@ -589,6 +603,9 @@ const Tab3: React.FC = () => {
       // if the chat is the visible page, the segment you're on counts as read now
       // (a message to it while backgrounded set the tab dot -> clear it)
       if (thisPageActive.current) clearSegmentUnread(segmentFilterRef.current);
+      // the app was away - whether you saw the last arrivals is genuinely in doubt again,
+      // so a boundary marker may be set once more (A5)
+      armBoundaryMarker();
       // don't force the bottom on wake - the WebView kept the scroll position; just
       // recompute atBottom + the ↓ button from it. New messages are shown by the counter.
       const el = scrollElRef.current;
@@ -678,6 +695,9 @@ const Tab3: React.FC = () => {
   // the layout. Removing it shrinks the content, so re-pin to the bottom afterwards;
   // that is the layout compensation that used to cause "not quite at the bottom".
   const dropBoundaryMarker = (seg: string) => {
+    // it has travelled through the viewport, so you had it in front of you: don't set a
+    // new one for the next arrival while you keep standing here (A5)
+    markerSuppressedRef.current[seg] = true;
     segUnreadRef.current[seg] = 0;
     prevNewBelowRef.current = 0;      // so the linger effect does not see a >0 -> 0 edge
     setNewBelow(0);
@@ -697,6 +717,7 @@ const Tab3: React.FC = () => {
   const applyRestore = (seg: string, unread: number) => {
     const el = scrollElRef.current;
     if (!el) return;
+    armBoundaryMarker(seg);      // entering a channel: start over, marker allowed again
     markProgScroll();
     const saved = segScrollRef.current[seg];
     const wasAtBottom = segAtBottomRef.current[seg];
@@ -737,6 +758,8 @@ const Tab3: React.FC = () => {
       // just left the bottom while a divider was fading -> pause the fade and keep the
       // marker solid for orientation; it restarts when you settle at the bottom again.
       pauseDividerHide();
+      // you are no longer following live -> the next arrival deserves a marker again
+      armBoundaryMarker(segmentFilterRef.current);
     }
   };
 
@@ -1068,6 +1091,15 @@ const Tab3: React.FC = () => {
       return;
     }
     if (delta <= 0) return;   // refresh/delete, not an arrival
+    // standing at the bottom in autoscroll mode after the marker expired: you ARE seeing
+    // this arrive, so it is not "unseen" - follow along and set nothing (A5, see
+    // markerSuppressedRef). Any doubt about that re-arms the marker elsewhere.
+    if (atBottomRef.current && autoscrollEnabledFor(seg) && markerSuppressedRef.current[seg]) {
+        segUnreadRef.current[seg] = 0;
+        setNewBelow(0);
+        requestAnimationFrame(() => { const e = scrollElRef.current; if (e) { markProgScroll(); e.scrollTop = e.scrollHeight; } });
+        return;
+    }
     // THE FIRST FILL IS THE DATABASE BACKLOG, NOT ARRIVALS. On start msgArr jumps from 0 to
     // N in one step because the stored messages load, and this effect cannot tell that from
     // N packets landing at once - a freshly installed build therefore announced the whole

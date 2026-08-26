@@ -123,6 +123,28 @@ helfen dann nicht, kosten aber Airtime.
 *Kandidaten* kommen aus einer eigenen, engen Abfrage (`getUnackedOwnDMs`) statt aus der
 ganzen Nachrichtentabelle — der Ticker läuft jede Minute. Offline gegen 17 Fälle geprüft.
 
+**A10 — ✅ GEBAUT** — „nicht neu setzen" aus A5 war nie umgesetzt *(Feldbefund DL9SAU, 2026-08-26)*
+Beobachtung bei Autoscroll EIN, ganz unten stehend: der Marker wandert mit hoch, verfällt
+oben aus dem Bild — und die **nächste** Ankunft setzt ihn sofort wieder, das Spiel
+wiederholt sich endlos. `settleAtBottomBoundary` löscht ihn zwar korrekt beim
+Hinausscrollen (`dropBoundaryMarker`), aber jede Ankunft erhöht den Ungesehen-Zähler, und
+der Trenner ist rein daraus abgeleitet. Die zweite Hälfte der A5-Regel — **„Marker löschen,
+nicht neu setzen"** — fehlte schlicht.
+*Warum überhaupt gelöscht wird* (zur Erinnerung, A5): im Auto-Modus folgt man live; ein
+Marker nützt nur, solange er **sichtbar** ist. Sein Weg durchs Sichtfeld **ist** die Prüfung
+„hattest du die Gelegenheit hinzusehen" — und ersetzt damit das frühere Idle-Kriterium.
+Warst du weg (Bildschirm aus, WebView eingefroren), kommen die Nachrichten beim Aufwachen
+im Schwall und der Marker steht **noch im Bild**, weil ihn nichts hinausgescrollt hat.
+*Gebaut:* nach dem Verfallen wird der Marker je Segment **unterdrückt**, solange du am Ende
+stehst und die App sichtbar bleibt — dann bist du dabei, und die Ankunft gilt als gesehen.
+Wieder scharf geschaltet wird, wo „hast du es gesehen" **wirklich** offen ist: die App war
+weg, du scrollst vom Ende weg, oder du wechselst den Kanal.
+*Ausdrücklich ohne Zeitkriterium* (Einwand DL9SAU, und er ist richtig): eine stille Stunde
+sagt nichts darüber, ob jemand hingeschaut hat — eine Pausen-Heuristik hätte den Marker
+ausgerechnet dann wieder gesetzt, wenn man die ganze Zeit davorsaß.
+Autoscroll AUS bleibt unberührt. Offline gegen 13 Fälle geprüft (Modell der vier
+Ereignisse).
+
 **A6 — DM-Tab: gelb (Filter aktiv) verdeckt grün (neue Nachricht)** *(klein)*
 Vorschlag: erst dunkleres Grün probieren; sonst Blinken gelb↔grün ~1 s (nicht flackern).
 
