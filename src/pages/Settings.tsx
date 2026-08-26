@@ -470,6 +470,11 @@ const Tab2: React.FC = () => {
 
   // Tasks we need to do when we enter the page
   useIonViewDidEnter(() => {
+    // Refresh the node's GPS status once on entering: the "Send Pos" label below depends on
+    // the GPS FIX, and SFIX only arrives with a TYP "G" record, which the node sends on
+    // request. "--pos" is a purely LOCAL query - it reads out lat/lon/sat/fix and puts them
+    // on the BLE link, nothing goes on the air - so asking is free.
+    if (ble_connected) sendTxtCmdNode("--pos");
     // update the ble devid from pullsate store
     thisPageActive.current = true;
     const devid = devID_s;
@@ -2601,7 +2606,21 @@ const Tab2: React.FC = () => {
                 </div>
                 <div className='settings_btns_r'>
                   <div>
-                    <IonButton expand="block" fill='outline' slot='start' onClick={() => sendTxtCmd("txpos")}>Send POS LoRa-APRS</IonButton>
+                    {/* WHERE this position goes is not fixed - the firmware decides it from
+                        TRACK and the GPS fix (loop_functions.cpp sendPosition):
+                          TRACK off               -> MeshCom
+                          TRACK on, no GPS fix    -> MeshCom (the block needs posinfo_fix)
+                          TRACK on, GPS fix       -> LoRa-APRS, and MeshCom ONLY if nothing
+                                                     was heard for 15 s - hence the "?".
+                        The old label said "LoRa-APRS" unconditionally, which is right in
+                        exactly one of those three cases. Spelling the target out makes the
+                        firmware's concept visible instead of hiding it (DL9SAU). */}
+                    <IonButton expand="block" fill='outline' slot='start' onClick={() => sendTxtCmd("txpos")}>
+                      <div className='btn_two_lines'>
+                        <span>Send Pos</span>
+                        <span className='btn_sub'>{config_s.track_on && ownPosData.SFIX ? "APRS, ?MeshCom" : "MeshCom"}</span>
+                      </div>
+                    </IonButton>
                   </div>
                   <div>
                     <IonButton expand="block" fill='outline' slot='start' onClick={() => sendTxtCmd("posdebug")}>GPS-Status</IonButton>

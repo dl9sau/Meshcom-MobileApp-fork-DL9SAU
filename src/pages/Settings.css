@@ -190,3 +190,17 @@
   flex-direction: row;
   gap: 10px; /* Adjust this value to control the space between buttons */
 }
+/* Two-line button label: the action on top, WHERE it goes underneath. Used by "Send Pos",
+   whose target depends on TRACK and the GPS fix (see Settings.tsx). Small and dimmed so the
+   button still reads as one action, not two. */
+.btn_two_lines {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.15;
+}
+.btn_two_lines .btn_sub {
+  font-size: 0.72em;
+  opacity: 0.75;
+  text-transform: none;
+}
