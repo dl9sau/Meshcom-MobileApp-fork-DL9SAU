@@ -520,6 +520,29 @@ MH-JSON). Solange der nicht da ist, sind D1/D1b das, was wir haben.
 
 ---
 
+**D9 — Umstieg auf die gesicherte Firmware-Auskunft** *(Plan DL9SAU, 2026-08-26)*
+Sobald `SRC`/`GW` im MH-JSON draußen sind (#1091 ist **in `dev` gemerged**), soll die App
+dort, wo sie heute schätzt, die gesicherte Information verwenden — und der alte Pfad soll
+später leicht auffindbar und entfernbar sein.
+*Verfeinerungen gegenüber dem ersten Entwurf:*
+- **Fähigkeit erkennen statt Version vergleichen.** Ob wir `SRC` nutzen können, sagt das
+  MH-JSON selbst (`"SRC" in mheard`). Das überlebt Backports, Forks und abweichende
+  Numerierung; eine Versionsnummer tut das nicht. Die Version (#1092) bleibt für Anzeige
+  und Fehlersuche nützlich, nicht als Schalter.
+- **Herkunft mitführen:** jedes Urteil trägt `certain` oder `estimated`. Damit kann die
+  Anzeige „GW: ja" von „GW: wahrscheinlich" unterscheiden — und wir sehen im Feld, ob der
+  neue Pfad wirklich feuert.
+- **Ein einziger Entscheidungspunkt** je Frage (nicht verstreut), und der Altpfad mit einem
+  greppbaren Merkmal versehen (`// LEGACY-PRE-SRC:`), damit das Aufräumen später ein
+  `grep` ist und keine Archäologie.
+*Wichtige Einschränkung, die den Plan begrenzt:* `SRC`/`GW` stammen aus den Mheard-Sätzen
+des **eigenen** Knotens und decken deshalb nur, was wir **direkt hören**. Für ein entferntes
+Gateway, das wir nie selbst empfangen, bleiben **D1/D1b die einzige Quelle**. Der Schätzer
+ist also keine Übergangslösung, sondern dauerhaft die Ergänzung außerhalb der eigenen
+Reichweite — entfernbar ist nur der Teil, den die gesicherte Auskunft wirklich abdeckt.
+
+---
+
 ## D7 · „Experimental features"-Schalter *(Idee DL9SAU, 2026-08-02 — später)*
 Diagnose-/Versuchsausgaben hinter einen Settings-Schalter legen, damit sie bei anderen
 Testern nicht das Log zumüllen. **Jetzt noch nicht** — erst wenn wir größere Dinge zum

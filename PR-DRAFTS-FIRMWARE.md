@@ -249,8 +249,8 @@ eine Überschreitung das JSON **abschneiden** und damit unbrauchbar machen würd
 
 | PR | Branch | Commit | Gebaut | Eingereicht |
 |---|---|---|---|---|
-| 1 | `fix/mheard-ble-buffer-guard` | `a0d2475` | ✅ | ✅ **#1090** |
-| 2 | `feat/mh-json-src-gw` | `c04ed7b` | ✅ | ✅ **#1091** |
+| 1 | `fix/mheard-ble-buffer-guard` | `a0d2475` | ✅ | ✅ **#1090 — gemerged in `dev`** |
+| 2 | `feat/mh-json-src-gw` | `c04ed7b` | ✅ | ✅ **#1091 — gemerged in `dev`** |
 | 4 | `feat/info-json-flash-version` | `ae15bb7` | ✅ | ✅ **#1092** |
 | 3 | `feat/mh-json-hey-path` | `fff4010` | ✅ | ✅ **#1093** |
 
