@@ -160,6 +160,8 @@ setzen") — sie löste das Symptom, ließ aber den alten Marker verschwinden, a
 was erhalten bleiben sollte. Und eine Pausen-Heuristik: auf einem stillen Kanal kann eine
 Stunde vergehen, während man davorsitzt (beides DL9SAU).
 Offline gegen 10 Fälle geprüft.
+*Feld 2026-08-27 (DL9SAU): „scheint zu funktionieren wie geplant" — vorläufig bestätigt,
+bleibt unter Beobachtung.*
 
 **A6 — DM-Tab: gelb (Filter aktiv) verdeckt grün (neue Nachricht)** *(klein)*
 Vorschlag: erst dunkleres Grün probieren; sonst Blinken gelb↔grün ~1 s (nicht flackern).
@@ -773,5 +775,27 @@ PRs gehen gegen den **`dev`**-Branch, vorher auf den aktuellen Stand rebasen;
   **immer noch** auf `20260724`. Sie wandert also nachweislich **nicht** mit den Builds mit.
   Der Fehler wäre die unangenehme Sorte gewesen: er hätte funktioniert und plausibel
   ausgesehen, bis zwei verschiedene Firmwares dasselbe „Build-Datum" melden.
+- **TRACK ist kein bloßes „SmartBeaconing"** (Quelltext 2026-08-26/27). Der Block ganz oben
+  in `sendPosition` (`loop_functions.cpp:3785`) gilt für **alle** Aufrufer — auch für die
+  periodischen Baken (`esp32_main.cpp:3122`, `nrf52_main.cpp:1794`, mit `posinfo_interval`).
+  Er entscheidet, **wohin die Positionen überhaupt gehen**:
+  `TRACK aus` → Mesh · `TRACK an ohne GPS-Fix` → Mesh (der Block verlangt `posinfo_fix`) ·
+  `TRACK an mit Fix` → **LoRa-APRS**, Mesh zusätzlich, wenn einer von zwei Timern greift
+  (`:3812` seit 15 s nichts gehört — die Bedingung `intervall == POSINFO_INTERVAL` fällt beim
+  Smart-Beaconing meist weg; `:3820` seit `POSINFO_INTERVAL` keine Mesh-Position). Die
+  Mesh-Bake läuft damit in **beiden** Fällen im Intervall, APRS kommt bei TRACK an dazu.
+- **`--sendpos` (0x9999) ist nicht „APRS"**: das APRS-Paket entsteht an genau einer Stelle
+  (`:3856 if(bSendViaAPRS)` → `encodeLoRaAPRScompressed`), und das Flag setzt nur der
+  TRACK-Block oder **`--sendtrack` (0xFFFF, nur LoRa-APRS)**. Mit TRACK aus entsteht gar kein
+  APRS-Paket. Der Handbuchsatz „sendet ein APRS-Positionssignal" ist nicht falsch, nur
+  unscharf — MeshCom-Positionen **sind** APRS-Format, sie laufen nur über den Mesh-Kanal.
+  ⇒ Unsere Knöpfe nennen das Ziel jetzt in einer zweiten Zeile (`Pos → …`, `APRS, ?MeshCom`).
+- **`MESH` schaltet das Weiterreichen**, nicht die Netzteilnahme: `via_functions.cpp`
+  („by default, every received packet is forwarded to the LoRa transmitter"); `checkMesh()`
+  liefert `false` für alles, solange `bMESH` aus ist. Aus heißt: der Knoten sendet und
+  empfängt weiter für sich, trägt aber **nichts für andere**. Ein **Gateway mit MESH aus**
+  ist deshalb eine Internet-Brücke, die auf HF nichts wiederholt.
+  ⇒ Knopf trägt jetzt „repeats for others" / „does not repeat" (im Feld bestätigt, DL9SAU
+  2026-08-27) — bewusst **nicht** „NO MESH": das behauptete, der Knoten sei nicht im Netz.
 - **Server ist Blackbox** (closed source) — er **strippt den Pfad** beim Verteilen
   (Feldbeobachtung). Der hintere Teil `>xxx,DEST` behält dagegen den HF-Teil vor dem Gatewayen.
