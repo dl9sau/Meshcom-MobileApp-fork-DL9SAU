@@ -211,6 +211,14 @@ damit auch ohne Marker-Sprung. Die **Zahl bleibt bewusst weg**: sie sagt „so v
 ungesehene unter dir", und ungesehen ist da nichts mehr — der Trenner sagt „bis hierher
 hattest du gelesen", das ist eine andere Aussage. Der Sprung dorthin ist dagegen richtig und
 tut es jetzt.
+*Feld 2026-08-29 (DL9SAU): „scheint zu funktionieren" — beide Punkte bestätigt.* Dabei eine
+Beobachtung, die **so bleiben soll**: tippt man **sehr kurz** (~100 ms) nach dem Scrollen auf
+den Knopf, reagiert er nicht; etwas später oder beim zweiten Mal schon. Das ist die
+Touch-Oberfläche selbst — der erste Tipp nach einem Fling **stoppt** den Lauf und wird nicht
+als Klick zugestellt, das macht die WebView unabhängig von uns. Bewertung DL9SAU: „ok und
+sogar hilfreich, weil es versehentliches Runterscrollen verhindert, wenn man beim Scrollen
+draufkommt." Also **nicht** wegbauen — und schon gar nicht mit einem eigenen Touch-Handler auf
+dem Knopf, der genau diesen Schutz aushebeln würde.
 *Dabei zwei Dinge nachgezogen:* (1) die neue Nachsetz-Schleife hält jetzt das
 „das war unser Scrollen"-Fenster offen (`markProgScroll` bei jeder Korrektur) — sie kann über
 eine Sekunde laufen, und eine späte Korrektur wäre sonst als *dein* Scrollen ans Ende gelesen
