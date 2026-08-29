@@ -199,6 +199,25 @@ dem Schirm steht**, nicht nach dem Zähler: Marker unter mir → zum Marker; son
 etwas ungesehen ist → eine Seite weiter; sonst → in einem Klick ans Ende. Was man sieht, ist
 das, worauf der Knopf reagiert.
 Offline gegen 10 Fälle geprüft (inklusive des Fling-Falls, an dem die alte Schranke scheitert).
+*Nachtrag DL9SAU, 2026-08-29 („nur zur Info"):* bei Autoscroll **ein** zeigt der Knopf beim
+Hochblättern zum rausgescrollten Marker **keine Zahl** — und (b) habe früher funktioniert,
+„vielleicht aber nur bei Autoscroll aus". Das passt genau zur Diagnose und stützt sie: bei
+**aus** hält die Ansicht am Marker, man steht also nie unten, der Zähler bleibt stehen — die
+Zahl steht da, und mit ihr griff schon immer der „erst zum Marker"-Weg. Bei **ein** steht man
+unten; sobald man einmal aufgeholt hat (selbst runtergescrollt oder das Eingabefeld
+angetippt), ist der Zähler 0, während der Trenner noch nachleuchtet und beim Hochscrollen
+sogar dauerhaft stehenbleibt (die Ausblendung wird pausiert). Marker ohne Zahl, und früher
+damit auch ohne Marker-Sprung. Die **Zahl bleibt bewusst weg**: sie sagt „so viele
+ungesehene unter dir", und ungesehen ist da nichts mehr — der Trenner sagt „bis hierher
+hattest du gelesen", das ist eine andere Aussage. Der Sprung dorthin ist dagegen richtig und
+tut es jetzt.
+*Dabei zwei Dinge nachgezogen:* (1) die neue Nachsetz-Schleife hält jetzt das
+„das war unser Scrollen"-Fenster offen (`markProgScroll` bei jeder Korrektur) — sie kann über
+eine Sekunde laufen, und eine späte Korrektur wäre sonst als *dein* Scrollen ans Ende gelesen
+worden und hätte die Grenze abgeräumt, die wir gerade mitführen. Die alte Drei-Durchgang-
+Fassung lag immer innerhalb des Fensters. (2) Das Abräumen der Grenze steht jetzt **im Log**
+(`reached bottom, N new cleared`) — damit ist im Feld unterscheidbar, ob wirklich eine eigene
+Geste sie geräumt hat oder ein Scroll-Ereignis, das wir nicht als unseres erkannt haben.
 
 **A6 — DM-Tab: gelb (Filter aktiv) verdeckt grün (neue Nachricht)** *(klein)*
 Vorschlag: erst dunkleres Grün probieren; sonst Blinken gelb↔grün ~1 s (nicht flackern).

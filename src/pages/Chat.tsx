@@ -656,6 +656,12 @@ const Tab3: React.FC = () => {
       if ((e.scrollHeight - e.scrollTop - e.clientHeight) <= 2) { settled++; continue; }
       settled = 0;
       if (Date.now() < graceUntil) continue;
+      // keep the "this is OUR scrolling" window open while we correct: the loop may now
+      // run for over a second, and a correction landing after that window would be read
+      // as YOU having scrolled to the bottom - which clears the boundary marker we are
+      // following along with (autoscroll ON). The old three-pass version was over inside
+      // the window and never had to think about it.
+      markProgScroll();
       e.scrollTop = e.scrollHeight;
       fixes++;
     }
@@ -755,6 +761,12 @@ const Tab3: React.FC = () => {
     // only YOUR scrolling counts as "caught up" - our own follow-to-bottom must not wipe
     // the boundary marker it just set (see progScrollUntilRef)
     if (near && Date.now() >= progScrollUntilRef.current) {
+      // Rare enough to be worth a line: this is the ONE place a standing boundary is
+      // dropped by scrolling, and DL9SAU sees the marker without its count often enough
+      // (autoscroll ON, 2026-08-29) that we want to know whether it was really his own
+      // gesture that cleared it, or a scroll event we failed to recognise as ours.
+      const dropped = segUnreadRef.current[segmentFilterRef.current] || 0;
+      if (dropped > 0) LogS.log(0, "Chat - reached bottom, " + dropped + " new cleared");
       segUnreadRef.current[segmentFilterRef.current] = 0; setNewBelow(0); // caught up -> clear
       // arrived at the bottom while a divider is held -> (re)start its fade. Only on the
       // TRANSITION into "near", so jitter at the bottom doesn't keep resetting the timer.
