@@ -11,6 +11,8 @@ Reihenfolge innerhalb der Blöcke = grober Vorschlag, nicht fix.
 > von A5: nach dem Entfernen des Markers wird wieder ans Ende gepinnt), A4 ✅ (Pixel-
 > Rechnerei entfernt). **A3 ✅** — im Feldtest 2026-08-25 bestätigt, siehe unten. **A7 ✅**
 > (2026-08-25 gefunden und gefixt).
+> **Nachtrag 2026-08-29:** der „zweimal drücken“-Rest von A3 kam sporadisch zurück und
+> hatte eine andere Ursache als vermutet → **A11**.
 
 **A1 — `scrollToBottom()` cached ein totes DOM-Element** *(Bug, klein)*
 `bottomRef.current` wird nur neu geholt, wenn es `null` ist. Ersetzt React den Knoten
@@ -162,6 +164,41 @@ Stunde vergehen, während man davorsitzt (beides DL9SAU).
 Offline gegen 10 Fälle geprüft.
 *Feld 2026-08-27 (DL9SAU): „scheint zu funktionieren wie geplant" — vorläufig bestätigt,
 bleibt unter Beobachtung.*
+
+**A11 — ✅ GEBAUT** — Der ↓-Knopf: manchmal zwei Klicks, und er übersprang den Marker
+*(Feldbefund DL9SAU, 2026-08-29)*
+Zwei Beobachtungen, zwei verschiedene Ursachen:
+
+*(a) „ab und zu zweimal drücken“, nicht reproduzierbar.* Nach **einem** Hochscrollen — kurz
+oder weit jenseits der Sichtbarkeit — genügte immer ein Klick; nach **zwei, drei Wischern**
+(hoch, hoch, etwas runter, etwas hoch) plötzlich nicht mehr. Das ist die Signatur von etwas,
+das die Liste **noch bewegt**, während wir sie ans Ende setzen: der Fling der WebView läuft
+nach dem Loslassen weiter und überschreibt jede Zuweisung, bis er ausgelaufen ist.
+`scrollToBottom` hat bisher **dreimal im Abstand von 80 ms** nachgesetzt — nach einer
+Viertelsekunde war Schluss, unter Umständen mitten im Fling. Der zog danach wieder hoch, der
+Knopf blieb stehen, man drückte erneut.
+*Gebaut:* die feste Anzahl Durchgänge ist weg. Nachgesetzt wird, **bis es hält** (zweimal
+hintereinander am Boden) oder ~1,2 s um sind — das überlebt jeden Fling. Eine weiche
+Bewegung (`smooth`) bekommt 350 ms Anlauf, damit das Nachsetzen sie nicht in einen harten
+Schnitt verwandelt. Und **jede Berührung des Bildschirms bricht das Nachsetzen ab**
+(`cancelSettle` in `onContentTouchStart`), ebenso jede andere Positionierung (Segmentwechsel,
+Boundary-Settle): die Schleife kann nie gegen eine gerade begonnene Geste arbeiten. Bleibt es
+wider Erwarten hängen, steht das jetzt **im Log**, statt still zu scheitern.
+*Nachtrag zu A3:* die Erklärung von damals („durch A5 verschwunden“) war zu früh — was
+blieb, war kein Zähl-, sondern ein Timing-Problem, und ein seltenes dazu.
+
+*(b) Der Marker wurde übersprungen.* Weit über den Marker hochgescrollt, ↓ gedrückt → es
+sprang **ganz ans Ende**, statt am Marker zu halten. Erwartet (DL9SAU): Marker ganz oben,
+darunter die neuen Nachrichten, weitere Drücke blättern seitenweise bis zur letzten.
+*Ursache:* der Knopf hing an **zwei** Handlern — Zahl → „erst zum Marker“, Pfeil → „ans
+Ende“ — und die Zahl steht nur, solange `newBelow > 0`. Nach dem Aufholen bleibt der Trenner
+aber noch eine Weile stehen (Linger), da ist der Zähler längst 0: **sichtbarer Marker,
+Pfeil-Verhalten**.
+*Gebaut:* ein Handler für alle Fälle, und er entscheidet nach dem Trenner, der **wirklich auf
+dem Schirm steht**, nicht nach dem Zähler: Marker unter mir → zum Marker; sonst, wenn noch
+etwas ungesehen ist → eine Seite weiter; sonst → in einem Klick ans Ende. Was man sieht, ist
+das, worauf der Knopf reagiert.
+Offline gegen 10 Fälle geprüft (inklusive des Fling-Falls, an dem die alte Schranke scheitert).
 
 **A6 — DM-Tab: gelb (Filter aktiv) verdeckt grün (neue Nachricht)** *(klein)*
 Vorschlag: erst dunkleres Grün probieren; sonst Blinken gelb↔grün ~1 s (nicht flackern).

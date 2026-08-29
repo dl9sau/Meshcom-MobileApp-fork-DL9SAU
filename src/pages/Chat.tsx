@@ -205,6 +205,15 @@ const Tab3: React.FC = () => {
   // reaching the bottom by tapping it SHOULD clear.
   const progScrollUntilRef = useRef<number>(0);
   const markProgScroll = () => { progScrollUntilRef.current = Date.now() + 400; };
+  // Serial number of the newest programmatic positioning. scrollToBottom takes one and
+  // keeps enforcing the bottom only while it is still the newest: YOUR touch, or another
+  // positioning (segment restore, boundary settle), bumps it and the older loop gives up
+  // without a word. That is what keeps the enforcement below from ever fighting a gesture
+  // you have just begun.
+  const settleSeqRef = useRef<number>(0);
+  const cancelSettle = () => { settleSeqRef.current++; };
+  // touching the list means both "you are looking" and "hands off the scrolling"
+  const onContentTouchStart = () => { stampActivity(); cancelSettle(); };
   const DIVIDER_TOP_PAD = 8;   // small gap so the marker isn't flush against the edge
 
   // short in-app beep (Web Audio) - used when you're viewing the very channel a
@@ -620,18 +629,39 @@ const Tab3: React.FC = () => {
   // #bottomRefID in a ref and only ever re-fetched it when null - once React had
   // replaced that node (e.g. after a batch of new messages) the ref pointed at a
   // detached node and scrollIntoView silently did nothing ("pressed the button,
-  // nothing happened"). scrollTop/scrollHeight can't go stale. Several passes
-  // because late layout (wrapping, images) can still grow the content.
+  // nothing happened"). scrollTop/scrollHeight can't go stale.
+  //
+  // ONE TAP HAS TO LAND AT THE BOTTOM. It didn't always: three fixed 80 ms passes are over
+  // after a quarter second, which is not enough while something else is still moving the
+  // list - a WebView fling from a couple of quick swipes keeps overriding whatever we set
+  // until it has decelerated, and a late re-render can grow the content again underneath
+  // us. Both look the same from outside: nothing happened, press again (DL9SAU field test
+  // 2026-08-29, "after two or three swipes suddenly two taps"). So the count of passes is
+  // gone - we enforce the bottom until it STICKS (twice in a row) or ~1.2 s are up, which
+  // outlasts any fling. It stops the instant you touch the screen yourself.
   const scrollToBottom = async (behavior: ScrollBehavior = 'auto') => {
     const el = scrollElRef.current;
     if (!el) return;
+    const token = ++settleSeqRef.current;
     el.scrollTo({ top: el.scrollHeight, behavior });
-    for (let i = 0; i < 3; i++) {
-      await new Promise(r => setTimeout(r, 80));
-      if (!scrollElRef.current) return;
+    // give a smooth scroll time to play out first: assigning scrollTop cancels the
+    // animation, so enforcing right away would turn every glide into a jump cut
+    const graceUntil = Date.now() + (behavior === 'smooth' ? 350 : 0);
+    let settled = 0, fixes = 0;
+    for (let i = 0; i < 24 && settled < 2; i++) {
+      await new Promise(r => setTimeout(r, 50));
+      if (token !== settleSeqRef.current) return;   // your touch, or a newer jump, took over
       const e = scrollElRef.current;
-      if ((e.scrollHeight - e.scrollTop - e.clientHeight) > 2) e.scrollTop = e.scrollHeight;
+      if (!e) return;
+      if ((e.scrollHeight - e.scrollTop - e.clientHeight) <= 2) { settled++; continue; }
+      settled = 0;
+      if (Date.now() < graceUntil) continue;
+      e.scrollTop = e.scrollHeight;
+      fixes++;
     }
+    // silent in the normal case (one correction after the glide); only report a fight
+    if (settled < 2) LogS.log(0, "Chat - jump to bottom did not settle (" + fixes + " tries)");
+    else if (fixes > 1) LogS.log(0, "Chat - jump to bottom took " + fixes + " corrections");
   }
 
   // scrollTop value that would put the "new messages" divider at the very top of the
@@ -660,6 +690,7 @@ const Tab3: React.FC = () => {
     const el = scrollElRef.current;
     if (!el) return;
     markProgScroll();
+    cancelSettle();          // this positioning is the newest intent
     const maxTop = el.scrollHeight - el.clientHeight;
     const dTop = dividerScrollTop();
     if (autoscrollEnabledFor(seg)) {
@@ -692,6 +723,7 @@ const Tab3: React.FC = () => {
     const el = scrollElRef.current;
     if (!el) return;
     markProgScroll();
+    cancelSettle();          // this positioning is the newest intent
     const saved = segScrollRef.current[seg];
     const wasAtBottom = segAtBottomRef.current[seg];
     segUnreadRef.current[seg] = unread;
@@ -743,22 +775,34 @@ const Tab3: React.FC = () => {
     scrollToBottom('smooth');
   }
 
-  // the ↓ button when it shows a COUNT. Boundary still below you -> go there first, so
-  // you read the new block top-to-bottom with the marker at the top. Otherwise page down
-  // ONE screen per tap (with a little overlap for context) instead of jumping to the end:
-  // with a long block you want to read through it, not skip it. The count deliberately
-  // stays put while paging (no recalculation, no flicker) and the marker keeps sitting at
-  // the boundary even once it is above the viewport, so scrolling back up still shows the
-  // context. Reaching the bottom clears both (onContentScroll).
+  // THE ↓ BUTTON. One handler for every case, decided in this order:
+  //   marker BELOW you   -> stop AT the marker, at the top of the screen, with the new
+  //                         block underneath it: you read it from its beginning. This is
+  //                         also the way back when you had scrolled far up past it.
+  //   something unseen   -> page down ONE screen per tap (with a little overlap for
+  //                         context) instead of skipping to the end: with a long block you
+  //                         want to read through it. The count stays put while paging (no
+  //                         recalculation, no flicker) and the marker keeps sitting at the
+  //                         boundary even above the viewport, so scrolling back up still
+  //                         shows the context. The bottom clears both (onContentScroll).
+  //   nothing unseen     -> straight to the newest, a single tap.
+  // The first case is decided by the marker that is actually ON SCREEN, no longer by the
+  // live unseen count: while the marker lingers after you caught up, that count is already
+  // 0 and the button then jumped to the very end although the marker sat right there in
+  // view (DL9SAU field test 2026-08-29). What you see is what the button acts on.
   const jumpToNewOrBottom = () => {
     const el = scrollElRef.current;
     if (!el) { jumpToLatest(); return; }
     const maxTop = el.scrollHeight - el.clientHeight;
     const dTop = dividerScrollTop();
     if (dTop !== null && dTop > el.scrollTop + 8) {
+      cancelSettle();
       el.scrollTo({ top: Math.min(maxTop, Math.max(0, dTop - DIVIDER_TOP_PAD)), behavior: 'smooth' });
       return;
     }
+    // no marker below and nothing unseen: paging would be busywork - go to the newest
+    if (newBelow <= 0) { jumpToLatest(); return; }
+    cancelSettle();
     const next = Math.min(maxTop, el.scrollTop + Math.max(120, el.clientHeight - 48));
     el.scrollTo({ top: next, behavior: 'smooth' });
   }
@@ -1821,13 +1865,14 @@ const Tab3: React.FC = () => {
             />
           </IonToolbar>}
       </IonHeader>
-      <IonContent className="ion-padding" ref={contentRef} scrollEvents={true} onIonScroll={onContentScroll} onTouchStart={stampActivity}>
+      <IonContent className="ion-padding" ref={contentRef} scrollEvents={true} onIonScroll={onContentScroll} onTouchStart={onContentTouchStart}>
         {showJump &&
           <IonFab slot="fixed" vertical="bottom" horizontal="end">
-            <IonFabButton size="small" color="primary" onClick={newBelow > 0 ? jumpToNewOrBottom : jumpToLatest} title="Neue Nachrichten">
+            <IonFabButton size="small" color="primary" onClick={jumpToNewOrBottom} title="Neue Nachrichten">
               {/* show the count IN the button when new msgs arrived below (a corner
                   badge gets clipped by the round FAB's overflow:hidden), else the arrow.
-                  Count -> jumpToNewOrBottom (first new / then bottom); arrow -> bottom. */}
+                  The handler is the same either way - it looks at where the marker is,
+                  not at which glyph is showing (see jumpToNewOrBottom). */}
               {newBelow > 0
                 ? <span className="jump-count">{newBelow > 99 ? "99+" : newBelow}</span>
                 : <IonIcon icon={arrowDown} />}
