@@ -335,8 +335,10 @@ class DatabaseService {
                             if (hops.length >= 1) {
                                 AdjacencyService.seedPath(ownCall ? [...hops, ownCall] : hops);
                             }
-                            // seed the HF-heard set: a persisted position travelled over
-                            // HF, so all its path nodes are HF-local (globe marker source)
+                            // seed the HF-heard set from a persisted position's path
+                            // (globe marker source). Same known gap as the live path, and
+                            // here we could not filter anyway: the Positions table holds no
+                            // gw column (backlog B9).
                             HfHeardService.mark(hops, p.timestamp);
                             // D1b: positions carry paths too, and they are the bulk of what
                             // fills a relay's observed-sender set

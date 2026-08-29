@@ -242,11 +242,14 @@ export function useMSG() {
                         node_path = route_call_arr; // origin + every relay
                         NodeRuntimeService.setPath(route_call_arr[0], node_hops, node_via);
 
-                        // POSITIONS travel only over HF (not re-injected from the
-                        // internet), so every node in this path is a local HF node ->
-                        // learn them for the globe marker. Positions ONLY (msg_type
-                        // 33 = '!'): text/message paths can carry far relays and are
-                        // not a reliable HF signal.
+                        // A position path is treated as HF-local: every node in it goes
+                        // into the globe marker's "local" evidence. Positions ONLY (msg_type
+                        // 33 = '!'): text/message paths can carry far relays, so those are
+                        // trusted only with gw==0 (see below).
+                        // NOT gw-checked here, and that is a known gap - a gateway does
+                        // re-transmit internet positions on RF by default (backlog B9,
+                        // HfHeardService header). Left as is on purpose: never observed in
+                        // the field, and the filter would cost most of what we learn.
                         if (msg_type === 33) {
                             HfHeardService.mark(route_call_arr, Date.now());
                             // these path nodes are now confirmed HF-local -> ratchet any

@@ -307,6 +307,28 @@ unnötig — die 350 ms bleiben als Rückfallebene für den langsamen Fall.
 (`transform: translateZ(0)` für einen Moment) — dieselbe Idee, nur eine Ebene höher. Erst
 messen, dann nachlegen.
 
+**B9 — Positionen gelten uns als HF-Beleg, obwohl die Firmware sie einspeisen kann**
+*(gefunden 2026-08-29 — **bewusst geparkt**, kein Eingriff)*
+`HfHeardService` lernt HF-lokale Knoten aus den Pfaden **empfangener Positionen**, und
+`MessageHandler.ts:250` füttert ihn dafür **bedingungslos** (`if (msg_type === 33)`) — samt
+`ratchetGlobeToLocal` und `StatsService.notePath(..., true)`. Bei **Text**nachrichten machen
+wir es schon richtig: nur bei `gw == 0` (Zeile 299).
+*Die Annahme dahinter ist widerlegt.* Im Kopf des Dienstes steht „Positions don't get
+re-injected from the internet onto RF (firmware bGATEWAY_NOPOS)" — tatsächlich nimmt ein
+Gateway vom Server **0x3A, 0x21 und 0x40** entgegen und sendet sie standardmäßig auf LoRa aus
+(`udp_functions.cpp:166ff`, `bUDPtoLoraSend = true`), und `bGATEWAY_NOPOS` steht auf **`false`**
+(`loop_functions.cpp:155`) — es ist ein Schalter für den Betreiber, nicht der Normalfall. Alles
+so Eingespeiste trägt `msg_server = true` (ebd. Z. 216), das Kriterium wäre also vorhanden.
+*Entscheidung DL9SAU, 2026-08-29: **merken, nicht machen***. Begründung aus dem Betrieb: er hat
+bisher **nirgends ein Gateway gesehen, das Positionen weiterleitet**. Der Fehler ist damit
+theoretisch belegt, praktisch aber nicht beobachtet — und ein Filter würde den Globus nach dem
+Start spürbar dümmer machen (dort, wo ein Nachbar-Gateway ist, trägt fast jede Position
+`gw=1`). *Die Kommentare im Code sind korrigiert, das Verhalten ist unverändert* — eine falsche
+Begründung stehenzulassen wäre schlimmer als die fehlende Prüfung.
+*Wenn es doch einmal auffällt:* Live-Pfad mit `gw == 0` filtern wie bei Text. Für die
+**Startsaat** aus der DB (`DataBaseService.ts:340`) fehlt das Kriterium — die Tabelle
+`Positions` hat keine gw-Spalte; dann entweder Saat weglassen oder Spalte nachziehen.
+
 ## C · Statistik-Ausbau (MY STATS)
 
 > **Status: Build 3 gebaut (f239bff)** — C1 ✅ C2 ✅ C4 ✅, C3 ⚠️ *eingeschränkt*.
