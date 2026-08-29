@@ -298,11 +298,11 @@ Zurückgesetzt wird per Timer statt `requestAnimationFrame` — die stehengeblie
 Frame-Schleife ist ja genau das, was wir hier vermuten, ein Callback, der nie feuert, ließe
 den Stil stehen. Zweimal (sofort und nach 350 ms), weil das Resume-Ereignis vor der Fläche da
 sein kann; das kostet zwei Stil-Schreibvorgänge.
-*Feld 2026-08-29 (DL9SAU): wirkt.* Der Inhalt kommt **ohne Antippen** von selbst zurück, nach
-gefühlt einer halben bis einer Sekunde. Die Verzögerung sagt, dass meist erst der **zweite**
-Anstoß (350 ms) greift — beim ersten ist die Fläche offenbar noch nicht bereit, oder das
-Resume-Ereignis kommt selbst spät. Ließe sich mit einem dritten Durchgang dazwischen (~150 ms)
-verkürzen; bisher nicht nötig.
+*Feld 2026-08-29 (DL9SAU): wirkt.* Der Inhalt kommt **ohne Antippen** von selbst zurück — der
+erste Versuch lag gefühlt bei einer halben Sekunde, die weiteren bei **100–200 ms**. Damit
+greift in aller Regel schon der **erste** Anstoß, und der Ausreißer am Anfang war das
+Resume-Ereignis selbst, nicht unser Takt. Ein dritter Durchgang dazwischen wäre also
+unnötig — die 350 ms bleiben als Rückfallebene für den langsamen Fall.
 *Wenn es im Feld nicht reicht:* die nächste Stufe wäre ein Anstoß am Wurzelelement
 (`transform: translateZ(0)` für einen Moment) — dieselbe Idee, nur eine Ebene höher. Erst
 messen, dann nachlegen.
