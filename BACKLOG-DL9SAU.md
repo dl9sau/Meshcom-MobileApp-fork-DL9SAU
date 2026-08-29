@@ -712,6 +712,47 @@ Testern nicht das Log zumüllen. **Jetzt noch nicht** — erst wenn wir größer
 Testen haben. Die anstehende Diagnose für D1b/D3/D4 wird stattdessen als **separater
 Commit** geführt, den DL9SAU nur lokal einspielt, solange er das Gerät hat.
 
+## G · Upstream (Rainer) — was dort passiert
+
+**G1 — Upstream baut die Chat-Seite um: Kanalliste statt Segment-Tabs**
+*(`b8189cf`, 2026-08-29 — **Entscheidung vertagt**)*
+Ein Commit, neun Dateien. Vier Dinge:
+1. **Kanalliste als Hauptseite.** Tabs weg; Liste („To All Channel", „Direct Messages",
+   „Group 232"…), Antippen öffnet den Kanal, Zurück-Pfeil oben links, Kanalname im Titel.
+   `segmentFilter` → `activeChatFilter`, zusätzlich `null` = Liste. Je Zeile ein
+   Lautsprecher-Knopf (Ton an/aus, neue Tabelle `ChatSettings`) und ein Brief-Symbol für
+   „ungesehen" (`unseenFlags`, ein Boolean je Kanal).
+2. **MapOverlay:** Sensorwerte nur noch zeigen, wenn belegt (kein „n.a."-Zeilensalat),
+   *Close* immer sichtbar.
+3. **`capacitor.config.ts`:** LocalNotifications mit `smallIcon`, `iconColor`, `sound`,
+   `presentationOptions`.
+4. Abhängigkeiten aktualisiert.
+
+*Merge trocken gerechnet:* **sechs Konflikte**, sauber durch geht nur `capacitor.config.ts`
+(`Chat.tsx`, `Chat.css`, `DataBaseService.ts`, `MapOverlay.tsx`, `package.json`,
+`package-lock.json` — letztere haben wir gelöscht, er hat sie geändert).
+
+*Erste Einschätzung war zu düster, korrigiert:* Die schwere Arbeit bleibt **unberührt** —
+Marker, Trenner, Sprung-Knopf, Autoscroll, Suche, A8-Sortierung, Resend, Scroll-Gedächtnis
+und die Zähler hängen an einem **Kanalstring**, und den behält er. Sein Diff wickelt unseren
+Nachrichtenblock nur in eine Bedingung. „Kanal verlassen" ist für uns nichts Neues, das ist
+derselbe Fall wie ein Segmentwechsel. Wirklich am Tab hängt allein **`renderTab`** (~25
+Zeilen): 🔔 stumm, 👁 DM-Alle, Ausgrauen verworfener Kanäle, Gelb bei aktivem Filter, und der
+Lange-Druck fürs Kanalmenü. In einer Listenzeile wäre das **besser** aufgehoben — dort passt
+eine Zahl hin, wo auf dem Tab nur ein Punkt Platz hatte, und der Lange-Druck wäre auffindbar
+statt versteckt. Sein Lautsprecher und unsere Glocke sind ohnehin dieselbe Sache, zweimal
+gebaut (er in `ChatSettings`, wir in `NotifyPrefs` mit Mute **und** Discard).
+
+*Entscheidung DL9SAU, 2026-08-29: **vertagt**, und zwar mit gutem Grund* — er kann sich die
+Liste als Bedienkonzept bildhaft nicht vorstellen, und sobald Rainer veröffentlicht, kommt sie
+über den App Store auf sein **iOS**-Gerät. Dort schaut er sie sich an, ohne am
+Entwicklungs-Android herumzuexperimentieren. Also: **nichts übernehmen, nichts umbauen,
+warten.**
+*Jederzeit einzeln pflückbar, unabhängig von der Entscheidung:* das Notification-Icon (ohne
+`smallIcon` zeigt Android ein generisches) und die MapOverlay-Aufräumung.
+
+---
+
 ## E · Firmware-Wünsche (an das FIRMWARE-Team, icssw)
 
 > Achtung, nicht verwechseln: **Rainer ist der Autor der APP** (Upstream unseres Forks) —
