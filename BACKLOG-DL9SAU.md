@@ -269,6 +269,24 @@ Call (ein **zweiter eigener Knoten** ist von hier aus eine fremde Station und so
 
 ---
 
+**B8 — Weißer Bildschirm nach kurzem Hintergrund** *(alt, Feldbefund DL9SAU 2026-08-29 — geparkt)*
+Holt man die App nach einem kurzen Ausflug (anderes Programm) wieder nach vorn, ist der
+Inhalt **manchmal weiß**. Ein Tipp auf den Bildschirm — mehr nicht — und der Kanal ist wieder
+da, **ohne** zu scrollen, die „new messages"-Marker stehen weiter, wo sie standen.
+*Was das sagt:* der DOM ist heil und der Zustand auch — ein Tipp verändert schließlich nichts,
+er erzwingt nur ein Neuzeichnen. Es ist also kein Reload und kein Zustandsverlust, sondern die
+Android-WebView, deren komponierte Ebene beim Zurückkommen nicht neu gemalt wird. Genau
+deshalb fällt es auch niemandem im Code auf: es ist unterhalb von React.
+*Kandidat:* ein Anstoß zum Neuzeichnen in `App.tsx:120` (`appStateChange`, `isActive === true`)
+— eine unsichtbare Stiländerung an `document.body` (z. B. `opacity: 0.999` für ein Frame), die
+die Ebene für ungültig erklärt.
+**Was hier NICHT gebaut werden darf:** der verbreitete `window.scrollBy(0,1)`-Trick und alles,
+was `display: none` kurz setzt — Ersteres verschiebt den Chat, Letzteres wirft die
+Scrollposition der inneren Liste weg. Beides zerstört genau das Verhalten, das oben gelobt
+wird (Position und Marker bleiben stehen).
+*Geparkt, nicht vergessen:* nicht in denselben Build wie die Scroll-Änderungen (A11), sonst
+ist im Feldtest nicht mehr auseinanderzuhalten, was woher kommt.
+
 ## C · Statistik-Ausbau (MY STATS)
 
 > **Status: Build 3 gebaut (f239bff)** — C1 ✅ C2 ✅ C4 ✅, C3 ⚠️ *eingeschränkt*.
