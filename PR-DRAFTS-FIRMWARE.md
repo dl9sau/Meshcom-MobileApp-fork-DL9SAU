@@ -249,12 +249,13 @@ eine Überschreitung das JSON **abschneiden** und damit unbrauchbar machen würd
 
 | PR | Branch | Commit | Gebaut | Eingereicht |
 |---|---|---|---|---|
-| 1 | `fix/mheard-ble-buffer-guard` | `a0d2475` | ✅ | ✅ **#1090 — gemerged in `dev`** |
-| 2 | `feat/mh-json-src-gw` | `c04ed7b` | ✅ | ✅ **#1091 — gemerged in `dev`** |
-| 4 | `feat/info-json-flash-version` | `ae15bb7` | ✅ | ✅ **#1092 — aufgegriffen, s. u.** |
-| 3 | `feat/mh-json-hey-path` | `fff4010` | ✅ | ✅ **#1093** |
+| 1 | `fix/mheard-ble-buffer-guard` | `a0d2475` | ✅ | #1090 gemerged → **zurückgenommen (#1107)** |
+| 2 | `feat/mh-json-src-gw` | `c04ed7b` | ✅ | #1091 gemerged → **zurückgenommen (#1106)** |
+| 4 | `feat/info-json-flash-version` | `ae15bb7` | ✅ | #1092 gemerged → **wieder entfernt**, s. u. |
+| 3 | `feat/mh-json-hey-path` | `fff4010` | ✅ | #1093 gemerged → **zurückgenommen (#1105)** |
 
-*(#1090–#1092 am 2026-08-24, #1093 am 2026-08-25 — alle gegen `dev`, alle warten auf Review)*
+*(eingereicht 2026-08-24/25, alle vier gemergt — und zwischen dem 27. und 29.08. wieder aus
+`dev` entfernt. Was der Grund ist und was daraus folgt, steht unten.)*
 
 Alle vier von `origin/dev` abgezweigt, keiner baut auf einem anderen auf. Je PR:
 
@@ -303,3 +304,71 @@ aufgegriffen, das ist der wesentliche Teil.
 in der App direkt vergleichen und sortieren; `__DATE__` liefert `"Aug 26 2026"` und müsste
 geparst werden (monatsnamen-abhängig, locale-anfällig). Seine Entscheidung — aber es kostet
 nichts, es einmal zu erwähnen.
+
+---
+
+## Rückmeldung 2026-08-29 (Rainer, Autor der App) — und was `dev` dazu sagt
+
+> „Bei den FW-PRs bezüglich MH und Info gab es ein paar Probleme, die wurden zurückgezogen.
+> Beim Info z. B. war das JSON zu lang. Max. Länge ist derzeit 245 Bytes."
+
+**In `origin/dev` nachgesehen (2026-08-29), alle vier sind weg:**
+
+| | |
+|---|---|
+| `17d1796` / PR #1105 | Revert #1093 (`PP`, HEY-Link-Kette) |
+| `dc7d56d` / PR #1106 | Revert #1091 (`SRC`, `GW`) |
+| `c7d5b16` / PR #1107 | Revert #1090 (Puffergrenze) |
+| `82db3d4`, danach entfernt | Kurt hatte `FWDATE` aus #1092 auf ein echtes Compile-Datum umgestellt (`cfwdate` statt `FLASH_VERSION`), DK5EN einen zu kleinen Puffer dafür nachgezogen (`2d7f56b`) — **im heutigen `dev` ist `FWDATE` nicht mehr da**. |
+
+Das MH-JSON in `dev` steht wieder auf `TYP CALL DATE TIME PLT HW MOD RSSI SNR DIST PL MESH
+NCNT`, das `I`-JSON endet wieder bei `BPIN`.
+
+### Die Ursache, im Quelltext
+
+`phone_commands.cpp:69`, wörtlich:
+
+```c
+// MAXIMUM PACKET Length over BLE is 245 (MTU=247 bytes), two get lost, otherwise we need to split it up!
+uint8_t blelen = BLEtoPhoneBuff[toPhoneRead][0];
+```
+
+**Gesplittet wird nicht** — der Satz beschreibt, was man müsste. Und die Länge ist ein
+`uint8_t`: ab 256 Bytes läuft sie über (ein 260-Byte-JSON meldet Länge 4). Die einzige
+Prüfung, `json_len > MAX_MSG_LEN_PHONE - 2` in `command_functions.cpp`, kappt erst bei
+**298** und greift damit zu spät.
+
+### Nachgemessen — die Zahlen erklären beide Fälle
+
+| JSON | Bytes |
+|---|---|
+| `I` heute, typisch | **217** |
+| `I` heute, sechs fünfstellige Gruppen | **243** ← zwei Bytes unter der Decke, **ohne** Ergänzung |
+| `I` + `FWDATE` | 248 / 274 ⇒ **abgeschnitten** |
+| `MH` heute | **155** |
+| `MH` + `SRC` + `GW` (#1091) | **180** |
+| `MH` + `SRC` + `GW` + `PP`, 3 Hops (#1093) | **245** ← genau auf der Kante, bei 4 Hops darüber |
+
+**Für Info ist die Sache damit klar** und deckt sich mit Rainers Auskunft. **Für MH ist es
+eine Vermutung mit Zahlen:** `SRC`+`GW` allein bleiben mit 180 Bytes deutlich darunter — eng
+wird es erst mit `PP`. Gut möglich also, dass #1093 der Auslöser war und #1090/#1091 im selben
+Aufwasch mitgingen. Das ist genau die Frage an Kurt; die Tabelle oben ist die Grundlage dafür.
+
+*Woran man es im Feld sieht:* die App verwirft ein abgeschnittenes JSON still — `MessageHandler`
+prüft `json_str.endsWith("}")` und loggt **„ERROR: JSON String does not end with }"**. Wer
+diese Zeile im Log hat, hat ein zu langes Paket, keinen Verbindungsfehler.
+
+### Was daraus folgt
+
+1. **Keine neuen Feld-PRs, bevor der Split existiert.** Jede weitere Ergänzung am `I`-JSON
+   ist ausgeschlossen — es ist schon voll. Am `MH`-JSON wäre Platz, aber nach vier
+   Rücknahmen wäre der nächste Anlauf ohne geklärte Ursache respektlos gegenüber dem
+   Maintainer.
+2. **Der eigentliche Wunsch ist jetzt ein anderer:** die BLE-Nutzlast splitten (oder
+   wenigstens **hart bei 245 abschneiden statt überlaufen zu lassen**, was ein Fünfzeiler
+   wäre). Das ist die Voraussetzung für alles Weitere — und es ist ein echter Fehler, kein
+   Wunsch: heute genügt ein Knoten mit sechs langen Talkgroup-Nummern, und seine Info kommt
+   nicht mehr an.
+3. **App-seitig ändert sich nichts** — außer, dass **D9 nicht auf ein Release wartet,
+   sondern auf diesen Split**. Der Schätzer (D1/D1b) bleibt auf absehbare Zeit die einzige
+   Quelle für die Gateway-Frage.

@@ -654,10 +654,17 @@ MH-JSON). Solange der nicht da ist, sind D1/D1b das, was wir haben.
 
 ---
 
-**D9 — Umstieg auf die gesicherte Firmware-Auskunft** *(Plan DL9SAU, 2026-08-26)*
-Sobald `SRC`/`GW` im MH-JSON draußen sind (#1091 ist **in `dev` gemerged**), soll die App
-dort, wo sie heute schätzt, die gesicherte Information verwenden — und der alte Pfad soll
-später leicht auffindbar und entfernbar sein.
+**D9 — Umstieg auf die gesicherte Firmware-Auskunft** *(Plan DL9SAU, 2026-08-26 —
+**auf unbestimmte Zeit blockiert**, 2026-08-29)*
+Sobald `SRC`/`GW` im MH-JSON draußen sind, soll die App dort, wo sie heute schätzt, die
+gesicherte Information verwenden — und der alte Pfad soll später leicht auffindbar und
+entfernbar sein.
+> **Stand 2026-08-29: `SRC`/`GW` sind wieder draußen.** #1091 wurde in `dev` **zurückgenommen**
+> (PR #1106), ebenso #1093 (#1105) und #1090 (#1107); `FWDATE` aus #1092 ist über Kurts eigene
+> Fassung ebenfalls wieder verschwunden. Grund ist die **245-Byte-Decke** der BLE-Nutzlast
+> (Block F) — nicht die Idee. Das heißt: **D9 wartet nicht auf ein Release, sondern auf einen
+> Split der BLE-Pakete** (E-Wunsch). Der Schätzer aus D1/D1b ist damit auf absehbare Zeit
+> nicht die Übergangs-, sondern die **einzige** Lösung; nichts davon anfassen.
 *Verfeinerungen gegenüber dem ersten Entwurf:*
 - **Fähigkeit erkennen statt Version vergleichen.** Ob wir `SRC` nutzen können, sagt das
   MH-JSON selbst (`"SRC" in mheard`). Das überlebt Backports, Forks und abweichende
@@ -797,6 +804,21 @@ PRs gehen gegen den **`dev`**-Branch, vorher auf den aktuellen Stand rebasen;
 - **Mheard ist RF-only**: `updateMheard` nur aus `lora_functions.cpp:649`, nie aus dem
   Internet-Pfad ⇒ jeder MH-Eintrag ist Beweis für einen HF-Empfang.
   MH-JSON: `TYP CALL DATE TIME PLT HW MOD RSSI SNR DIST PL MESH NCNT` (CALL = letzter Hop).
+- **BLE-Nutzlast an die App: 245 Bytes, hart, ohne Split** — die Decke, an der unsere vier
+  Firmware-PRs gescheitert sind (Rückmeldung Rainer, 2026-08-29). Im Quelltext wörtlich:
+  `// MAXIMUM PACKET Length over BLE is 245 (MTU=247 bytes), two get lost, otherwise we need
+  to split it up!` (`phone_commands.cpp:69`) — und **gesplittet wird nicht**, der Satz
+  beschreibt, was man müsste. Dazu ist die Länge dort ein `uint8_t blelen`: ab 256 Bytes
+  läuft sie über, ein 260-Byte-JSON meldet Länge 4. Die Prüfung in `command_functions.cpp`
+  kappt erst bei `MAX_MSG_LEN_PHONE - 2` = **298** und greift also **zu spät**.
+  *Nachgemessen (2026-08-29):* das `I`-JSON ist heute schon **217 Bytes** typisch und
+  **243** bei sechs fünfstelligen Gruppen — also im ungünstigen Fall **zwei Bytes** unter der
+  Decke, ohne jede Ergänzung. Mit `FWDATE` sind es 248 bzw. 274 ⇒ abgeschnitten. Das
+  `MH`-JSON hat mehr Luft: **155** heute, **180** mit `SRC`+`GW`, aber **245** mit einem
+  `PP` über drei Hops — genau an der Kante, bei vier Hops darüber.
+  *App-seitig fällt das nicht als Absturz auf:* `MessageHandler` prüft `json_str.endsWith("}")`
+  und verwirft still mit der Logzeile **„ERROR: JSON String does not end with }"** — das ist
+  das Symptom, an dem ein zu langes JSON im Feld erkennbar ist.
 - **Nachrichten sind im Knoten nur RAM** (`ringBuffer[MAX_RING]`, 10–30 Slots), kein Flash.
   Persistiert werden nur Mheard (SD), Zeit (SPIFFS), Settings (NVS). Das Archiv ist die App-DB.
 - **Baken-Intervalle**: `POSINFO_INTERVAL` 30 min, `HEYINFO_INTERVAL` 15 min.
