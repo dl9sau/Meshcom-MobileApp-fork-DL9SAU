@@ -277,7 +277,7 @@ Call (ein **zweiter eigener Knoten** ist von hier aus eine fremde Station und so
 
 ---
 
-**B8 — Weißer Bildschirm nach kurzem Hintergrund** *(alt, Feldbefund DL9SAU 2026-08-29 — geparkt)*
+**B8 — ✅ GEBAUT** — Weißer Bildschirm nach kurzem Hintergrund *(alt, Feldbefund DL9SAU 2026-08-29)*
 Holt man die App nach einem kurzen Ausflug (anderes Programm) wieder nach vorn, ist der
 Inhalt **manchmal weiß**. Ein Tipp auf den Bildschirm — mehr nicht — und der Kanal ist wieder
 da, **ohne** zu scrollen, die „new messages"-Marker stehen weiter, wo sie standen.
@@ -292,8 +292,15 @@ die Ebene für ungültig erklärt.
 was `display: none` kurz setzt — Ersteres verschiebt den Chat, Letzteres wirft die
 Scrollposition der inneren Liste weg. Beides zerstört genau das Verhalten, das oben gelobt
 wird (Position und Marker bleiben stehen).
-*Geparkt, nicht vergessen:* nicht in denselben Build wie die Scroll-Änderungen (A11), sonst
-ist im Feldtest nicht mehr auseinanderzuhalten, was woher kommt.
+*Gebaut* (nach A11, als eigener Build — damit im Feld unterscheidbar bleibt, was woher kommt):
+`App.tsx`, im `appStateChange`-Zweig `isActive`, nur auf dem Gerät (`isPlatform('hybrid')`).
+Zurückgesetzt wird per Timer statt `requestAnimationFrame` — die stehengebliebene
+Frame-Schleife ist ja genau das, was wir hier vermuten, ein Callback, der nie feuert, ließe
+den Stil stehen. Zweimal (sofort und nach 350 ms), weil das Resume-Ereignis vor der Fläche da
+sein kann; das kostet zwei Stil-Schreibvorgänge.
+*Wenn es im Feld nicht reicht:* die nächste Stufe wäre ein Anstoß am Wurzelelement
+(`transform: translateZ(0)` für einen Moment) — dieselbe Idee, nur eine Ebene höher. Erst
+messen, dann nachlegen.
 
 ## C · Statistik-Ausbau (MY STATS)
 

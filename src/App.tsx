@@ -116,6 +116,29 @@ const Appl: React.FC = () => {
     // call init DB
     initDB();
     
+    // COMING BACK FROM THE BACKGROUND, ANDROID SOMETIMES SHOWS A BLANK PAGE.
+    // After a short trip to another app the content is white on return - and a single tap
+    // on the screen brings it back, WITHOUT scrolling and with the "new messages" markers
+    // still where they were (DL9SAU, 2026-08-29). That is the whole diagnosis: a tap
+    // changes nothing, it only forces a repaint, so DOM and state were intact all along.
+    // What was never redrawn is the WebView's composited layer - below anything React can
+    // see, which is why nothing in the app's code looks wrong. So we do what the tap does:
+    // invalidate the layer with an invisible style change.
+    //
+    // NOT the two tricks the web suggests for this: window.scrollBy(0,1) would move the
+    // chat, and toggling display:none would throw away the message list's scroll position.
+    // Both would wreck exactly the behaviour that is right today.
+    //
+    // The revert runs on a timer, not requestAnimationFrame: the stalled frame loop is
+    // precisely what we suspect here, and a callback that never fires would leave the
+    // style behind (invisible, but sloppy). Twice, because the resume event can arrive
+    // before the surface is ready again - it costs two style writes.
+    const repaintNudge = () => {
+      const b = document.body;
+      b.style.opacity = '0.999';
+      setTimeout(() => { b.style.opacity = ''; }, 50);
+    };
+
     // check wether app is in background or not
     App.addListener('appStateChange', ({ isActive }) => {
       console.log('App state changed. Is active?', isActive);
@@ -124,6 +147,10 @@ const Appl: React.FC = () => {
       AppActiveState.update(s => {
         s.active = newAppstate;
       });
+      if (isActive && isPlatform('hybrid')) {   // native app only - a browser tab repaints itself
+        repaintNudge();
+        setTimeout(repaintNudge, 350);
+      }
     });
   }, []);
 
