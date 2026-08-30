@@ -8,6 +8,17 @@ const config: CapacitorConfig = {
     androidScheme: 'https'
   },
   plugins: {
+      // Only the tint here. Upstream (b8189cf) also sets `smallIcon` in this block, but
+      // ours is better placed: the CI builds `ic_stat_notify` from resources/icon.png at
+      // build time (there is no android/ folder in the repo), and every notification names
+      // it explicitly - upstream's `res://drawable/meshcom_logo_32x32_transp_gray` does not
+      // exist here. `sound` is not taken either: on Android O+ the sound comes from the
+      // channel ('banner'/'sound', see Chat.tsx), and iOS gets it per notification.
+      // `presentationOptions` would show iOS banners while the app is in the FOREGROUND -
+      // that contradicts our in-app beep (quiet unless idle, no shade entry).
+      LocalNotifications: {
+        iconColor: '#3578e5',
+      },
       Keyboard: {
         resize: 'ionic',
         resizeOnFullScreen: false,

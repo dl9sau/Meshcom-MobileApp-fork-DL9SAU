@@ -748,8 +748,22 @@ Liste als Bedienkonzept bildhaft nicht vorstellen, und sobald Rainer veröffentl
 über den App Store auf sein **iOS**-Gerät. Dort schaut er sie sich an, ohne am
 Entwicklungs-Android herumzuexperimentieren. Also: **nichts übernehmen, nichts umbauen,
 warten.**
-*Jederzeit einzeln pflückbar, unabhängig von der Entscheidung:* das Notification-Icon (ohne
-`smallIcon` zeigt Android ein generisches) und die MapOverlay-Aufräumung.
+*Nachgesehen 2026-08-30, beide „Kleinigkeiten" geholt — und dabei stellte sich heraus, dass
+wir sie längst haben:*
+- **MapOverlay**: identisch schon bei uns drin. Werte werden bei `0`/`999` unterdrückt
+  (Zeilen 264–270, nur mit Ternär statt `&&`), und *Close* hängt nicht am aufgeklappten
+  Zustand (Z. 281). Nichts zu holen — die Fassungen laufen zusammen, vermutlich hat er es
+  von hier.
+- **Notification-Icon**: bei uns **besser** gelöst. Die CI baut `ic_stat_notify` zur Bauzeit
+  aus `resources/icon.png` (es gibt keinen `android/`-Ordner im Repo), und jede
+  Benachrichtigung nennt es ausdrücklich. Upstreams
+  `res://drawable/meshcom_logo_32x32_transp_gray` existiert hier gar nicht — wörtlich
+  übernommen hätte es auf nichts gezeigt.
+- **Übernommen wurde nur `iconColor`** (Tönung des kleinen Symbols in der Leiste).
+  **`sound` bewusst nicht:** unter Android O+ kommt der Ton vom Kanal (`banner`/`sound`,
+  Chat.tsx), unter iOS setzen wir ihn je Benachrichtigung. **`presentationOptions` bewusst
+  nicht:** das zeigt iOS-Banner, *während* die App im Vordergrund ist — das widerspricht
+  unserem In-App-Piepser (still, außer man war 30 s untätig, und kein Eintrag in der Leiste).
 
 ---
 
