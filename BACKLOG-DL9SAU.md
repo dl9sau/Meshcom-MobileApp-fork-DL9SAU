@@ -807,8 +807,9 @@ belästigte alle Nutzer mit einem Dialog für etwas, das keinen Standort braucht
 Plugin nimmt den alten Weg und fragt Standort. **Belegt** durch DL9SAUs Test am 2026-08-31:
 Standort entzogen → das Plugin fragt erneut, obwohl `androidNeverForLocation: true` gesetzt
 ist. Die Option wirkt also nur auf dem 12+-Pfad, unser Android-9-Gerät kann nichts verlieren.
-*Und noch offen:* Georg soll den Standort einmal **von Hand** erteilen. Erscheinen dann
-Geräte, ist die Diagnose auch von seiner Seite bewiesen.
+*Feld 2026-08-31 (Georg): **bestätigt**, Bluetooth geht.* Damit ist der Handtest mit dem
+Standortrecht hinfällig — die Geräte erscheinen jetzt **ohne** Standortrecht, genau wie es
+der Zusatz verspricht. Die Diagnose ist damit von beiden Seiten belegt.
 
 **H3 — ✅ GEBAUT** — Leere Balken oben und unten ab Android 15
 *Sein Foto:* über der Kanalzeile ein leerer Streifen, unter der Symbolleiste noch einer,
@@ -823,8 +824,9 @@ zielt dorthin, Rainers gepflegtes offenbar niedriger.
 *Gebaut:* `viewport-fit=cover` aus `index.html` entfernt, damit nur noch das Plugin einrückt.
 Dazu protokolliert die CI jetzt `variables.gradle`, damit unser `targetSdk` nicht länger
 unsichtbar ist.
-*Falls es nicht reicht:* der andere Weg wäre, das Plugin **nicht** einrücken zu lassen
-(`EdgeToEdge.disable()`) und Ionic die Ränder allein überlassen. Einer nach dem anderen.
+*Feld 2026-08-31 (Georg): **bestätigt**, „ui ist korrekt".* Die leeren Streifen sind weg, es
+war also wirklich die doppelte Freihaltung. Der zweite Kandidat (`EdgeToEdge.disable()` und
+Ionic die Ränder allein überlassen) wird nicht gebraucht.
 
 **H4 — ✅ GEBAUT** — Die Fehlermeldung schickte in die falsche Richtung
 „Error on BLE Scan! Please enable Location Services and Bluetooth!" erscheint, wenn ein
