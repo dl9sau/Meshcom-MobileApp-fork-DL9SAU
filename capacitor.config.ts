@@ -1,7 +1,13 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'io.ionic.meshcom',
+  // Own package name, NOT upstream's 'io.ionic.meshcom' (which is the Ionic template
+  // namespace anyway). Same id = same app to Android: the fork could only be installed
+  // by uninstalling the original first, which is a hard barrier for testers (field
+  // report, 2026-08-31). With this, both sit side by side.
+  // Cost, once: an existing install stays behind as a separate app and stops getting
+  // updates - settings and the Android notification settings have to be set again.
+  appId: 'de.dl9sau.meshcom',
   appName: 'MeshCom DL9SAU',
   webDir: 'dist',
   server: {

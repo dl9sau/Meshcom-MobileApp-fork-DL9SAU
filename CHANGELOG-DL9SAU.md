@@ -348,9 +348,10 @@ changes of this fork relative to upstream. The in-app version shows
   node is connected a foreground service runs (quiet persistent "MeshCom background"
   notification), so the **BLE connection stays up and no messages are lost** — the
   backlog is delivered when you reopen. It uses the **`location`** service type
-  (honest: MeshCom already uses GPS for beaconing, so beaconing keeps running too);
-  no separate permission prompt — Android already requires the location permission
-  for **BLE scanning**, so the service just reuses that grant (**no tracking**).
+  (honest: MeshCom already uses GPS for beaconing, so beaconing keeps running too)
+  and asks for the location permission when you switch it on — Android refuses a
+  location-type service without it (**no tracking**). On Android 11 and older that
+  grant already exists, because BLE scanning itself requires it there.
   Built on the MIT `@capawesome-team/capacitor-android-foreground-service` plugin.
   *Live* background notifications have a hard limit though — see **Known / parked**.
 - **Keep screen on (monitoring mode)** — *Settings → Advanced Settings*. Keeps the
@@ -369,6 +370,23 @@ changes of this fork relative to upstream. The in-app version shows
   sorts that list by tag name, not by date). The git hash stays in the APK name
   and release title.
 - Real MeshCom icon generated in CI + fork app name **"MeshCom DL9SAU"**.
+- **Own package name `de.dl9sau.meshcom`**, so the fork **installs next to the
+  original app** instead of replacing it — upstream's `io.ionic.meshcom` made Android
+  treat both as the same app, and testers had to uninstall the official one first.
+  One-time cost when moving from an older fork build: the old install stays behind as
+  a separate app and receives no further updates, and settings (including the Android
+  notification settings) have to be made again. The message database is not carried
+  over either.
+- **BLE scanning works on Android 12 and newer.** The scan permission is now declared
+  as `neverForLocation`, matching what the app already told the Bluetooth plugin.
+  Without it Android silently withheld every scan result unless the location
+  permission was granted — the app asked only for "Nearby devices", so the device
+  list simply stayed **empty, without any error**. Android 11 and older are
+  unaffected (they have no such permission and keep asking for location).
+- **No more empty bars above and below the app on Android 15+.** The system-bar area
+  was reserved twice — once by the edge-to-edge plugin, which insets the web view
+  itself, and once by Ionic, which added safe-area padding to header and tab bar
+  because of `viewport-fit=cover`. The latter is gone.
 - **About / Open Source Licenses** on the Info tab: author credit
   (*Thomas Osterried DL9SAU &lt;dl9sau@darc.de&gt;*), links to the fork, the
   upstream app (rainerfritz), the MeshCom project and the MIT firmware, plus an

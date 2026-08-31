@@ -73,8 +73,27 @@ jobs:
           add_perm android.permission.FOREGROUND_SERVICE
           add_perm android.permission.FOREGROUND_SERVICE_LOCATION
           add_perm android.permission.WAKE_LOCK
+          # BLE SCANNING ON ANDROID 12+. The bluetooth-le plugin declares BLUETOOTH_SCAN
+          # WITHOUT android:usesPermissionFlags="neverForLocation", so Android hands over
+          # scan results only while location permission is granted - but our code calls
+          # initialize({ androidNeverForLocation: true }), so the plugin never asks for it.
+          # The scan then runs cleanly and finds NOTHING, silently (field report Android 16,
+          # 2026-08-31: "permission granted, no devices"; a declined permission would raise
+          # an error instead - two different failure pictures, two branches). Declaring it
+          # here, in the higher-priority app manifest, makes the declaration match the code.
+          # Inert on Android 11 and older: BLUETOOTH_SCAN does not exist there, the plugin
+          # takes the legacy path and asks for location, as it does today (verified on a
+          # 2026-08-31 Android 9 device).
+          grep -q "BLUETOOTH_SCAN" "$MANIFEST" || sed -i "s#</manifest>#    <uses-permission android:name=\"android.permission.BLUETOOTH_SCAN\" android:usesPermissionFlags=\"neverForLocation\" />\n</manifest>#" "$MANIFEST"
           echo "----- manifest uses-permission -----"
           grep -n "uses-permission" "$MANIFEST" || true
+
+      # Which SDK levels does the freshly generated project use? From targetSdk 35 on,
+      # Android 15+ switches edge-to-edge on by itself - that is the number the tester's
+      # bar report hangs on, and we generate the native project fresh every run, so it is
+      # not visible anywhere in the repo.
+      - name: Show generated SDK levels
+        run: cat android/variables.gradle
 
       # replace the default Capacitor icon with the real MeshCom icon
       # (@capacitor/assets reads assets/icon.png + splash*.png)

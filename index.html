@@ -7,9 +7,16 @@
     <base href="/" />
     
     <meta name="color-scheme" content="light dark" />
+    <!-- NO viewport-fit=cover here, on purpose: the edge-to-edge plugin already insets
+         the web view itself ("applies insets to the web view automatically once
+         installed"), and viewport-fit=cover made Ionic add env(safe-area-inset-*) padding
+         to header and tab bar ON TOP of that. The result was an empty duplicate strip
+         above the channel row and below the tab bar, one system-bar high each (field
+         report with photo, Android 16, 2026-08-31). Shows only where Android 15+ enforces
+         edge-to-edge (targetSdk >= 35) - which is why older builds never had it. -->
     <meta
       name="viewport"
-      content="viewport-fit=cover, width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no"
+      content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
     <meta name="format-detection" content="telephone=no" />
     <meta name="msapplication-tap-highlight" content="no" />

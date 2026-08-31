@@ -451,7 +451,16 @@ const Tab1: React.FC = () => {
       setAlHeader("Error on BLE Scan!");
       const err_msg = (error as Error).message;
       if(err_msg.includes("Permission")){
-        setAlMsg("Please enable Location Services and Bluetooth!");
+        // A "Permission" error means a RIGHT was declined, not that a system service is
+        // off - the old text sent people to the location switch while their problem was
+        // the dialog they had just tapped away (DL9SAU, 2026-08-31). Which right it is
+        // depends on the Android version: from 12 on the app asks for "Nearby devices",
+        // before that Android knows no such permission and location is the only key that
+        // exists for a BLE scan. The service switch is a separate matter and is handled
+        // right below - checkLocSettingAndroid opens the settings only if it is really off.
+        setAlMsg("A permission for scanning was declined. Please grant it in the app "
+               + "settings - \"Nearby devices\" on Android 12 and newer, \"Location\" on "
+               + "older versions - then scan again.");
         if(pltfrm.current === "android"){
           // check if location services are enabled
           checkLocSettingAndroid();

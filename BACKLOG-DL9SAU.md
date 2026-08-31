@@ -767,6 +767,80 @@ wir sie längst haben:*
 
 ---
 
+## H · Erstes fremdes Tester-Feedback (Georg, Android 16, 2026-08-31)
+
+> Der erste Tester außerhalb des Entwicklungsgeräts. Er nutzte **unser CI-APK** und daneben
+> die **frisch aus dem Play Store installierte** Originalversion — und die entspricht dem
+> Quelltext, von dem der Fork ausging. Gleicher Quelltext, verschiedenes Verhalten.
+
+**Die gemeinsame Ursache aller drei Punkte: das native Android-Projekt.** Rainers `android/`-
+Ordner liegt **nicht im Git**; er pflegt ihn von Hand, wir erzeugen ihn bei jedem CI-Lauf neu
+mit den Voreinstellungen von Capacitor 8. **Jede native Reparatur, die er dort einmal
+vorgenommen hat, ist für uns unsichtbar und muss in der CI nachgebaut werden.** Das gilt über
+diesen Fall hinaus — beim nächsten „bei ihm geht's, bei uns nicht" zuerst hier suchen.
+
+**H1 — ✅ GEBAUT** — Gleicher Paketname wie das Original → nur eine App installierbar
+Beide auf `io.ionic.meshcom` (der Namensraum der Ionic-Vorlage, weder seiner noch unserer).
+Android hält beide für dieselbe App: Der Tester musste erst das Original deinstallieren.
+*Gebaut:* `de.dl9sau.meshcom` in `capacitor.config.ts` — die einzige Fundstelle im Repo.
+*Preis, einmalig (DL9SAU vor dem GO abgewogen):* die bestehende Installation bleibt als eigene
+App liegen, bekommt keine Updates mehr, Einstellungen und Android-Benachrichtigungs-
+einstellungen sind neu zu setzen. Die DB ist ihm egal.
+
+**H2 — ✅ GEBAUT** — Kein einziges BLE-Gerät auf Android 16
+*Der Beweis lag im Unterschied der beiden Fehlerbilder:* Bei DL9SAU (Android 9) **knallt** es
+— „Error on BLE Scan!" —, sobald er den Standort entzieht. Bei Georg (Android 16) **schweigt**
+es: Rechte erteilt, Scan läuft, keine Geräte. Zwei Bilder, zwei Zweige desselben Plugins.
+*Ursache:* Das Plugin deklariert `BLUETOOTH_SCAN` **ohne**
+`android:usesPermissionFlags="neverForLocation"` (im Manifest des Plugins nachgesehen). Ab
+Android 12 liefert das System Scan-Ergebnisse dann nur bei erteiltem Standortrecht — unser
+Code ruft aber `initialize({ androidNeverForLocation: true })` und fragt es deshalb nie an.
+Ergebnis: alles sieht erlaubt aus, der Scan findet still nichts. Und unser eigener
+Standort-Dialog (Vordergrunddienst) kommt erst **nach** einer bestehenden Verbindung — eine
+Sackgasse.
+*Gebaut:* die CI trägt `BLUETOOTH_SCAN` **mit** dem Zusatz ins App-Manifest ein (höhere
+Priorität als das Plugin-Manifest, kein Merge-Konflikt, da das Plugin kein Flag setzt).
+*Warum nicht Georgs Vorschlag „Standort dynamisch anfragen":* Unser Code **behauptet** bereits
+„nicht zur Ortung" — der Zusatz löst die Behauptung ein, der andere Weg nähme sie zurück und
+belästigte alle Nutzer mit einem Dialog für etwas, das keinen Standort braucht.
+*Für Android ≤ 11 ist der Zusatz wirkungslos* — dort gibt es `BLUETOOTH_SCAN` nicht, das
+Plugin nimmt den alten Weg und fragt Standort. **Belegt** durch DL9SAUs Test am 2026-08-31:
+Standort entzogen → das Plugin fragt erneut, obwohl `androidNeverForLocation: true` gesetzt
+ist. Die Option wirkt also nur auf dem 12+-Pfad, unser Android-9-Gerät kann nichts verlieren.
+*Und noch offen:* Georg soll den Standort einmal **von Hand** erteilen. Erscheinen dann
+Geräte, ist die Diagnose auch von seiner Seite bewiesen.
+
+**H3 — ✅ GEBAUT** — Leere Balken oben und unten ab Android 15
+*Sein Foto:* über der Kanalzeile ein leerer Streifen, unter der Symbolleiste noch einer,
+beide genau eine Systemleisten-Höhe hoch und im selben Fast-Schwarz wie Kopf- und Fußleiste.
+*Ursache: der Rand wird doppelt freigehalten.* Das Edge-to-Edge-Plugin rückt laut eigenem
+README den WebView **selbst** ein („applies insets to the web view automatically once
+installed" — Zweck: „preserve the traditional app behavior"), und obendrein legt **Ionic**
+wegen `viewport-fit=cover` in Kopf- und Fußleiste `env(safe-area-inset-*)` drauf.
+*Sichtbar nur ab `targetSdk 35`*, weil Android 15+ Edge-to-Edge erst dann von selbst
+einschaltet (so auch der Verweis, den Georg mitschickte) — unser frisch erzeugtes Projekt
+zielt dorthin, Rainers gepflegtes offenbar niedriger.
+*Gebaut:* `viewport-fit=cover` aus `index.html` entfernt, damit nur noch das Plugin einrückt.
+Dazu protokolliert die CI jetzt `variables.gradle`, damit unser `targetSdk` nicht länger
+unsichtbar ist.
+*Falls es nicht reicht:* der andere Weg wäre, das Plugin **nicht** einrücken zu lassen
+(`EdgeToEdge.disable()`) und Ionic die Ränder allein überlassen. Einer nach dem anderen.
+
+**H4 — ✅ GEBAUT** — Die Fehlermeldung schickte in die falsche Richtung
+„Error on BLE Scan! Please enable Location Services and Bluetooth!" erscheint, wenn ein
+**Recht** abgelehnt wurde — riet aber, die **Dienste** einzuschalten. Bei DL9SAU waren die
+Ortungsdienste an, er hatte nur den Dialog weggetippt. Jetzt nennt die Meldung das Recht und
+den Ort, wo man es erteilt, und unterscheidet nach Android-Version („Nearby devices" ab 12,
+„Location" davor). Der Dienste-Schalter bleibt getrennt behandelt: `checkLocSettingAndroid()`
+öffnet die Einstellungen nur, wenn er wirklich aus ist.
+*Nicht anfassbar:* der deutschsprachige Dialog „MeshCom erlauben, den Gerätestandort
+abzurufen?" ist **Android**. Seinen Wortlaut steuert man nicht, man steuert nur, **welches
+Recht** man anfragt — ab Android 12 ist das „Geräte in der Nähe", davor kennt das System für
+BLE-Scans nur den Standort. Dort bleibt die Frage sachlich unpassend und alternativlos; der
+einzige verbliebene Hebel wäre eine eigene Begründungsseite davor.
+
+---
+
 ## E · Firmware-Wünsche (an das FIRMWARE-Team, icssw)
 
 > Achtung, nicht verwechseln: **Rainer ist der Autor der APP** (Upstream unseres Forks) —
