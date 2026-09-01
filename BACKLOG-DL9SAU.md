@@ -786,6 +786,17 @@ Android hält beide für dieselbe App: Der Tester musste erst das Original deins
 *Preis, einmalig (DL9SAU vor dem GO abgewogen):* die bestehende Installation bleibt als eigene
 App liegen, bekommt keine Updates mehr, Einstellungen und Android-Benachrichtigungs-
 einstellungen sind neu zu setzen. Die DB ist ihm egal.
+*Was dabei zu harmlos formuliert war — und ihn prompt traf (2026-09-01):* **der BLE-PIN liegt in
+der DB.** Nach dem Verbinden schickt die App einen „Hello"-Block; mit gespeichertem PIN als
+36 Byte mit SHA-256 des Codes, ohne als schlichte 4 Byte (`Connect.tsx:707ff`). Hat der Knoten
+einen BT-Code gesetzt, **weist er den schlichten Hello ab** — Verbindung kommt zustande, Knoten
+trennt, „Node disconnected". Die eine Einstellung also, ohne die man gar nicht erst hereinkommt.
+*Reparatur:* Schlüssel-Knopf neben dem Gerät auf der Connect-Seite, sechsstelligen Code
+eintragen. Solange man **nicht** verbunden ist, wird er nur lokal abgelegt — `--btcode` geht
+nur an einen verbundenen Knoten (`savePinModal`), die Node-Einstellung bleibt unangetastet.
+*Gebaut:* der Hinweis steht jetzt **in der Trennmeldung selbst** (alle drei Fundstellen:
+Connect, Settings, Chat) — „If your node has a BLE PIN set, enter it with the key icon next to
+the device name." Wer die Meldung sieht, liest damit auch, was zu tun ist (DL9SAU).
 
 **H2 — ✅ GEBAUT** — Kein einziges BLE-Gerät auf Android 16
 *Der Beweis lag im Unterschied der beiden Fehlerbilder:* Bei DL9SAU (Android 9) **knallt** es

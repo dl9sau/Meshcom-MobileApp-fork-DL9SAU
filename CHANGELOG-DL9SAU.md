@@ -376,7 +376,10 @@ changes of this fork relative to upstream. The in-app version shows
   One-time cost when moving from an older fork build: the old install stays behind as
   a separate app and receives no further updates, and settings (including the Android
   notification settings) have to be made again. The message database is not carried
-  over either.
+  over either — **and with it the stored BLE PIN**: if your node has a BLE code set,
+  the first connection attempt ends in "Node disconnected" until you re-enter the code
+  with the **key icon** next to the device name on the Connect page. That hint is now
+  part of the disconnect message.
 - **BLE scanning works on Android 12 and newer.** The scan permission is now declared
   as `neverForLocation`, matching what the app already told the Bluetooth plugin.
   Without it Android silently withheld every scan result unless the location

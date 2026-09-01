@@ -1896,7 +1896,7 @@ const Tab3: React.FC = () => {
           isOpen={shDiscoCard}
           onDidDismiss={() => redirectConnect()}
           header="BLE Disconnect"
-          message="Node disconnected! Auto-Reconnect is disabled currently."
+          message="Node disconnected! Auto-Reconnect is disabled currently. If your node has a BLE PIN set, enter it with the key icon next to the device name."
           buttons={[
             {
               text: "OK"
