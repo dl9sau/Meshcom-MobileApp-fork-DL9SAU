@@ -835,6 +835,12 @@ zielt dorthin, Rainers gepflegtes offenbar niedriger.
 *Gebaut:* `viewport-fit=cover` aus `index.html` entfernt, damit nur noch das Plugin einrückt.
 Dazu protokolliert die CI jetzt `variables.gradle`, damit unser `targetSdk` nicht länger
 unsichtbar ist.
+*Und die Zahl ist da (CI-Log, 2026-09-01):* `minSdkVersion = 24`, `compileSdkVersion = 36`,
+**`targetSdkVersion = 36`**. Damit ist die Erklärung geschlossen — ab 35 schaltet Android 15+
+Edge-to-Edge von selbst ein, wir liegen darüber, Rainers gepflegtes Projekt offenbar darunter.
+*Wichtig für später:* bei `targetSdk 36` gibt es **keinen Rückweg** — die Ausnahme
+`windowOptOutEdgeToEdgeEnforcement` ignoriert Android 16 für Apps, die auf 36 zielen. Ränder
+richtig zu behandeln ist also keine Geschmacksfrage mehr, sondern der einzige Weg.
 *Feld 2026-08-31 (Georg): **bestätigt**, „ui ist korrekt".* Die leeren Streifen sind weg, es
 war also wirklich die doppelte Freihaltung. Der zweite Kandidat (`EdgeToEdge.disable()` und
 Ionic die Ränder allein überlassen) wird nicht gebraucht.
